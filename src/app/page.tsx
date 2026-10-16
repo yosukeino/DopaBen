@@ -32,6 +32,221 @@ import { SkillHackModal } from "@/components/SkillHackModal";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
 
+interface TwinkleParticle {
+  id: number;
+  symbol: string;
+  top?: string;
+  bottom?: string;
+  left?: string;
+  right?: string;
+  color: string;
+  size: string;
+  delay: string;
+  dur: string;
+  tx: string;
+  ty: string;
+}
+
+// ロゴ周辺でキラキラ弾ける『ドパベン』トゥインクル粒子（✦・★・⚡・🍀）
+const LOGO_TWINKLE_PARTICLES: TwinkleParticle[] = [
+  {
+    id: 1,
+    symbol: "✦",
+    top: "-4px",
+    left: "8%",
+    color: "text-[#FBFF12] drop-shadow-[0_0_8px_rgba(251,255,18,0.95)]",
+    size: "text-base",
+    delay: "0s",
+    dur: "2.0s",
+    tx: "-8px",
+    ty: "-10px",
+  },
+  {
+    id: 2,
+    symbol: "★",
+    top: "-8px",
+    left: "43%",
+    color: "text-[#FF206E] drop-shadow-[0_0_10px_rgba(255,32,110,1)]",
+    size: "text-sm",
+    delay: "0.35s",
+    dur: "1.8s",
+    tx: "5px",
+    ty: "-12px",
+  },
+  {
+    id: 3,
+    symbol: "✦",
+    top: "2px",
+    right: "10%",
+    color: "text-[#41EAD4] drop-shadow-[0_0_9px_rgba(65,234,212,0.95)]",
+    size: "text-base",
+    delay: "0.7s",
+    dur: "2.2s",
+    tx: "10px",
+    ty: "-8px",
+  },
+  {
+    id: 4,
+    symbol: "⚡",
+    top: "32%",
+    left: "1%",
+    color: "text-[#FBFF12] drop-shadow-[0_0_8px_rgba(251,255,18,0.95)]",
+    size: "text-xs",
+    delay: "1.1s",
+    dur: "1.9s",
+    tx: "-10px",
+    ty: "-2px",
+  },
+  {
+    id: 5,
+    symbol: "✦",
+    top: "38%",
+    right: "1%",
+    color: "text-white drop-shadow-[0_0_9px_rgba(255,255,255,1)]",
+    size: "text-sm",
+    delay: "0.5s",
+    dur: "2.3s",
+    tx: "11px",
+    ty: "4px",
+  },
+  {
+    id: 6,
+    symbol: "★",
+    bottom: "0px",
+    left: "18%",
+    color: "text-[#41EAD4] drop-shadow-[0_0_8px_rgba(65,234,212,0.95)]",
+    size: "text-xs",
+    delay: "1.4s",
+    dur: "2.1s",
+    tx: "-6px",
+    ty: "9px",
+  },
+  {
+    id: 7,
+    symbol: "✦",
+    bottom: "-4px",
+    left: "54%",
+    color: "text-[#FBFF12] drop-shadow-[0_0_10px_rgba(251,255,18,1)]",
+    size: "text-base",
+    delay: "0.2s",
+    dur: "2.4s",
+    tx: "4px",
+    ty: "10px",
+  },
+  {
+    id: 8,
+    symbol: "🍀",
+    bottom: "2px",
+    right: "14%",
+    color: "drop-shadow-[0_0_8px_rgba(65,234,212,0.9)]",
+    size: "text-xs",
+    delay: "0.9s",
+    dur: "2.5s",
+    tx: "8px",
+    ty: "8px",
+  },
+];
+
+// 出撃ボタン（BATTLE START）周辺で舞うトゥインクル・スパークル粒子
+const CTA_TWINKLE_PARTICLES: TwinkleParticle[] = [
+  {
+    id: 101,
+    symbol: "✦",
+    top: "-12px",
+    left: "10%",
+    color: "text-[#FF206E] drop-shadow-[0_0_8px_rgba(255,32,110,0.95)]",
+    size: "text-sm sm:text-base",
+    delay: "0s",
+    dur: "2.1s",
+    tx: "-8px",
+    ty: "-10px",
+  },
+  {
+    id: 102,
+    symbol: "✦",
+    top: "-15px",
+    left: "38%",
+    color: "text-[#41EAD4] drop-shadow-[0_0_9px_rgba(65,234,212,1)]",
+    size: "text-base sm:text-lg",
+    delay: "0.4s",
+    dur: "1.9s",
+    tx: "6px",
+    ty: "-13px",
+  },
+  {
+    id: 103,
+    symbol: "★",
+    top: "-11px",
+    right: "12%",
+    color: "text-[#FBFF12] drop-shadow-[0_0_8px_rgba(251,255,18,0.95)]",
+    size: "text-sm sm:text-base",
+    delay: "0.8s",
+    dur: "2.3s",
+    tx: "10px",
+    ty: "-8px",
+  },
+  {
+    id: 104,
+    symbol: "✦",
+    top: "35%",
+    left: "-10px",
+    color: "text-[#FBFF12] drop-shadow-[0_0_7px_rgba(251,255,18,0.9)]",
+    size: "text-xs sm:text-sm",
+    delay: "1.1s",
+    dur: "2.0s",
+    tx: "-11px",
+    ty: "0px",
+  },
+  {
+    id: 105,
+    symbol: "✦",
+    top: "40%",
+    right: "-10px",
+    color: "text-[#41EAD4] drop-shadow-[0_0_8px_rgba(65,234,212,0.95)]",
+    size: "text-sm sm:text-base",
+    delay: "0.6s",
+    dur: "2.4s",
+    tx: "11px",
+    ty: "4px",
+  },
+  {
+    id: 106,
+    symbol: "✦",
+    bottom: "-11px",
+    left: "18%",
+    color: "text-[#FF206E] drop-shadow-[0_0_7px_rgba(255,32,110,0.9)]",
+    size: "text-xs sm:text-sm",
+    delay: "1.3s",
+    dur: "2.2s",
+    tx: "-6px",
+    ty: "10px",
+  },
+  {
+    id: 107,
+    symbol: "★",
+    bottom: "-14px",
+    left: "52%",
+    color: "text-white drop-shadow-[0_0_10px_rgba(255,255,255,1)]",
+    size: "text-sm sm:text-base",
+    delay: "0.2s",
+    dur: "2.5s",
+    tx: "4px",
+    ty: "11px",
+  },
+  {
+    id: 108,
+    symbol: "✦",
+    bottom: "-12px",
+    right: "16%",
+    color: "text-[#FBFF12] drop-shadow-[0_0_8px_rgba(251,255,18,0.95)]",
+    size: "text-sm",
+    delay: "1.5s",
+    dur: "2.0s",
+    tx: "8px",
+    ty: "10px",
+  },
+];
+
 const DEFAULT_PROFILE: PlayerProfile = {
   name: "DOPA-HERO",
   gender: "boy",
@@ -113,7 +328,6 @@ export default function DopaBenApp() {
     }, 520);
   };
 
-  // バトル開始
   const handleStartBattle = () => {
     soundEngine.playAllOutIntro();
     const useHardcore =
@@ -127,7 +341,6 @@ export default function DopaBenApp() {
     });
   };
 
-  // バトル完了＆進化計算
   const handleCompleteBattle = (summary: BattleResultSummary) => {
     const prevLevel = profile.level;
     let currentLv = profile.level;
@@ -199,13 +412,11 @@ export default function DopaBenApp() {
     });
   };
 
-  // 男女切り替え
   const handleToggleGender = (gender: CharacterGender) => {
     soundEngine.playTap();
     saveProfile({ ...profile, gender });
   };
 
-  // 特権スキルハックのON/OFF切り替え
   const handleToggleSkill = (skillId: SkillHackId) => {
     const exists = profile.activeSkillHacks.includes(skillId);
     const nextSkills = exists
@@ -214,7 +425,6 @@ export default function DopaBenApp() {
     saveProfile({ ...profile, activeSkillHacks: nextSkills });
   };
 
-  // プロトタイプ検証用：即座に任意の進化段階（Lv.1〜10）へ変更
   const handleInstantLevelChange = (newLevel: number) => {
     const clamped = Math.max(1, Math.min(10, newLevel));
     const autoUnlockedSkills = SKILL_HACKS.filter(
@@ -241,7 +451,7 @@ export default function DopaBenApp() {
 
   return (
     <div className="min-h-screen bg-[#0C0F0A] text-white relative overflow-x-hidden">
-      {/* 斜めスラッシュ画面遷移エフェクト (#FF206E × #FBFF12 × #41EAD4) */}
+      {/* 斜めスラッシュ画面遷移エフェクト */}
       <AnimatePresence>
         {slashTransition && (
           <motion.div
@@ -276,7 +486,6 @@ export default function DopaBenApp() {
       {screen === "result" && lastResult && (
         <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-4">
           <div className="space-y-4">
-            {/* リザルトバナー */}
             <motion.div
               initial={{ scale: 0.85, rotate: -3 }}
               animate={{ scale: 1, rotate: -1 }}
@@ -290,7 +499,6 @@ export default function DopaBenApp() {
               </h1>
             </motion.div>
 
-            {/* レベルアップ＆ドット絵進化演出カード */}
             <div className="bg-[#141911] border-2 border-white p-4 shadow-p5-pink relative">
               {lastResult.newLevel > lastResult.previousLevel ? (
                 <div className="text-center space-y-2">
@@ -346,7 +554,6 @@ export default function DopaBenApp() {
                 </div>
               )}
 
-              {/* 新規アンロックされた特権スキルハック通知 */}
               {lastResult.newlyUnlockedSkills.length > 0 && (
                 <div className="mt-3 bg-[#0C0F0A] border-2 border-[#41EAD4] p-3 space-y-1">
                   <div className="text-xs font-black text-[#41EAD4] flex items-center gap-1">
@@ -362,7 +569,6 @@ export default function DopaBenApp() {
               )}
             </div>
 
-            {/* 五角形スターパラメータ上昇表示 */}
             <div className="bg-[#141911] border-2 border-[#2C3527] p-3 flex flex-col items-center">
               <div className="text-xs font-black text-[#FBFF12] mb-1">
                 ♪♪ PARAMETER GROWTH // 五角形ステータス成長 ♪♪
@@ -400,7 +606,6 @@ export default function DopaBenApp() {
             </div>
           </div>
 
-          {/* アクションボタン */}
           <div className="space-y-2.5 pt-3">
             <button
               onClick={handleStartBattle}
@@ -426,9 +631,9 @@ export default function DopaBenApp() {
       {/* === 3. ホーム拠点（アジト）画面 === */}
       {screen === "home" && (
         <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-3.5 space-y-3">
-          {/* トップヒーローヘッダー：生成AIカスタムロゴ（ダイカット透過加工）＆操作バー */}
+          {/* トップヒーローヘッダー：完全透過『ドパベン』ロゴ ＋ Twinkle Effect粒子 */}
           <header className="relative pt-1 pb-2 border-b-2 border-[#2C3527]">
-            {/* 上部ユーティリティバー（ステータス表記 ＆ 男女切替・音量） */}
+            {/* 上部ユーティリティバー */}
             <div className="flex items-center justify-between mb-1.5 relative z-20">
               <div className="flex items-center gap-1.5">
                 <span className="bg-[#FF206E] text-white text-[10px] font-black px-2 py-0.5 -skew-x-12 border border-white">
@@ -440,7 +645,6 @@ export default function DopaBenApp() {
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* 男子 / 女子 ドット絵切り替え */}
                 <div className="flex bg-[#141911] border border-[#2C3527] p-0.5">
                   <button
                     onClick={() => handleToggleGender("boy")}
@@ -482,29 +686,46 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* メインロゴビジュアル（ダイカットステッカー加工＋背面ネオングロー） */}
-            <div className="relative flex justify-center items-center py-1">
+            {/* 完全透過ロゴ ＋ 呼吸ネオンオーラ ＋ Twinkle Sparkle エフェクト */}
+            <div className="relative flex justify-center items-center py-2 my-0.5">
+              {/* 1. 呼吸するネオンオーラ */}
               <div
-                className="absolute inset-x-6 inset-y-2 rounded-full blur-2xl opacity-35 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle, #FF206E 0%, #41EAD4 55%, transparent 80%)",
-                }}
+                className="pointer-events-none absolute inset-x-8 inset-y-1 rounded-full bg-gradient-to-r from-[#FF206E]/35 via-[#FBFF12]/25 to-[#41EAD4]/35 animate-dopa-aura"
               />
-              <motion.img
+
+              {/* 2. パラパラと可愛く弾ける Twinkle Sparkles (✦ / ★ / ⚡ / 🍀) */}
+              <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
+                {LOGO_TWINKLE_PARTICLES.map((p) => (
+                  <span
+                    key={p.id}
+                    className={`absolute animate-twinkle font-black select-none pointer-events-none ${p.color} ${p.size}`}
+                    style={{
+                      top: p.top,
+                      bottom: p.bottom,
+                      left: p.left,
+                      right: p.right,
+                      animationDelay: p.delay,
+                      ["--tw-dur" as string]: p.dur,
+                      ["--tw-x" as string]: p.tx,
+                      ["--tw-y" as string]: p.ty,
+                    }}
+                  >
+                    {p.symbol}
+                  </span>
+                ))}
+              </div>
+
+              {/* 3. 完全透過済みの『ドパベン』ロゴ本体 */}
+              <img
                 src="/dopaben-logo.png"
-                alt="ドパベン 新感覚学習アプリ"
-                initial={{ scale: 0.92, opacity: 0, y: -6 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                className="w-full max-w-[330px] h-auto object-contain relative z-10 drop-shadow-[0_6px_16px_rgba(255,32,110,0.45)] select-none"
+                alt="ドパベン"
+                className="w-full max-w-[310px] h-auto object-contain relative z-10 animate-logo-float drop-shadow-[0_0_2px_rgba(255,255,255,0.45)] drop-shadow-[0_6px_18px_rgba(255,32,110,0.5)] select-none"
               />
             </div>
           </header>
 
           {/* メイン育成キャラクター・ステージカード */}
           <section className="bg-[#141911] border-2 border-white p-3.5 shadow-p5-pink relative overflow-hidden">
-            {/* 右上の斜めアクセント装飾 */}
             <div className="absolute -top-6 -right-6 w-20 h-20 bg-[#FF206E]/15 rotate-12 pointer-events-none" />
 
             <div className="flex items-center justify-between mb-2.5 relative z-10">
@@ -523,7 +744,6 @@ export default function DopaBenApp() {
             </div>
 
             <div className="flex items-center gap-3.5 relative z-10">
-              {/* レトロドット絵キャラ展示ボックス */}
               <div
                 onClick={() => {
                   soundEngine.playTap();
@@ -539,7 +759,6 @@ export default function DopaBenApp() {
                 />
               </div>
 
-              {/* キャラ情報＆進化EXPゲージ */}
               <div className="flex-1 space-y-2">
                 <div>
                   <div className="flex items-baseline gap-2">
@@ -561,7 +780,6 @@ export default function DopaBenApp() {
                   {currentStageInfo.unlockMessage}
                 </p>
 
-                {/* EXPバー */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-black">
                     <span className="text-[#41EAD4]">NEXT EVOLUTION</span>
@@ -581,7 +799,6 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* 機能ハックスキル・クイックバー */}
             <div className="mt-3 pt-2.5 border-t border-[#2C3527] flex items-center justify-between gap-2 relative z-10">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-black text-[#41EAD4] flex items-center gap-1">
@@ -655,15 +872,14 @@ export default function DopaBenApp() {
             </div>
           </section>
 
-          {/* 出撃学年セレクト ＆ Lv.5特権「激ムズ問題に挑戦できる権」トグル */}
-          <section className="space-y-2.5 pt-1">
+          {/* 出撃学年セレクト ＆ Twinkle Effect付き出撃ボタン */}
+          <section className="space-y-3 pt-1 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FBFF12]" />
                 出撃レンジ選択（4形式＋音声自動生成）
               </span>
 
-              {/* Lv.5特権：激ムズ問題に挑戦できる権のワンタップトグル */}
               {profile.level >= 5 ? (
                 <button
                   onClick={() => {
@@ -711,16 +927,49 @@ export default function DopaBenApp() {
               ))}
             </div>
 
-            {/* 出撃ボタン (#FF206E ベース × #FBFF12 シャドウ × #FFFFFF エッジ) */}
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleStartBattle}
-              className="w-full py-4 bg-[#FF206E] hover:brightness-110 text-white font-black text-xl tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2.5 relative overflow-hidden group transition"
-            >
-              <Zap className="w-6 h-6 fill-[#FBFF12] text-[#FBFF12] group-hover:scale-125 transition" />
-              <span>BATTLE START // 出撃する</span>
-              <Sparkles className="w-5 h-5 text-[#41EAD4]" />
-            </motion.button>
+            {/* Twinkle Sparkles & Breathing Aura 付き BATTLE START ボタン */}
+            <div className="relative w-full pt-1">
+              {/* 1. 背後の呼吸ネオンオーラ */}
+              <div
+                className="pointer-events-none absolute -inset-1 bg-gradient-to-r from-[#FF206E]/45 via-[#FBFF12]/40 to-[#41EAD4]/45 animate-dopa-aura"
+              />
+
+              {/* 2. パラパラと舞う Twinkle Sparkles (✦ / ★) */}
+              <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
+                {CTA_TWINKLE_PARTICLES.map((p) => (
+                  <span
+                    key={p.id}
+                    className={`absolute animate-twinkle font-black select-none pointer-events-none ${p.color} ${p.size}`}
+                    style={{
+                      top: p.top,
+                      bottom: p.bottom,
+                      left: p.left,
+                      right: p.right,
+                      animationDelay: p.delay,
+                      ["--tw-dur" as string]: p.dur,
+                      ["--tw-x" as string]: p.tx,
+                      ["--tw-y" as string]: p.ty,
+                    }}
+                  >
+                    {p.symbol}
+                  </span>
+                ))}
+              </div>
+
+              {/* 3. 出撃ボタン本体 ＋ 斜め光沢スイープ (animate-glint-sweep) */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleStartBattle}
+                className="w-full py-4 bg-[#FF206E] hover:brightness-110 text-white font-black text-xl tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2.5 relative overflow-hidden group transition z-10"
+              >
+                {/* 斜めに走る光沢グレア */}
+                <span className="pointer-events-none absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/45 to-transparent animate-glint-sweep" />
+
+                <Zap className="w-6 h-6 fill-[#FBFF12] text-[#FBFF12] group-hover:scale-125 transition relative z-10" />
+                <span className="relative z-10">BATTLE START // 出撃する</span>
+                <Sparkles className="w-5 h-5 text-[#41EAD4] relative z-10" />
+              </motion.button>
+            </div>
           </section>
         </div>
       )}
