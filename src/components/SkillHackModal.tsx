@@ -245,6 +245,16 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => {
+                soundEngine.playTap();
+                onInstantLevelChange(1);
+              }}
+              className="bg-[#141911] text-[#A3B19B] hover:text-white font-bold text-xs px-2.5 py-1.5 border border-[#2C3527] hover:border-white transition"
+              title="Lv.1 (0 EXP) からやり直す"
+            >
+              🔄 Lv.1リセット
+            </button>
+            <button
+              onClick={() => {
                 const nextLv = profile.level >= 10 ? 1 : profile.level + 1;
                 soundEngine.playEvolutionFanfare();
                 onInstantLevelChange(nextLv);

@@ -290,9 +290,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           ? currentQuestion.bountyMultiplier || (hasBountyOverdrive ? 3.5 : 2.5)
           : 1.0;
 
-        const baseExp = currentQuestion.isHardcoreQuestion ? 60 : 35;
+        const baseExp = currentQuestion.isHardcoreQuestion ? 30 : 20;
         const gained = Math.round(
-          baseExp * (1 + newCombo * 0.15) * bountyMult * getGlobalMultiplier()
+          baseExp * (1 + newCombo * 0.12) * bountyMult * getGlobalMultiplier()
         );
         const nextExp = earnedExp + gained;
         setEarnedExp(nextExp);
@@ -520,7 +520,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       if (assembled === answer) {
         const newCombo = combo + 2;
         const newMaxCombo = Math.max(maxCombo, newCombo);
-        const allOutBonus = Math.round(120 * getGlobalMultiplier());
+        const allOutBonus = Math.round(60 * getGlobalMultiplier());
         const nextExp = earnedExp + allOutBonus;
 
         const nextGains: FiveStats = {

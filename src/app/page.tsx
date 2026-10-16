@@ -275,12 +275,27 @@ const DEFAULT_PROFILE: PlayerProfile = {
     listening: 15,
     guts: 20,
   },
-  activeSkillHacks: ["bounty_overdrive", "phantom_eliminator"],
+  activeSkillHacks: [],
   wordMastery: {},
 };
 
+/**
+ * 累計約20時間（約750バトル / 7,500問）で最高峰「語彙神」へ到達する本格育成EXP曲線
+ */
+export const LEVEL_REQUIRED_EXP: Record<number, number> = {
+  1: 2000,    // Lv.1 -> Lv.2 (約5バトル / 約8分) 初回進化の達成感
+  2: 6000,    // Lv.2 -> Lv.3 (約15バトル / 約25分) BOUNTY OVERDRIVE (3.5倍) 解放
+  3: 13500,   // Lv.3 -> Lv.4 (約30バトル / 約50分) PHANTOM EYE (2択ハック) 解放
+  4: 25000,   // Lv.4 -> Lv.5 (約50バトル / 約1時間20分)
+  5: 65000,   // Lv.5 -> Lv.6 (約75バトル / 約2時間 ※HARDCORE 2倍EXP解放)
+  6: 100000,  // Lv.6 -> Lv.7 (約110バトル / 約3時間)
+  7: 160000,  // Lv.7 -> Lv.8 (約120バトル / 約3.5時間 ※OVERCLOCK 1.5倍×2倍=3倍EXP解放)
+  8: 210000,  // Lv.8 -> Lv.9 (約150バトル / 約4時間)
+  9: 270000,  // Lv.9 -> Lv.10 (約200バトル / 約5.5時間) 最終形態「語彙神」到達！
+};
+
 function getRequiredExpForLevel(level: number): number {
-  return 180 + (level - 1) * 90;
+  return LEVEL_REQUIRED_EXP[level] || 300000;
 }
 
 export default function DopaBenApp() {
