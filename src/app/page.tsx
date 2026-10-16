@@ -13,6 +13,7 @@ import {
   Trophy,
   ChevronRight,
   Skull,
+  Database,
 } from "lucide-react";
 import {
   CharacterGender,
@@ -25,6 +26,11 @@ import {
 import { EVOLUTION_STAGES, SKILL_HACKS } from "@/lib/vocabData";
 import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
 import { generateBattleDeck } from "@/lib/questionGenerator";
+import {
+  loadVocabPoolFromSupabase,
+  syncAllLocalDataToSupabase,
+} from "@/lib/vocabRepository";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { soundEngine } from "@/lib/soundEngine";
 import { PixelCharacter } from "@/components/PixelCharacter";
 import { StarRadarChart } from "@/components/StarRadarChart";
@@ -287,8 +293,12 @@ export default function DopaBenApp() {
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [slashTransition, setSlashTransition] = useState(false);
+  const [dbSource, setDbSource] = useState<"supabase" | "local">("local");
+  const [dbTotalWords, setDbTotalWords] = useState<number>(114);
+  const [isSyncingDb, setIsSyncingDb] = useState<boolean>(false);
+  const [dbSyncNotice, setDbSyncNotice] = useState<string | null>(null);
 
-  // ローカルストレージから復元 ＆ 過去の別アプリのService Workerキャッシュを自動解除
+  // ローカルストレージから復元 ＆ Supabaseから問題プールを取得 ＆ 過去のService Workerキャッシュを自動解除
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -309,7 +319,28 @@ export default function DopaBenApp() {
     } catch {
       // ignore storage errors
     }
+
+    loadVocabPoolFromSupabase()
+      .then((pool) => {
+        setDbSource(pool.source);
+        setDbTotalWords(pool.totalCount);
+      })
+      .catch(() => {});
   }, []);
+
+  const handleSyncToSupabase = async () => {
+    soundEngine.playTap();
+    setIsSyncingDb(true);
+    setDbSyncNotice(null);
+    const res = await syncAllLocalDataToSupabase();
+    setIsSyncingDb(false);
+    setDbSyncNotice(res.message);
+    if (res.ok) {
+      const pool = await loadVocabPoolFromSupabase();
+      setDbSource(pool.source);
+      setDbTotalWords(pool.totalCount);
+    }
+  };
 
   const saveProfile = (next: PlayerProfile) => {
     setProfile(next);
@@ -913,6 +944,46 @@ export default function DopaBenApp() {
                 </button>
               )}
             </div>
+
+            {/* Supabase DB ステータス＆ワンクリック同期バー */}
+            <div className="flex items-center justify-between bg-[#141911] border border-[#2C3527] px-2.5 py-1.5 text-[10px]">
+              <div className="flex items-center gap-1.5 font-black">
+                <Database
+                  className={`w-3.5 h-3.5 ${
+                    dbSource === "supabase"
+                      ? "text-[#41EAD4]"
+                      : "text-[#FBFF12]"
+                  }`}
+                />
+                <span
+                  className={
+                    dbSource === "supabase"
+                      ? "text-[#41EAD4]"
+                      : "text-[#C8D4C2]"
+                  }
+                >
+                  {dbSource === "supabase"
+                    ? `SUPABASE DB 接続中 (${dbTotalWords}問)`
+                    : `内蔵DB稼働中 (${dbTotalWords}問 / Supabase対応済)`}
+                </span>
+              </div>
+
+              {isSupabaseConfigured && (
+                <button
+                  onClick={handleSyncToSupabase}
+                  disabled={isSyncingDb}
+                  className="bg-[#0C0F0A] hover:bg-[#41EAD4] hover:text-[#0C0F0A] text-[#41EAD4] border border-[#41EAD4] px-2 py-0.5 font-black transition disabled:opacity-50"
+                >
+                  {isSyncingDb ? "同期中..." : "🔄 DBへ一括同期"}
+                </button>
+              )}
+            </div>
+
+            {dbSyncNotice && (
+              <div className="text-[10px] font-bold text-[#FBFF12] bg-[#141911] border border-[#FBFF12]/60 px-2.5 py-1">
+                {dbSyncNotice}
+              </div>
+            )}
 
             {/* 👑 専用：英検1級単語ステージ（Unit 01: 0001〜0096） */}
             <div className="space-y-2">

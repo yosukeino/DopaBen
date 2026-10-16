@@ -5,8 +5,7 @@ import {
   SentenceItem,
   WordItem,
 } from "./types";
-import { SENTENCES, WORDS } from "./vocabData";
-import { EIKEN1_SENTENCES, EIKEN1_WORDS } from "./eiken1Data";
+import { getActiveVocabPool } from "./vocabRepository";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
@@ -177,6 +176,7 @@ export function generateBattleDeck(
   includeHardcoreHack: boolean,
   eiken1Track: number = 0
 ): GeneratedQuestion[] {
+  const pool = getActiveVocabPool();
   const formats: Exclude<QuestionFormat, "sentence_order">[] = shuffleArray([
     "en_to_ja",
     "ja_to_en",
@@ -189,11 +189,11 @@ export function generateBattleDeck(
   if (grade === "英検1級") {
     const trackWords =
       eiken1Track > 0
-        ? EIKEN1_WORDS.filter((w) => w.track === eiken1Track)
-        : EIKEN1_WORDS;
+        ? pool.eiken1Words.filter((w) => w.track === eiken1Track)
+        : pool.eiken1Words;
 
     const selectedEikenWords = shuffleArray(
-      trackWords.length >= 5 ? trackWords : EIKEN1_WORDS
+      trackWords.length >= 5 ? trackWords : pool.eiken1Words
     ).slice(0, 5);
 
     const stage1Questions = selectedEikenWords.map((word, index) =>
@@ -202,18 +202,18 @@ export function generateBattleDeck(
 
     // Stage 1に出題された5語のいずれかを使った公式例文を総攻撃（Stage 2）に選出！
     const selectedIds = new Set(selectedEikenWords.map((w) => w.id));
-    const linkedSentences = EIKEN1_SENTENCES.filter((s) =>
+    const linkedSentences = pool.eiken1Sentences.filter((s) =>
       s.targetWordIds.some((id) => selectedIds.has(id))
     );
     const fallbackSentences =
       eiken1Track > 0
-        ? EIKEN1_SENTENCES.filter((s) => s.track === eiken1Track)
-        : EIKEN1_SENTENCES;
+        ? pool.eiken1Sentences.filter((s) => s.track === eiken1Track)
+        : pool.eiken1Sentences;
 
     const chosenSentence =
       shuffleArray(
         linkedSentences.length > 0 ? linkedSentences : fallbackSentences
-      )[0] || EIKEN1_SENTENCES[0];
+      )[0] || pool.eiken1Sentences[0];
 
     const stage2Question = buildSentenceQuestion(chosenSentence);
     return [...stage1Questions, stage2Question];
@@ -222,18 +222,20 @@ export function generateBattleDeck(
   // === 通常ステージ（中1 / 中2 / 中3 / 全学年MIX） ===
   let poolWords =
     grade === "ALL"
-      ? WORDS.filter((w) => w.grade !== "激ムズ")
-      : WORDS.filter((w) => w.grade === grade);
+      ? pool.standardWords.filter((w) => w.grade !== "激ムズ")
+      : pool.standardWords.filter((w) => w.grade === grade);
 
   if (poolWords.length < 4) {
-    poolWords = WORDS.filter((w) => w.grade !== "激ムズ");
+    poolWords = pool.standardWords.filter((w) => w.grade !== "激ムズ");
   }
 
   let selectedWords = shuffleArray(poolWords).slice(0, 4);
 
   // 高レベルスキル「激ムズ問題に挑戦できる権」がONの場合、激ムズ単語を1〜2問乱入させる！
   if (includeHardcoreHack) {
-    const hardcoreWords = shuffleArray(WORDS.filter((w) => w.grade === "激ムズ")).slice(0, 2);
+    const hardcoreWords = shuffleArray(
+      pool.standardWords.filter((w) => w.grade === "激ムズ")
+    ).slice(0, 2);
     selectedWords = [...selectedWords.slice(0, 3), ...hardcoreWords];
   } else {
     selectedWords = shuffleArray(poolWords).slice(0, 5);
@@ -248,18 +250,20 @@ export function generateBattleDeck(
   // Stage 2: 総攻撃（例文ワードバンク並び替え）パート
   let candidateSentences =
     grade === "ALL"
-      ? SENTENCES.filter((s) => s.grade !== "激ムズ")
-      : SENTENCES.filter((s) => s.grade === grade);
+      ? pool.standardSentences.filter((s) => s.grade !== "激ムズ")
+      : pool.standardSentences.filter((s) => s.grade === grade);
 
   if (includeHardcoreHack) {
-    const hcSentences = SENTENCES.filter((s) => s.grade === "激ムズ");
+    const hcSentences = pool.standardSentences.filter(
+      (s) => s.grade === "激ムズ"
+    );
     if (hcSentences.length > 0) {
       candidateSentences = [...hcSentences, ...candidateSentences];
     }
   }
 
   if (candidateSentences.length === 0) {
-    candidateSentences = SENTENCES;
+    candidateSentences = pool.standardSentences;
   }
 
   const chosenSentence = includeHardcoreHack
