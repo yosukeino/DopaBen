@@ -185,7 +185,7 @@ export function generateBattleDeck(
     "ja_to_en",
   ]);
 
-  // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
+  // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』（長文並び替えなし・4択6問に集中！） ===
   if (grade === "英検1級") {
     const trackWords =
       eiken1Track > 0
@@ -193,30 +193,24 @@ export function generateBattleDeck(
         : pool.eiken1Words;
 
     const selectedEikenWords = shuffleArray(
-      trackWords.length >= 5 ? trackWords : pool.eiken1Words
-    ).slice(0, 5);
+      trackWords.length >= 6 ? trackWords : pool.eiken1Words
+    ).slice(0, 6);
 
-    const stage1Questions = selectedEikenWords.map((word, index) =>
-      buildWordQuestion(word, formats[index % formats.length])
+    const eikenFormats: Exclude<QuestionFormat, "sentence_order">[] =
+      shuffleArray([
+        "en_to_ja",
+        "ja_to_en",
+        "listening",
+        "en_to_ja",
+        "ja_to_en",
+        "listening",
+      ]);
+
+    const eikenQuestions = selectedEikenWords.map((word, index) =>
+      buildWordQuestion(word, eikenFormats[index % eikenFormats.length])
     );
 
-    // Stage 1に出題された5語のいずれかを使った公式例文を総攻撃（Stage 2）に選出！
-    const selectedIds = new Set(selectedEikenWords.map((w) => w.id));
-    const linkedSentences = pool.eiken1Sentences.filter((s) =>
-      s.targetWordIds.some((id) => selectedIds.has(id))
-    );
-    const fallbackSentences =
-      eiken1Track > 0
-        ? pool.eiken1Sentences.filter((s) => s.track === eiken1Track)
-        : pool.eiken1Sentences;
-
-    const chosenSentence =
-      shuffleArray(
-        linkedSentences.length > 0 ? linkedSentences : fallbackSentences
-      )[0] || pool.eiken1Sentences[0];
-
-    const stage2Question = buildSentenceQuestion(chosenSentence);
-    return [...stage1Questions, stage2Question];
+    return eikenQuestions;
   }
 
   // === 通常ステージ（中1 / 中2 / 中3 / 全学年MIX） ===

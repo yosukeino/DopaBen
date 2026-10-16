@@ -15,7 +15,9 @@ export interface WordItem {
   grade: "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
   distractorsJa: string[];
   distractorsEn: string[];
-  tip: string; // ミスした時に1行で「あ、なるほど！」となる記憶フック
+  tip: string; // ミスした時・正解後の解説モーダルで出る記憶フック
+  exampleSentenceEn?: string; // 解説モーダルで表示する公式例文
+  exampleSentenceJa?: string; // 解説モーダルで表示する公式例文の和訳
 }
 
 export interface SentenceItem {

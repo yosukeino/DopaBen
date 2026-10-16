@@ -1185,6 +1185,8 @@ export const EIKEN1_WORDS: (WordItem & { track: number; num: string })[] =
       distractorsJa: [d1.japanese, d2.japanese, d3.japanese],
       distractorsEn: [d1.english, d2.english, d3.english],
       tip: entry.tip,
+      exampleSentenceEn: entry.sentenceEn.join(" "),
+      exampleSentenceJa: entry.sentenceJa,
     };
   });
 

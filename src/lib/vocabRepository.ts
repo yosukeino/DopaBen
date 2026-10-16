@@ -163,6 +163,12 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
         distractorsJa,
         distractorsEn,
         tip: row.tip,
+        exampleSentenceEn:
+          Array.isArray(row.sentence_en_tokens) &&
+          row.sentence_en_tokens.length > 0
+            ? row.sentence_en_tokens.join(" ")
+            : undefined,
+        exampleSentenceJa: row.sentence_ja || undefined,
       };
     });
 
@@ -216,6 +222,12 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
             distractorsJa: row.distractors_ja,
             distractorsEn: row.distractors_en,
             tip: row.tip,
+            exampleSentenceEn:
+              Array.isArray(row.sentence_en_tokens) &&
+              row.sentence_en_tokens.length > 0
+                ? row.sentence_en_tokens.join(" ")
+                : undefined,
+            exampleSentenceJa: row.sentence_ja || undefined,
           }))
         : WORDS;
 
