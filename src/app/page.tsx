@@ -23,6 +23,7 @@ import {
   SkillHackId,
 } from "@/lib/types";
 import { EVOLUTION_STAGES, SKILL_HACKS } from "@/lib/vocabData";
+import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
 import { generateBattleDeck } from "@/lib/questionGenerator";
 import { soundEngine } from "@/lib/soundEngine";
 import { PixelCharacter } from "@/components/PixelCharacter";
@@ -272,7 +273,8 @@ function getRequiredExpForLevel(level: number): number {
 
 export default function DopaBenApp() {
   const [profile, setProfile] = useState<PlayerProfile>(DEFAULT_PROFILE);
-  const [selectedGrade, setSelectedGrade] = useState<GradeLevel>("ALL");
+  const [selectedGrade, setSelectedGrade] = useState<GradeLevel>("英検1級");
+  const [selectedEikenTrack, setSelectedEikenTrack] = useState<number>(0); // 0 = Unit 01 全96語, 1〜8 = Track 001〜008
   const [screen, setScreen] = useState<"home" | "battle" | "result">("home");
   const [battleDeck, setBattleDeck] = useState<GeneratedQuestion[]>([]);
   const [lastResult, setLastResult] = useState<{
@@ -333,7 +335,11 @@ export default function DopaBenApp() {
     const useHardcore =
       profile.level >= 5 &&
       profile.activeSkillHacks.includes("hardcore_challenge");
-    const deck = generateBattleDeck(selectedGrade, useHardcore);
+    const deck = generateBattleDeck(
+      selectedGrade,
+      useHardcore,
+      selectedEikenTrack
+    );
 
     triggerSlashTransition(() => {
       setBattleDeck(deck);
@@ -872,12 +878,12 @@ export default function DopaBenApp() {
             </div>
           </section>
 
-          {/* 出撃学年セレクト ＆ Twinkle Effect付き出撃ボタン */}
-          <section className="space-y-3 pt-1 pb-2">
+          {/* 出撃ステージセレクト（英検1級専用ステージ ＋ トラック選択 ＆ 中学ステージ） */}
+          <section className="space-y-2.5 pt-1 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FBFF12]" />
-                出撃レンジ選択（4形式＋音声自動生成）
+                出撃ステージ選択（4形式＋発音＋例文総攻撃）
               </span>
 
               {profile.level >= 5 ? (
@@ -908,6 +914,99 @@ export default function DopaBenApp() {
               )}
             </div>
 
+            {/* 👑 専用：英検1級単語ステージ（Unit 01: 0001〜0096） */}
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  soundEngine.playTap();
+                  setSelectedGrade("英検1級");
+                }}
+                className={`w-full py-2.5 px-3 font-black text-left border-2 -skew-x-6 transition flex items-center justify-between ${
+                  selectedGrade === "英検1級"
+                    ? "bg-[#FBFF12] text-[#0C0F0A] border-white shadow-[4px_4px_0_#FF206E]"
+                    : "bg-[#141911] text-white border-[#41EAD4] hover:border-[#FBFF12]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 border ${
+                      selectedGrade === "英検1級"
+                        ? "bg-[#FF206E] text-white border-[#0C0F0A]"
+                        : "bg-[#FF206E] text-white border-white"
+                    }`}
+                  >
+                    SPECIAL STAGE
+                  </span>
+                  <span className="text-sm tracking-tight">
+                    👑 英検1級 単語ステージ【Unit 01】
+                  </span>
+                </div>
+                <span
+                  className={`text-[11px] font-black ${
+                    selectedGrade === "英検1級"
+                      ? "text-[#0C0F0A]"
+                      : "text-[#41EAD4]"
+                  }`}
+                >
+                  全96語 (0001〜0096)
+                </span>
+              </button>
+
+              {/* 英検1級 選択時：Track 001〜008 レンジ切り替えパネル */}
+              {selectedGrade === "英検1級" && (
+                <div className="bg-[#141911] border border-[#41EAD4]/70 p-2 space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] font-black">
+                    <span className="text-[#41EAD4]">
+                      🎯 出撃トラック選択（各Track 12語＋公式例文）
+                    </span>
+                    <span className="text-[#FBFF12]">
+                      {
+                        EIKEN1_TRACK_STAGES.find(
+                          (t) => t.trackNumber === selectedEikenTrack
+                        )?.subLabel
+                      }
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {EIKEN1_TRACK_STAGES.map((t) => {
+                      const isSelected = selectedEikenTrack === t.trackNumber;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            soundEngine.playTap();
+                            setSelectedEikenTrack(t.trackNumber);
+                          }}
+                          className={`py-1.5 px-1.5 text-center border transition ${
+                            t.trackNumber === 0 ? "col-span-3" : ""
+                          } ${
+                            isSelected
+                              ? "bg-[#41EAD4] text-[#0C0F0A] border-white font-black shadow-[2px_2px_0_#FF206E]"
+                              : "bg-[#0C0F0A] text-[#C8D4C2] border-[#2C3527] hover:border-[#41EAD4] font-bold"
+                          }`}
+                        >
+                          <div className="text-[11px] leading-tight">
+                            {t.label}{" "}
+                            <span
+                              className={
+                                isSelected
+                                  ? "text-[#0C0F0A]/80 text-[10px]"
+                                  : "text-[#41EAD4] text-[10px]"
+                              }
+                            >
+                              ({t.rangeLabel})
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 通常ステージ（中学全学年MIX / 中1 / 中2 / 中3） */}
             <div className="grid grid-cols-4 gap-2">
               {(["ALL", "中1", "中2", "中3"] as GradeLevel[]).map((g) => (
                 <button
@@ -916,13 +1015,13 @@ export default function DopaBenApp() {
                     soundEngine.playTap();
                     setSelectedGrade(g);
                   }}
-                  className={`py-2 font-black text-xs border-2 -skew-x-6 transition ${
+                  className={`py-1.5 font-black text-xs border-2 -skew-x-6 transition ${
                     selectedGrade === g
                       ? "bg-[#FBFF12] text-[#0C0F0A] border-white shadow-[3px_3px_0_#FF206E]"
-                      : "bg-[#141911] text-white border-[#2C3527] hover:border-[#41EAD4]"
+                      : "bg-[#141911] text-[#A3B19B] border-[#2C3527] hover:border-[#41EAD4] hover:text-white"
                   }`}
                 >
-                  {g === "ALL" ? "全学年MIX" : g}
+                  {g === "ALL" ? "中学MIX" : g}
                 </button>
               ))}
             </div>

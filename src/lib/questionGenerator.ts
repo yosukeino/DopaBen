@@ -6,6 +6,7 @@ import {
   WordItem,
 } from "./types";
 import { SENTENCES, WORDS } from "./vocabData";
+import { EIKEN1_SENTENCES, EIKEN1_WORDS } from "./eiken1Data";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
@@ -28,7 +29,7 @@ export function buildWordQuestion(
   }
 ): GeneratedQuestion {
   const uid = `${word.id}_${format}_${Math.random().toString(36).slice(2, 7)}`;
-  const isHardcore = word.grade === "激ムズ";
+  const isHardcore = word.grade === "激ムズ" || word.grade === "英検1級";
 
   if (format === "en_to_ja") {
     const choices = shuffleArray([
@@ -162,7 +163,7 @@ export function buildSentenceQuestion(sentence: SentenceItem): GeneratedQuestion
       correctTokens: sentence.englishTokens,
       shuffledTokens,
     },
-    isHardcoreQuestion: sentence.grade === "激ムズ",
+    isHardcoreQuestion: sentence.grade === "激ムズ" || sentence.grade === "英検1級",
   };
 }
 
@@ -173,8 +174,52 @@ export function buildSentenceQuestion(sentence: SentenceItem): GeneratedQuestion
  */
 export function generateBattleDeck(
   grade: GradeLevel,
-  includeHardcoreHack: boolean
+  includeHardcoreHack: boolean,
+  eiken1Track: number = 0
 ): GeneratedQuestion[] {
+  const formats: Exclude<QuestionFormat, "sentence_order">[] = shuffleArray([
+    "en_to_ja",
+    "ja_to_en",
+    "listening",
+    "en_to_ja",
+    "ja_to_en",
+  ]);
+
+  // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
+  if (grade === "英検1級") {
+    const trackWords =
+      eiken1Track > 0
+        ? EIKEN1_WORDS.filter((w) => w.track === eiken1Track)
+        : EIKEN1_WORDS;
+
+    const selectedEikenWords = shuffleArray(
+      trackWords.length >= 5 ? trackWords : EIKEN1_WORDS
+    ).slice(0, 5);
+
+    const stage1Questions = selectedEikenWords.map((word, index) =>
+      buildWordQuestion(word, formats[index % formats.length])
+    );
+
+    // Stage 1に出題された5語のいずれかを使った公式例文を総攻撃（Stage 2）に選出！
+    const selectedIds = new Set(selectedEikenWords.map((w) => w.id));
+    const linkedSentences = EIKEN1_SENTENCES.filter((s) =>
+      s.targetWordIds.some((id) => selectedIds.has(id))
+    );
+    const fallbackSentences =
+      eiken1Track > 0
+        ? EIKEN1_SENTENCES.filter((s) => s.track === eiken1Track)
+        : EIKEN1_SENTENCES;
+
+    const chosenSentence =
+      shuffleArray(
+        linkedSentences.length > 0 ? linkedSentences : fallbackSentences
+      )[0] || EIKEN1_SENTENCES[0];
+
+    const stage2Question = buildSentenceQuestion(chosenSentence);
+    return [...stage1Questions, stage2Question];
+  }
+
+  // === 通常ステージ（中1 / 中2 / 中3 / 全学年MIX） ===
   let poolWords =
     grade === "ALL"
       ? WORDS.filter((w) => w.grade !== "激ムズ")
@@ -193,12 +238,6 @@ export function generateBattleDeck(
   } else {
     selectedWords = shuffleArray(poolWords).slice(0, 5);
   }
-
-  const formats: Exclude<QuestionFormat, "sentence_order">[] = [
-    "en_to_ja",
-    "ja_to_en",
-    "listening",
-  ];
 
   // Stage 1: 5問の高速「WEAK! → 1 MORE!」パート
   const stage1Questions = selectedWords.map((word, index) => {
