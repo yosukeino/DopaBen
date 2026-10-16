@@ -22,7 +22,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
 }) => {
   const cx = 110;
   const cy = 110;
-  const maxR = 68;
+  const maxR = 66;
   const maxStat = 100;
 
   const getPoint = (index: number, ratio: number) => {
@@ -44,7 +44,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
   }).join(" ");
 
   const statPolygon = AXES.map((axis, i) => {
-    const val = Math.min(maxStat, Math.max(12, stats[axis.key]));
+    const val = Math.min(maxStat, Math.max(14, stats[axis.key]));
     const p = getPoint(i, val / maxStat);
     return `${p.x},${p.y}`;
   }).join(" ");
@@ -52,17 +52,24 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
   return (
     <div className="relative flex items-center justify-center">
       <svg viewBox="0 0 220 220" className="w-52 h-52 overflow-visible">
-        {/* 背景の斜め五角形グリッド */}
+        <defs>
+          <radialGradient id="dopaRadarFill" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FF206E" stopOpacity="0.88" />
+            <stop offset="100%" stopColor="#FF206E" stopOpacity="0.45" />
+          </radialGradient>
+        </defs>
+
+        {/* 背景の斜め五角形グリッド (#0C0F0A ベース × #41EAD4 外枠アクセント) */}
         <polygon
           points={outerPolygon}
-          fill="#0A0A0A"
-          stroke="#FFFFFF"
-          strokeWidth="2.5"
+          fill="#0C0F0A"
+          stroke="#41EAD4"
+          strokeWidth="2"
         />
         <polygon
           points={midPolygon}
           fill="none"
-          stroke="#3F3F46"
+          stroke="#2C3527"
           strokeWidth="1.2"
           strokeDasharray="3 3"
         />
@@ -77,25 +84,25 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
               y1={cy}
               x2={p.x}
               y2={p.y}
-              stroke="#27272A"
+              stroke="#222A1E"
               strokeWidth="1.2"
             />
           );
         })}
 
-        {/* プレイヤーの現在のステータス領域 (P5風クリムゾン×イエロー) */}
+        {/* プレイヤーの現在のステータス領域 (#FF206E 塗り × #FBFF12 エッジ) */}
         <polygon
           points={statPolygon}
-          fill="rgba(230, 0, 18, 0.72)"
-          stroke="#FFE600"
+          fill="url(#dopaRadarFill)"
+          stroke="#FBFF12"
           strokeWidth="2.5"
         />
 
         {/* 各頂点のドットとラベル */}
         {AXES.map((axis, i) => {
-          const val = Math.min(maxStat, Math.max(12, stats[axis.key]));
+          const val = Math.min(maxStat, Math.max(14, stats[axis.key]));
           const dot = getPoint(i, val / maxStat);
-          const labelPos = getPoint(i, 1.32);
+          const labelPos = getPoint(i, 1.33);
           const gain = recentGains?.[axis.key] || 0;
 
           return (
@@ -103,9 +110,9 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
               <circle
                 cx={dot.x}
                 cy={dot.y}
-                r="4"
-                fill="#FFE600"
-                stroke="#0A0A0A"
+                r="4.5"
+                fill="#FBFF12"
+                stroke="#0C0F0A"
                 strokeWidth="1.5"
               />
               <text
@@ -120,7 +127,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
                 x={labelPos.x}
                 y={labelPos.y + 9}
                 textAnchor="middle"
-                className="fill-[#FFE600] font-extrabold text-[10px]"
+                className="fill-[#41EAD4] font-extrabold text-[10px]"
               >
                 Lv.{Math.floor(stats[axis.key] / 10) + 1} ({stats[axis.key]})
               </text>
@@ -129,7 +136,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
                   x={labelPos.x}
                   y={labelPos.y - 15}
                   textAnchor="middle"
-                  className="fill-[#00F0FF] font-black text-[11px]"
+                  className="fill-[#FBFF12] font-black text-[11px]"
                 >
                   ♪♪+{gain}
                 </text>

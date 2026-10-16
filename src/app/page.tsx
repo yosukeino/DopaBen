@@ -51,7 +51,6 @@ const DEFAULT_PROFILE: PlayerProfile = {
   activeSkillHacks: ["bounty_overdrive", "phantom_eliminator"],
 };
 
-// レベルアップに必要なEXP閾値（1〜2プレイでサクサク進化を体感できるテンポ設計）
 function getRequiredExpForLevel(level: number): number {
   return 180 + (level - 1) * 90;
 }
@@ -139,7 +138,6 @@ export default function DopaBenApp() {
       currentLv += 1;
     }
 
-    // 新たに解放された特権スキルハックを自動ONにする
     const newlyUnlocked = SKILL_HACKS.filter(
       (s) => s.unlockLevel > prevLevel && s.unlockLevel <= currentLv
     );
@@ -193,7 +191,7 @@ export default function DopaBenApp() {
           particleCount: currentLv > prevLevel ? 110 : 55,
           spread: 75,
           origin: { y: 0.6 },
-          colors: ["#E60012", "#FFE600", "#FFFFFF", "#00F0FF"],
+          colors: ["#FF206E", "#FBFF12", "#41EAD4", "#FFFFFF"],
         });
       } catch {
         // ignore confetti error
@@ -234,14 +232,16 @@ export default function DopaBenApp() {
     EVOLUTION_STAGES[Math.min(10, Math.max(1, profile.level)) - 1];
   const reqExp = getRequiredExpForLevel(profile.level);
   const expPercent =
-    profile.level >= 10 ? 100 : Math.min(100, Math.round((profile.exp / reqExp) * 100));
+    profile.level >= 10
+      ? 100
+      : Math.min(100, Math.round((profile.exp / reqExp) * 100));
   const isHardcoreActive =
     profile.level >= 5 &&
     profile.activeSkillHacks.includes("hardcore_challenge");
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white relative overflow-x-hidden">
-      {/* P5風・斜めスラッシュ画面遷移エフェクト */}
+    <div className="min-h-screen bg-[#0C0F0A] text-white relative overflow-x-hidden">
+      {/* 斜めスラッシュ画面遷移エフェクト (#FF206E × #FBFF12 × #41EAD4) */}
       <AnimatePresence>
         {slashTransition && (
           <motion.div
@@ -249,10 +249,10 @@ export default function DopaBenApp() {
             animate={{ x: "0%", skewX: -18 }}
             exit={{ x: "120%", skewX: -18 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 bg-[#E60012] border-x-8 border-white flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-50 bg-[#FF206E] border-x-8 border-[#41EAD4] flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-black text-[#FFE600] font-black text-3xl px-8 py-3 -skew-x-12 border-4 border-white tracking-widest">
-              DOPABEN // TAKE YOUR BRAIN
+            <div className="bg-[#0C0F0A] text-[#FBFF12] font-black text-3xl px-8 py-3 -skew-x-12 border-4 border-white shadow-[6px_6px_0_#41EAD4] tracking-widest">
+              DOPABEN // OVERDRIVE
             </div>
           </motion.div>
         )}
@@ -274,27 +274,27 @@ export default function DopaBenApp() {
 
       {/* === 2. リザルト＆10段階進化画面 === */}
       {screen === "result" && lastResult && (
-        <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#080808] bg-halftone p-4">
+        <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-4">
           <div className="space-y-4">
             {/* リザルトバナー */}
             <motion.div
               initial={{ scale: 0.85, rotate: -3 }}
               animate={{ scale: 1, rotate: -1 }}
-              className="bg-[#E60012] border-2 border-white p-3.5 text-center shadow-p5-white clip-p5-banner"
+              className="bg-[#FF206E] border-2 border-white p-3.5 text-center shadow-p5-cyan clip-p5-banner"
             >
-              <div className="text-xs font-black text-[#FFE600] tracking-widest">
+              <div className="text-xs font-black text-[#FBFF12] tracking-widest">
                 MISSION ACCOMPLISHED // 脳汁リザルト
               </div>
-              <h1 className="text-3xl font-black italic tracking-tight">
+              <h1 className="text-3xl font-black italic tracking-tight text-white">
                 +{lastResult.summary.earnedExp} EXP GET!!
               </h1>
             </motion.div>
 
             {/* レベルアップ＆ドット絵進化演出カード */}
-            <div className="bg-[#111111] border-2 border-white p-4 shadow-p5-red relative">
+            <div className="bg-[#141911] border-2 border-white p-4 shadow-p5-pink relative">
               {lastResult.newLevel > lastResult.previousLevel ? (
                 <div className="text-center space-y-2">
-                  <span className="inline-block bg-[#FFE600] text-black font-black text-xs px-3 py-1 -skew-x-12 animate-bounce">
+                  <span className="inline-block bg-[#FBFF12] text-[#0C0F0A] font-black text-xs px-3 py-1 -skew-x-12 animate-bounce">
                     🎉 EVOLUTION!! 第{lastResult.previousLevel}段階 ➔ 第
                     {lastResult.newLevel}段階へ進化！！
                   </span>
@@ -306,12 +306,12 @@ export default function DopaBenApp() {
                       mood="evolve"
                     />
                   </div>
-                  <div className="font-black text-lg text-[#FFE600]">
+                  <div className="font-black text-lg text-[#FBFF12]">
                     {profile.gender === "boy"
                       ? currentStageInfo.titleBoy
                       : currentStageInfo.titleGirl}
                   </div>
-                  <p className="text-xs text-zinc-300">
+                  <p className="text-xs text-[#C8D4C2]">
                     {currentStageInfo.unlockMessage}
                   </p>
                 </div>
@@ -324,19 +324,19 @@ export default function DopaBenApp() {
                     mood="happy"
                   />
                   <div className="flex-1 space-y-1.5">
-                    <div className="text-xs font-black text-[#FFE600]">
+                    <div className="text-xs font-black text-[#FBFF12]">
                       Lv.{profile.level} //{" "}
                       {profile.gender === "boy"
                         ? currentStageInfo.titleBoy
                         : currentStageInfo.titleGirl}
                     </div>
-                    <div className="w-full h-3 bg-zinc-900 border border-white -skew-x-12 p-0.5">
+                    <div className="w-full h-3 bg-[#0C0F0A] border border-white -skew-x-12 p-0.5">
                       <div
-                        className="h-full bg-[#FFE600]"
+                        className="h-full bg-gradient-to-r from-[#FF206E] via-[#FBFF12] to-[#41EAD4]"
                         style={{ width: `${expPercent}%` }}
                       />
                     </div>
-                    <div className="text-[11px] text-zinc-400 font-bold">
+                    <div className="text-[11px] text-[#A3B19B] font-bold">
                       次のドット絵進化まで: あと{" "}
                       <span className="text-white font-black">
                         {Math.max(0, reqExp - profile.exp)} EXP
@@ -348,8 +348,8 @@ export default function DopaBenApp() {
 
               {/* 新規アンロックされた特権スキルハック通知 */}
               {lastResult.newlyUnlockedSkills.length > 0 && (
-                <div className="mt-3 bg-[#1A050A] border-2 border-[#00F0FF] p-3 space-y-1">
-                  <div className="text-xs font-black text-[#00F0FF] flex items-center gap-1">
+                <div className="mt-3 bg-[#0C0F0A] border-2 border-[#41EAD4] p-3 space-y-1">
+                  <div className="text-xs font-black text-[#41EAD4] flex items-center gap-1">
                     <Terminal className="w-4 h-4" />
                     特権スキルハック解禁！！
                   </div>
@@ -362,9 +362,9 @@ export default function DopaBenApp() {
               )}
             </div>
 
-            {/* P5風・五角形スターパラメータ上昇表示 */}
-            <div className="bg-[#0E0E0E] border-2 border-zinc-700 p-3 flex flex-col items-center">
-              <div className="text-xs font-black text-[#FFE600] mb-1">
+            {/* 五角形スターパラメータ上昇表示 */}
+            <div className="bg-[#141911] border-2 border-[#2C3527] p-3 flex flex-col items-center">
+              <div className="text-xs font-black text-[#FBFF12] mb-1">
                 ♪♪ PARAMETER GROWTH // 五角形ステータス成長 ♪♪
               </div>
               <StarRadarChart
@@ -372,27 +372,27 @@ export default function DopaBenApp() {
                 recentGains={lastResult.summary.statGains}
               />
               <div className="grid grid-cols-3 gap-2 w-full mt-2 text-center">
-                <div className="bg-zinc-900 border border-zinc-700 p-2">
-                  <div className="text-[10px] text-zinc-400 font-bold">
+                <div className="bg-[#0C0F0A] border border-[#2C3527] p-2">
+                  <div className="text-[10px] text-[#A3B19B] font-bold">
                     最大チェイン
                   </div>
                   <div className="text-base font-black text-white">
                     {lastResult.summary.maxCombo} COMBO
                   </div>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-700 p-2">
-                  <div className="text-[10px] text-zinc-400 font-bold">
+                <div className="bg-[#0C0F0A] border border-[#2C3527] p-2">
+                  <div className="text-[10px] text-[#A3B19B] font-bold">
                     倍返し撃破
                   </div>
-                  <div className="text-base font-black text-[#FFE600]">
+                  <div className="text-base font-black text-[#FBFF12]">
                     {lastResult.summary.revengeCount} 回
                   </div>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-700 p-2">
-                  <div className="text-[10px] text-zinc-400 font-bold">
+                <div className="bg-[#0C0F0A] border border-[#2C3527] p-2">
+                  <div className="text-[10px] text-[#A3B19B] font-bold">
                     撃破問題数
                   </div>
-                  <div className="text-base font-black text-[#00F0FF]">
+                  <div className="text-base font-black text-[#41EAD4]">
                     {lastResult.summary.wordsCleared} 問
                   </div>
                 </div>
@@ -404,9 +404,9 @@ export default function DopaBenApp() {
           <div className="space-y-2.5 pt-3">
             <button
               onClick={handleStartBattle}
-              className="w-full py-4 bg-[#E60012] hover:bg-red-600 text-white font-black text-lg border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
+              className="w-full py-4 bg-[#FF206E] hover:brightness-110 text-white font-black text-lg border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
             >
-              <Flame className="w-5 h-5 fill-[#FFE600] text-[#FFE600]" />
+              <Flame className="w-5 h-5 fill-[#FBFF12] text-[#FBFF12]" />
               もう1戦突入する！（1 MORE BATTLE）
             </button>
             <button
@@ -415,7 +415,7 @@ export default function DopaBenApp() {
                   setScreen("home");
                 })
               }
-              className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-black text-sm border border-zinc-600"
+              className="w-full py-3 bg-[#141911] hover:bg-[#1D2419] text-white font-black text-sm border border-[#41EAD4]"
             >
               アジト（拠点）へ戻る
             </button>
@@ -425,42 +425,42 @@ export default function DopaBenApp() {
 
       {/* === 3. ホーム拠点（アジト）画面 === */}
       {screen === "home" && (
-        <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#080808] bg-halftone p-3.5 space-y-3">
+        <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-3.5 space-y-3">
           {/* トップヘッダー：タイトルロゴ ＆ 男女切替 ＆ 音量 */}
-          <header className="flex items-center justify-between border-b-2 border-zinc-800 pb-2.5">
-            <div className="flex items-center gap-2">
-              <div className="bg-[#E60012] text-white font-black text-xl px-3 py-1 -skew-x-12 border-2 border-white shadow-[3px_3px_0_#FFE600] tracking-tighter">
+          <header className="flex items-center justify-between border-b-2 border-[#2C3527] pb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-[#FF206E] text-white font-black text-xl px-3 py-1 -skew-x-12 border-2 border-white shadow-[3px_3px_0_#FBFF12] tracking-tighter">
                 ドパベン
               </div>
               <div>
-                <div className="text-[10px] font-black text-[#FFE600] tracking-widest">
+                <div className="text-[10px] font-black text-[#41EAD4] tracking-widest">
                   DOPAMINE × STUDY
                 </div>
-                <div className="text-xs font-bold text-zinc-300">
+                <div className="text-xs font-extrabold text-white">
                   中学英単語・脳汁育成バトル
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5">
-              {/* 男子 / 女子 ドット絵切り替え */}
-              <div className="flex bg-zinc-900 border border-zinc-700 p-0.5">
+              {/* 男子 / 女子 ドット絵切り替え (#41EAD4 & #FF206E で鮮やかに区別) */}
+              <div className="flex bg-[#141911] border border-[#2C3527] p-0.5">
                 <button
                   onClick={() => handleToggleGender("boy")}
-                  className={`px-2 py-1 text-[11px] font-black transition ${
+                  className={`px-2.5 py-1 text-[11px] font-black transition ${
                     profile.gender === "boy"
-                      ? "bg-[#E60012] text-white"
-                      : "text-zinc-400"
+                      ? "bg-[#41EAD4] text-[#0C0F0A]"
+                      : "text-[#A3B19B] hover:text-white"
                   }`}
                 >
                   男子
                 </button>
                 <button
                   onClick={() => handleToggleGender("girl")}
-                  className={`px-2 py-1 text-[11px] font-black transition ${
+                  className={`px-2.5 py-1 text-[11px] font-black transition ${
                     profile.gender === "girl"
-                      ? "bg-[#E60012] text-white"
-                      : "text-zinc-400"
+                      ? "bg-[#FF206E] text-white"
+                      : "text-[#A3B19B] hover:text-white"
                   }`}
                 >
                   女子
@@ -473,22 +473,25 @@ export default function DopaBenApp() {
                   setIsMuted(nextMute);
                   soundEngine.setMuted(nextMute);
                 }}
-                className="p-2 bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white"
+                className="p-2 bg-[#141911] border border-[#2C3527] text-white hover:border-[#41EAD4] transition"
                 title="音声ON/OFF"
               >
                 {isMuted ? (
-                  <VolumeX className="w-4 h-4 text-red-500" />
+                  <VolumeX className="w-4 h-4 text-[#FF206E]" />
                 ) : (
-                  <Volume2 className="w-4 h-4 text-[#FFE600]" />
+                  <Volume2 className="w-4 h-4 text-[#FBFF12]" />
                 )}
               </button>
             </div>
           </header>
 
-          {/* メイン育成キャラクター・ステージカード（温かみのあるレトロドット絵 × P5風フレーム） */}
-          <section className="bg-[#111111] border-2 border-white p-3.5 shadow-p5-red relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <span className="bg-[#FFE600] text-black font-black text-[11px] px-2.5 py-0.5 -skew-x-12">
+          {/* メイン育成キャラクター・ステージカード */}
+          <section className="bg-[#141911] border-2 border-white p-3.5 shadow-p5-pink relative overflow-hidden">
+            {/* 右上の斜めアクセント装飾 */}
+            <div className="absolute -top-6 -right-6 w-20 h-20 bg-[#FF206E]/15 rotate-12 pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-2.5 relative z-10">
+              <span className="bg-[#FBFF12] text-[#0C0F0A] font-black text-[11px] px-2.5 py-0.5 -skew-x-12 border border-[#0C0F0A]">
                 {currentStageInfo.subtitle}
               </span>
               <button
@@ -496,20 +499,20 @@ export default function DopaBenApp() {
                   soundEngine.playTap();
                   setIsSkillModalOpen(true);
                 }}
-                className="text-xs font-black text-[#00F0FF] hover:underline flex items-center gap-0.5"
+                className="text-xs font-black text-[#41EAD4] hover:text-[#FBFF12] transition flex items-center gap-0.5"
               >
                 10段階進化図鑑・特権スキル <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="flex items-center gap-3.5">
-              {/* レトロドット絵キャラ */}
+            <div className="flex items-center gap-3.5 relative z-10">
+              {/* レトロドット絵キャラ展示ボックス */}
               <div
                 onClick={() => {
                   soundEngine.playTap();
                   setIsSkillModalOpen(true);
                 }}
-                className="cursor-pointer bg-zinc-950/90 border-2 border-zinc-700 hover:border-[#FFE600] p-1.5 transition shrink-0"
+                className="cursor-pointer bg-[#0C0F0A] border-2 border-[#41EAD4] hover:border-[#FBFF12] p-1.5 transition shrink-0 shadow-[3px_3px_0_#FF206E]"
               >
                 <PixelCharacter
                   gender={profile.gender}
@@ -523,37 +526,37 @@ export default function DopaBenApp() {
               <div className="flex-1 space-y-2">
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-black italic text-[#FFE600]">
+                    <span className="text-2xl font-black italic text-[#FBFF12] drop-shadow-[2px_2px_0_#FF206E]">
                       Lv.{profile.level}
                     </span>
-                    <span className="text-xs font-bold text-zinc-400">
+                    <span className="text-xs font-bold text-[#41EAD4]">
                       / 10段階進化
                     </span>
                   </div>
-                  <h2 className="font-black text-base text-white leading-snug">
+                  <h2 className="font-black text-base text-white leading-snug mt-0.5">
                     {profile.gender === "boy"
                       ? currentStageInfo.titleBoy
                       : currentStageInfo.titleGirl}
                   </h2>
                 </div>
 
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                <p className="text-[11px] text-[#C8D4C2] leading-relaxed">
                   {currentStageInfo.unlockMessage}
                 </p>
 
                 {/* EXPバー */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-black">
-                    <span className="text-zinc-400">NEXT EVOLUTION</span>
-                    <span className="text-[#FFE600]">
+                    <span className="text-[#41EAD4]">NEXT EVOLUTION</span>
+                    <span className="text-[#FBFF12]">
                       {profile.level >= 10
                         ? "MAX LEVEL"
                         : `${profile.exp} / ${reqExp} EXP`}
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-black border border-white -skew-x-12 p-0.5">
+                  <div className="w-full h-2.5 bg-[#0C0F0A] border border-white -skew-x-12 p-0.5">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-[#E60012] to-[#FFE600]"
+                      className="h-full bg-gradient-to-r from-[#FF206E] via-[#FBFF12] to-[#41EAD4]"
                       animate={{ width: `${expPercent}%` }}
                     />
                   </div>
@@ -561,17 +564,17 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* 機能ハックスキル・クイックバー（高レベル特権の優越感） */}
-            <div className="mt-3 pt-2.5 border-t border-zinc-800 flex items-center justify-between gap-2">
+            {/* 機能ハックスキル・クイックバー */}
+            <div className="mt-3 pt-2.5 border-t border-[#2C3527] flex items-center justify-between gap-2 relative z-10">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-black text-zinc-400 flex items-center gap-1">
-                  <Terminal className="w-3 h-3 text-[#00F0FF]" /> 発動スキル:
+                <span className="text-[10px] font-black text-[#41EAD4] flex items-center gap-1">
+                  <Terminal className="w-3 h-3 text-[#41EAD4]" /> 発動スキル:
                 </span>
                 {profile.activeSkillHacks.filter((id) => {
                   const def = SKILL_HACKS.find((s) => s.id === id);
                   return def && profile.level >= def.unlockLevel;
                 }).length === 0 ? (
-                  <span className="text-[11px] text-zinc-500 font-bold">
+                  <span className="text-[11px] text-[#A3B19B] font-bold">
                     Lv.2で最初の特権スキル解禁！
                   </span>
                 ) : (
@@ -582,7 +585,7 @@ export default function DopaBenApp() {
                   ).map((s) => (
                     <span
                       key={s.id}
-                      className="bg-[#1F090D] border border-[#E60012] text-[#FFE600] text-[10px] font-black px-2 py-0.5 -skew-x-6"
+                      className="bg-[#0C0F0A] border border-[#FF206E] text-[#FBFF12] text-[10px] font-black px-2 py-0.5 -skew-x-6"
                     >
                       {s.badge}: {s.name.split("（")[0]}
                     </span>
@@ -595,7 +598,7 @@ export default function DopaBenApp() {
                   soundEngine.playTap();
                   setIsSkillModalOpen(true);
                 }}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-600 px-2.5 py-1 text-[11px] font-black shrink-0"
+                className="bg-[#0C0F0A] hover:bg-[#41EAD4] hover:text-[#0C0F0A] text-[#41EAD4] border border-[#41EAD4] px-2.5 py-1 text-[11px] font-black shrink-0 transition"
               >
                 スキル設定
               </button>
@@ -603,32 +606,32 @@ export default function DopaBenApp() {
           </section>
 
           {/* 五角形ステータス＆戦績サマリー */}
-          <section className="grid grid-cols-12 gap-2.5 items-center bg-[#0D0D0D] border border-zinc-800 p-2.5">
+          <section className="grid grid-cols-12 gap-2.5 items-center bg-[#141911] border-2 border-[#2C3527] p-2.5">
             <div className="col-span-7 flex justify-center">
               <StarRadarChart stats={profile.stats} />
             </div>
             <div className="col-span-5 space-y-2 pr-1">
-              <div className="bg-zinc-900/90 border-l-4 border-[#E60012] p-2">
-                <div className="text-[10px] text-zinc-400 font-bold">
+              <div className="bg-[#0C0F0A] border-l-4 border-[#FF206E] p-2">
+                <div className="text-[10px] text-[#A3B19B] font-bold">
                   総撃破単語数
                 </div>
                 <div className="text-base font-black text-white">
                   {profile.totalWordsCleared} WORDS
                 </div>
               </div>
-              <div className="bg-zinc-900/90 border-l-4 border-[#FFE600] p-2">
-                <div className="text-[10px] text-zinc-400 font-bold">
+              <div className="bg-[#0C0F0A] border-l-4 border-[#FBFF12] p-2">
+                <div className="text-[10px] text-[#A3B19B] font-bold">
                   倍返し(REVENGE)成功
                 </div>
-                <div className="text-base font-black text-[#FFE600]">
+                <div className="text-base font-black text-[#FBFF12]">
                   {profile.totalRevengeJackpots} JACKPOTS
                 </div>
               </div>
-              <div className="bg-zinc-900/90 border-l-4 border-[#00F0FF] p-2">
-                <div className="text-[10px] text-zinc-400 font-bold">
+              <div className="bg-[#0C0F0A] border-l-4 border-[#41EAD4] p-2">
+                <div className="text-[10px] text-[#A3B19B] font-bold">
                   最高コンボ記録
                 </div>
-                <div className="text-base font-black text-[#00F0FF]">
+                <div className="text-base font-black text-[#41EAD4]">
                   {profile.maxCombo} CHAIN
                 </div>
               </div>
@@ -638,8 +641,8 @@ export default function DopaBenApp() {
           {/* 出撃学年セレクト ＆ Lv.5特権「激ムズ問題に挑戦できる権」トグル */}
           <section className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-zinc-300 flex items-center gap-1">
-                <Trophy className="w-3.5 h-3.5 text-[#FFE600]" />
+              <span className="text-xs font-black text-white flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 text-[#FBFF12]" />
                 出撃レンジ選択（4形式＋音声自動生成）
               </span>
 
@@ -652,11 +655,11 @@ export default function DopaBenApp() {
                   }}
                   className={`px-2.5 py-1 text-[11px] font-black border -skew-x-6 flex items-center gap-1 transition ${
                     isHardcoreActive
-                      ? "bg-purple-600 text-white border-[#FFE600] shadow-[2px_2px_0_#FFE600]"
-                      : "bg-zinc-900 text-zinc-400 border-zinc-700"
+                      ? "bg-[#FF206E] text-white border-[#FBFF12] shadow-[2px_2px_0_#41EAD4]"
+                      : "bg-[#141911] text-[#A3B19B] border-[#2C3527]"
                   }`}
                 >
-                  <Skull className="w-3.5 h-3.5" />
+                  <Skull className="w-3.5 h-3.5 text-[#FBFF12]" />
                   激ムズ挑戦権: {isHardcoreActive ? "ON (EXP×2)" : "OFF"}
                 </button>
               ) : (
@@ -665,7 +668,7 @@ export default function DopaBenApp() {
                     soundEngine.playTap();
                     setIsSkillModalOpen(true);
                   }}
-                  className="text-[11px] font-bold text-zinc-500 hover:text-[#FFE600] transition"
+                  className="text-[11px] font-bold text-[#41EAD4]/80 hover:text-[#FBFF12] transition"
                 >
                   🔒 Lv.5で『激ムズ挑戦権』解禁
                 </button>
@@ -682,8 +685,8 @@ export default function DopaBenApp() {
                   }}
                   className={`py-2 font-black text-xs border-2 -skew-x-6 transition ${
                     selectedGrade === g
-                      ? "bg-[#FFE600] text-black border-white shadow-[3px_3px_0_#E60012]"
-                      : "bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-zinc-500"
+                      ? "bg-[#FBFF12] text-[#0C0F0A] border-white shadow-[3px_3px_0_#FF206E]"
+                      : "bg-[#141911] text-white border-[#2C3527] hover:border-[#41EAD4]"
                   }`}
                 >
                   {g === "ALL" ? "全学年MIX" : g}
@@ -691,15 +694,15 @@ export default function DopaBenApp() {
               ))}
             </div>
 
-            {/* 出撃ボタン */}
+            {/* 出撃ボタン (#FF206E ベース × #FBFF12 シャドウ × #FFFFFF エッジ) */}
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleStartBattle}
-              className="w-full py-4 bg-[#E60012] hover:bg-red-600 text-white font-black text-xl tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2.5 relative overflow-hidden group"
+              className="w-full py-4 bg-[#FF206E] hover:brightness-110 text-white font-black text-xl tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2.5 relative overflow-hidden group transition"
             >
-              <Zap className="w-6 h-6 fill-[#FFE600] text-[#FFE600] group-hover:scale-125 transition" />
+              <Zap className="w-6 h-6 fill-[#FBFF12] text-[#FBFF12] group-hover:scale-125 transition" />
               <span>BATTLE START // 出撃する</span>
-              <Sparkles className="w-5 h-5 text-[#FFE600]" />
+              <Sparkles className="w-5 h-5 text-[#41EAD4]" />
             </motion.button>
           </section>
         </div>

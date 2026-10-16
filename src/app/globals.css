@@ -3,11 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --p5-red: #E60012;
-  --p5-black: #0A0A0A;
-  --p5-white: #FFFFFF;
-  --p5-yellow: #FFE600;
-  --p5-cyan: #00F0FF;
+  --dopa-black: #0C0F0A;
+  --dopa-surface: #141911;
+  --dopa-pink: #FF206E;
+  --dopa-yellow: #FBFF12;
+  --dopa-cyan: #41EAD4;
+  --dopa-white: #FFFFFF;
 }
 
 * {
@@ -17,62 +18,67 @@
 }
 
 body {
-  background-color: #050505;
+  background-color: #0C0F0A;
   color: #FFFFFF;
   font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 
-/* Halftone comic dot background pattern */
+/* Halftone comic dot background pattern using #FF206E and #41EAD4 */
 .bg-halftone {
-  background-image: radial-gradient(rgba(230, 0, 18, 0.22) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 16px 16px, 8px 8px;
-  background-position: 0 0, 4px 4px;
+  background-color: #0C0F0A;
+  background-image: radial-gradient(rgba(255, 32, 110, 0.22) 1.5px, transparent 1.5px),
+    radial-gradient(rgba(65, 234, 212, 0.09) 1px, transparent 1px);
+  background-size: 18px 18px, 9px 9px;
+  background-position: 0 0, 4.5px 4.5px;
 }
 
-.bg-halftone-red {
-  background-color: #E60012;
-  background-image: radial-gradient(rgba(10, 10, 10, 0.28) 2px, transparent 2px);
+.bg-halftone-pink {
+  background-color: #FF206E;
+  background-image: radial-gradient(rgba(12, 15, 10, 0.28) 2px, transparent 2px);
   background-size: 12px 12px;
 }
 
-/* Persona 5 style jagged / diagonal polygon clip paths */
+/* Persona 5 inspired jagged / diagonal polygon clip paths */
 .clip-p5-card {
-  clip-path: polygon(2% 0%, 100% 3%, 98% 100%, 0% 97%);
+  clip-path: polygon(1.5% 0%, 100% 2.5%, 98.5% 100%, 0% 97.5%);
 }
 
 .clip-p5-btn {
-  clip-path: polygon(0% 8%, 97% 0%, 100% 90%, 3% 100%);
+  clip-path: polygon(0% 8%, 97.5% 0%, 100% 90%, 2.5% 100%);
 }
 
 .clip-p5-btn-alt {
-  clip-path: polygon(2% 0%, 100% 10%, 97% 100%, 0% 92%);
+  clip-path: polygon(2% 0%, 100% 9%, 97.5% 100%, 0% 92%);
 }
 
 .clip-p5-banner {
-  clip-path: polygon(0% 12%, 100% 0%, 96% 88%, 2% 100%);
+  clip-path: polygon(0% 10%, 100% 0%, 96.5% 89%, 2% 100%);
 }
 
 .clip-p5-tag {
   clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
 }
 
-/* Hard comic offset drop shadows */
+/* Hard comic offset drop shadows aligned with the 5-color palette */
 .shadow-p5-white {
   filter: drop-shadow(4px 4px 0px #FFFFFF);
 }
 
-.shadow-p5-red {
-  filter: drop-shadow(5px 5px 0px #E60012);
+.shadow-p5-pink {
+  filter: drop-shadow(5px 5px 0px #FF206E);
+}
+
+.shadow-p5-cyan {
+  filter: drop-shadow(5px 5px 0px #41EAD4);
 }
 
 .shadow-p5-black {
-  filter: drop-shadow(5px 5px 0px #0A0A0A);
+  filter: drop-shadow(5px 5px 0px #0C0F0A);
 }
 
 .shadow-p5-yellow {
-  filter: drop-shadow(4px 4px 0px #FFE600);
+  filter: drop-shadow(4px 4px 0px #FBFF12);
 }
 
 /* Crisp retro pixel art rendering */

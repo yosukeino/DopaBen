@@ -24,17 +24,17 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
   const [tab, setTab] = useState<"skills" | "evolution">("skills");
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-3">
+    <div className="fixed inset-0 z-50 bg-[#0C0F0A]/90 backdrop-blur-sm flex items-center justify-center p-3">
       <motion.div
         initial={{ scale: 0.9, opacity: 0, rotate: -2 }}
         animate={{ scale: 1, opacity: 1, rotate: 0 }}
-        className="w-full max-w-md max-h-[90vh] bg-[#0E0E0E] border-2 border-white shadow-p5-red flex flex-col overflow-hidden"
+        className="w-full max-w-md max-h-[90vh] bg-[#141911] border-2 border-white shadow-p5-pink flex flex-col overflow-hidden"
       >
         {/* ヘッダー */}
-        <div className="bg-[#E60012] px-4 py-3 flex items-center justify-between border-b-2 border-white">
+        <div className="bg-[#FF206E] px-4 py-3 flex items-center justify-between border-b-2 border-white">
           <div className="flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-[#FFE600]" />
-            <h2 className="font-black text-lg tracking-tight italic">
+            <Terminal className="w-5 h-5 text-[#FBFF12]" />
+            <h2 className="font-black text-lg tracking-tight italic text-white">
               SYSTEM HACK &amp; EVOLUTION
             </h2>
           </div>
@@ -43,14 +43,14 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
               soundEngine.playTap();
               onClose();
             }}
-            className="bg-black text-white p-1.5 border border-white hover:bg-white hover:text-black transition"
+            className="bg-[#0C0F0A] text-white p-1.5 border border-white hover:bg-[#FBFF12] hover:text-[#0C0F0A] transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* タブ切り替え */}
-        <div className="grid grid-cols-2 bg-black border-b-2 border-zinc-800 p-1.5 gap-2">
+        <div className="grid grid-cols-2 bg-[#0C0F0A] border-b-2 border-[#2C3527] p-1.5 gap-2">
           <button
             onClick={() => {
               soundEngine.playTap();
@@ -58,11 +58,13 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
             }}
             className={`py-2 font-black text-xs tracking-wider uppercase transition ${
               tab === "skills"
-                ? "bg-[#FFE600] text-black -skew-x-6 shadow-[3px_3px_0_#E60012]"
-                : "bg-zinc-900 text-zinc-400"
+                ? "bg-[#FBFF12] text-[#0C0F0A] -skew-x-6 shadow-[3px_3px_0_#FF206E]"
+                : "bg-[#141911] text-[#A3B19B]"
             }`}
           >
-            ⚡ 特権スキルハック ({SKILL_HACKS.filter((s) => profile.level >= s.unlockLevel).length}/{SKILL_HACKS.length})
+            ⚡ 特権スキルハック (
+            {SKILL_HACKS.filter((s) => profile.level >= s.unlockLevel).length}/
+            {SKILL_HACKS.length})
           </button>
           <button
             onClick={() => {
@@ -71,8 +73,8 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
             }}
             className={`py-2 font-black text-xs tracking-wider uppercase transition ${
               tab === "evolution"
-                ? "bg-[#FFE600] text-black -skew-x-6 shadow-[3px_3px_0_#E60012]"
-                : "bg-zinc-900 text-zinc-400"
+                ? "bg-[#FBFF12] text-[#0C0F0A] -skew-x-6 shadow-[3px_3px_0_#FF206E]"
+                : "bg-[#141911] text-[#A3B19B]"
             }`}
           >
             👾 ドット絵10段階図鑑
@@ -83,8 +85,8 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
           {tab === "skills" ? (
             <>
-              <div className="bg-zinc-900/90 border border-zinc-700 p-3 text-xs text-zinc-300 leading-relaxed">
-                <span className="text-[#FFE600] font-black">
+              <div className="bg-[#0C0F0A] border border-[#2C3527] p-3 text-xs text-[#C8D4C2] leading-relaxed">
+                <span className="text-[#FBFF12] font-black">
                   【育成×機能ハック】
                 </span>{" "}
                 キャラのレベルが上がると、ゲームのルール自体を書き換える特権スキル（激ムズ問題挑戦権など）がアンロックされます！
@@ -100,9 +102,9 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                     className={`p-3.5 border-2 transition relative ${
                       isUnlocked
                         ? isActive
-                          ? "bg-[#19080A] border-[#FFE600] shadow-[4px_4px_0_#E60012]"
-                          : "bg-zinc-900 border-white"
-                        : "bg-zinc-950/80 border-zinc-800 opacity-65"
+                          ? "bg-[#0C0F0A] border-[#FBFF12] shadow-[4px_4px_0_#FF206E]"
+                          : "bg-[#0C0F0A] border-white"
+                        : "bg-[#0C0F0A]/60 border-[#2C3527] opacity-65"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -110,14 +112,16 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                         <span
                           className={`inline-block px-2 py-0.5 text-[10px] font-black mb-1 -skew-x-6 ${
                             isUnlocked
-                              ? "bg-[#E60012] text-white"
-                              : "bg-zinc-800 text-zinc-400"
+                              ? "bg-[#FF206E] text-white"
+                              : "bg-[#2C3527] text-[#A3B19B]"
                           }`}
                         >
                           {skill.badge}
                         </span>
                         <h3 className="font-black text-sm text-white flex items-center gap-1.5">
-                          {!isUnlocked && <Lock className="w-3.5 h-3.5 text-zinc-500" />}
+                          {!isUnlocked && (
+                            <Lock className="w-3.5 h-3.5 text-[#A3B19B]" />
+                          )}
                           {skill.name}
                         </h3>
                       </div>
@@ -130,8 +134,8 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                           }}
                           className={`px-3 py-1.5 font-black text-xs border-2 transition flex items-center gap-1 shrink-0 ${
                             isActive
-                              ? "bg-[#FFE600] text-black border-black"
-                              : "bg-black text-zinc-300 border-zinc-600"
+                              ? "bg-[#FBFF12] text-[#0C0F0A] border-[#0C0F0A]"
+                              : "bg-[#141911] text-[#A3B19B] border-[#2C3527]"
                           }`}
                         >
                           {isActive ? (
@@ -143,16 +147,16 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                           )}
                         </button>
                       ) : (
-                        <span className="text-[11px] font-black text-zinc-500 shrink-0">
+                        <span className="text-[11px] font-black text-[#A3B19B] shrink-0">
                           Lv.{skill.unlockLevel}で解禁
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-zinc-300 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-[#C8D4C2] mt-1.5 leading-relaxed">
                       {skill.description}
                     </p>
-                    <div className="mt-2 text-[11px] font-extrabold text-[#00F0FF]">
+                    <div className="mt-2 text-[11px] font-extrabold text-[#41EAD4]">
                       ▶ 効果: {skill.effectSummary}
                     </div>
                   </div>
@@ -161,15 +165,15 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
             </>
           ) : (
             <>
-              <div className="bg-zinc-900/90 border border-zinc-700 p-3 text-xs text-zinc-300 flex items-center justify-between">
+              <div className="bg-[#0C0F0A] border border-[#2C3527] p-3 text-xs text-[#C8D4C2] flex items-center justify-between">
                 <div>
                   現在:{" "}
-                  <span className="text-[#FFE600] font-black">
+                  <span className="text-[#FBFF12] font-black">
                     第{Math.min(10, profile.level)}段階進化
                   </span>{" "}
                   ({profile.gender === "boy" ? "男子" : "女子"}ルート)
                 </div>
-                <span className="text-[11px] text-zinc-400">
+                <span className="text-[11px] text-[#41EAD4]">
                   タップで任意の段階を試着可能
                 </span>
               </div>
@@ -188,18 +192,18 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                       }}
                       className={`p-2.5 border-2 text-left transition flex flex-col items-center relative ${
                         isCurrent
-                          ? "bg-[#1A090D] border-[#FFE600] shadow-[3px_3px_0_#E60012]"
+                          ? "bg-[#0C0F0A] border-[#FBFF12] shadow-[3px_3px_0_#FF206E]"
                           : unlocked
-                          ? "bg-zinc-900 border-zinc-600 hover:border-white"
-                          : "bg-zinc-950 border-zinc-800 opacity-75 hover:opacity-100"
+                          ? "bg-[#0C0F0A] border-[#41EAD4] hover:border-white"
+                          : "bg-[#0C0F0A]/70 border-[#2C3527] opacity-75 hover:opacity-100"
                       }`}
                     >
                       <div className="w-full flex items-center justify-between text-[10px] font-black mb-1">
-                        <span className="bg-[#E60012] text-white px-1.5 py-0.5">
+                        <span className="bg-[#FF206E] text-white px-1.5 py-0.5">
                           Lv.{st.stage}
                         </span>
                         {isCurrent && (
-                          <span className="text-[#FFE600] flex items-center gap-0.5">
+                          <span className="text-[#FBFF12] flex items-center gap-0.5">
                             <Sparkles className="w-3 h-3" /> NOW
                           </span>
                         )}
@@ -214,9 +218,11 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
 
                       <div className="mt-1.5 text-center">
                         <div className="font-black text-xs text-white leading-tight">
-                          {profile.gender === "boy" ? st.titleBoy : st.titleGirl}
+                          {profile.gender === "boy"
+                            ? st.titleBoy
+                            : st.titleGirl}
                         </div>
-                        <div className="text-[9px] text-zinc-400 mt-0.5">
+                        <div className="text-[9px] text-[#41EAD4] mt-0.5">
                           {st.subtitle}
                         </div>
                       </div>
@@ -229,9 +235,11 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
         </div>
 
         {/* プロトタイプ検証用：ワンタップ進化＆レベル切替バー */}
-        <div className="bg-zinc-950 border-t-2 border-zinc-800 p-3 flex items-center justify-between gap-2">
-          <div className="text-[11px] text-zinc-400">
-            <span className="text-[#00F0FF] font-black">🔧 プロトタイプ検証:</span>{" "}
+        <div className="bg-[#0C0F0A] border-t-2 border-[#2C3527] p-3 flex items-center justify-between gap-2">
+          <div className="text-[11px] text-[#C8D4C2]">
+            <span className="text-[#41EAD4] font-black">
+              🔧 プロトタイプ検証:
+            </span>{" "}
             進化段階・特権スキルを即テスト
           </div>
           <div className="flex items-center gap-1.5">
@@ -241,9 +249,9 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                 soundEngine.playEvolutionFanfare();
                 onInstantLevelChange(nextLv);
               }}
-              className="bg-[#FFE600] text-black font-black text-xs px-3 py-1.5 border border-black flex items-center gap-1 hover:brightness-110 active:scale-95 transition"
+              className="bg-[#FBFF12] text-[#0C0F0A] font-black text-xs px-3 py-1.5 border border-white flex items-center gap-1 hover:brightness-110 active:scale-95 transition"
             >
-              <Zap className="w-3.5 h-3.5 fill-black" />
+              <Zap className="w-3.5 h-3.5 fill-[#0C0F0A]" />
               Lv.{profile.level >= 10 ? "1へ戻す" : `${profile.level + 1}に進化！`}
             </button>
           </div>

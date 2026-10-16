@@ -9,14 +9,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        p5: {
-          red: "#E60012",
-          darkred: "#99000C",
-          black: "#0A0A0A",
-          charcoal: "#161616",
+        dopa: {
+          black: "#0C0F0A",
+          surface: "#141911",
+          card: "#191F15",
+          border: "#2C3527",
+          pink: "#FF206E",
+          pinkdark: "#B80D48",
+          yellow: "#FBFF12",
+          cyan: "#41EAD4",
           white: "#FFFFFF",
-          yellow: "#FFE600",
-          cyan: "#00F0FF",
         },
       },
       animation: {
