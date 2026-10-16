@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Skull,
   Database,
+  BookOpen,
+  CheckCircle2,
 } from "lucide-react";
 import {
   CharacterGender,
@@ -22,11 +24,13 @@ import {
   GradeLevel,
   PlayerProfile,
   SkillHackId,
+  WordMasteryRecord,
 } from "@/lib/types";
 import { EVOLUTION_STAGES, SKILL_HACKS } from "@/lib/vocabData";
 import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
 import { generateBattleDeck } from "@/lib/questionGenerator";
 import {
+  getActiveVocabPool,
   loadVocabPoolFromSupabase,
   syncAllLocalDataToSupabase,
 } from "@/lib/vocabRepository";
@@ -36,6 +40,7 @@ import { PixelCharacter } from "@/components/PixelCharacter";
 import { StarRadarChart } from "@/components/StarRadarChart";
 import { BattleResultSummary, BattleScreen } from "@/components/BattleScreen";
 import { SkillHackModal } from "@/components/SkillHackModal";
+import { VocabCodexModal } from "@/components/VocabCodexModal";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
 
@@ -271,6 +276,7 @@ const DEFAULT_PROFILE: PlayerProfile = {
     guts: 20,
   },
   activeSkillHacks: ["bounty_overdrive", "phantom_eliminator"],
+  wordMastery: {},
 };
 
 function getRequiredExpForLevel(level: number): number {
@@ -291,10 +297,11 @@ export default function DopaBenApp() {
   } | null>(null);
 
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [slashTransition, setSlashTransition] = useState(false);
   const [dbSource, setDbSource] = useState<"supabase" | "local">("local");
-  const [dbTotalWords, setDbTotalWords] = useState<number>(114);
+  const [dbTotalWords, setDbTotalWords] = useState<number>(117);
   const [isSyncingDb, setIsSyncingDb] = useState<boolean>(false);
   const [dbSyncNotice, setDbSyncNotice] = useState<string | null>(null);
 
@@ -361,17 +368,30 @@ export default function DopaBenApp() {
     }, 520);
   };
 
-  const handleStartBattle = () => {
+  const handleStartBattle = (
+    overrideTrack?: number,
+    onlyWeakWords: boolean = false
+  ) => {
     soundEngine.playAllOutIntro();
     const useHardcore =
       profile.level >= 5 &&
       profile.activeSkillHacks.includes("hardcore_challenge");
+    const targetTrack =
+      overrideTrack !== undefined ? overrideTrack : selectedEikenTrack;
+    if (overrideTrack !== undefined) {
+      setSelectedGrade("英検1級");
+      setSelectedEikenTrack(overrideTrack);
+    }
+
     const deck = generateBattleDeck(
-      selectedGrade,
+      overrideTrack !== undefined ? "英検1級" : selectedGrade,
       useHardcore,
-      selectedEikenTrack
+      targetTrack,
+      profile.wordMastery,
+      onlyWeakWords
     );
 
+    setIsCodexModalOpen(false);
     triggerSlashTransition(() => {
       setBattleDeck(deck);
       setScreen("battle");
@@ -412,6 +432,24 @@ export default function DopaBenApp() {
       guts: Math.min(100, profile.stats.guts + (summary.statGains.guts || 0)),
     };
 
+    // 今回のバトルで出題された各単語の習熟度（cleared / missed）を保存
+    const updatedMastery: Record<string, WordMasteryRecord> = {
+      ...(profile.wordMastery || {}),
+    };
+    const now = Date.now();
+    for (const [wordId, delta] of Object.entries(summary.masteryDeltas || {})) {
+      const prev = updatedMastery[wordId] || {
+        cleared: 0,
+        missed: 0,
+        lastPlayedAt: 0,
+      };
+      updatedMastery[wordId] = {
+        cleared: prev.cleared + delta.cleared,
+        missed: prev.missed + delta.missed,
+        lastPlayedAt: now,
+      };
+    }
+
     const nextProfile: PlayerProfile = {
       ...profile,
       level: currentLv,
@@ -423,6 +461,7 @@ export default function DopaBenApp() {
       maxCombo: Math.max(profile.maxCombo, summary.maxCombo),
       stats: updatedStats,
       activeSkillHacks: updatedActiveSkills,
+      wordMastery: updatedMastery,
     };
 
     saveProfile(nextProfile);
@@ -641,11 +680,72 @@ export default function DopaBenApp() {
                 </div>
               </div>
             </div>
+
+            {/* 📝 今回の出撃ワード戦績（タップで発音再生＆復習） */}
+            {lastResult.summary.wordLogs &&
+              lastResult.summary.wordLogs.length > 0 && (
+                <div className="bg-[#141911] border-2 border-[#2C3527] p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-black">
+                    <span className="text-[#41EAD4] flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5 text-[#FBFF12]" />
+                      今回の出撃ワード振り返り（タップで発音）
+                    </span>
+                    <span className="text-[10px] text-[#A3B19B]">
+                      全{lastResult.summary.wordLogs.length}語
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-0.5">
+                    {lastResult.summary.wordLogs.map((log) => (
+                      <div
+                        key={log.wordId}
+                        onClick={() =>
+                          soundEngine.speakEnglish(log.english, 1.0)
+                        }
+                        className="cursor-pointer bg-[#0C0F0A] hover:border-[#41EAD4] border border-[#2C3527] p-2 flex items-center justify-between gap-2 transition"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`text-[10px] font-black px-1.5 py-0.5 ${
+                                log.result === "perfect"
+                                  ? "bg-[#41EAD4] text-[#0C0F0A]"
+                                  : log.result === "revenge"
+                                  ? "bg-[#FBFF12] text-[#0C0F0A]"
+                                  : "bg-[#FF206E] text-white"
+                              }`}
+                            >
+                              {log.result === "perfect"
+                                ? "⚡ 一発撃破"
+                                : log.result === "revenge"
+                                ? "🔥 倍返し成功"
+                                : "🛡️ 要復習"}
+                            </span>
+                            <span className="text-sm font-black text-white">
+                              {log.english}
+                            </span>
+                            <span className="text-[10px] text-[#A3B19B] font-bold">
+                              {log.phonetic}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-[#FBFF12] truncate mt-0.5">
+                            ＝ {log.japanese}
+                          </div>
+                        </div>
+
+                        <div className="bg-[#FF206E] text-white p-1.5 border border-white shrink-0">
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
 
           <div className="space-y-2.5 pt-3">
             <button
-              onClick={handleStartBattle}
+              onClick={() => handleStartBattle()}
               className="w-full py-4 bg-[#FF206E] hover:brightness-110 text-white font-black text-lg border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
             >
               <Flame className="w-5 h-5 fill-[#FBFF12] text-[#FBFF12]" />
@@ -1023,25 +1123,40 @@ export default function DopaBenApp() {
                 </span>
               </button>
 
-              {/* 英検1級 選択時：Track 001〜008 レンジ切り替えパネル */}
+              {/* 英検1級 選択時：Track 001〜008 レンジ切り替えパネル ＆ 制覇率表示 */}
               {selectedGrade === "英検1級" && (
-                <div className="bg-[#141911] border border-[#41EAD4]/70 p-2 space-y-1.5">
+                <div className="bg-[#141911] border border-[#41EAD4]/70 p-2.5 space-y-2">
                   <div className="flex items-center justify-between text-[10px] font-black">
                     <span className="text-[#41EAD4]">
-                      🎯 出撃トラック選択（各Track 12語＋公式例文）
+                      🎯 トラック選択（未出題・苦手ワードを自動優先出題！）
                     </span>
-                    <span className="text-[#FBFF12]">
-                      {
-                        EIKEN1_TRACK_STAGES.find(
-                          (t) => t.trackNumber === selectedEikenTrack
-                        )?.subLabel
-                      }
-                    </span>
+                    <button
+                      onClick={() => {
+                        soundEngine.playTap();
+                        setIsCodexModalOpen(true);
+                      }}
+                      className="bg-[#0C0F0A] hover:bg-[#FBFF12] hover:text-[#0C0F0A] text-[#FBFF12] border border-[#FBFF12] px-2 py-0.5 flex items-center gap-1 transition"
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      96語図鑑・制覇率
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5">
                     {EIKEN1_TRACK_STAGES.map((t) => {
                       const isSelected = selectedEikenTrack === t.trackNumber;
+                      const poolWords = getActiveVocabPool().eiken1Words;
+                      const trackWords =
+                        t.trackNumber === 0
+                          ? poolWords
+                          : poolWords.filter((w) => w.track === t.trackNumber);
+                      const masteredCount = trackWords.filter(
+                        (w) => (profile.wordMastery?.[w.id]?.cleared || 0) > 0
+                      ).length;
+                      const totalInTrack = trackWords.length || 12;
+                      const isComplete =
+                        totalInTrack > 0 && masteredCount >= totalInTrack;
+
                       return (
                         <button
                           key={t.id}
@@ -1049,7 +1164,7 @@ export default function DopaBenApp() {
                             soundEngine.playTap();
                             setSelectedEikenTrack(t.trackNumber);
                           }}
-                          className={`py-1.5 px-1.5 text-center border transition ${
+                          className={`py-1.5 px-1.5 text-center border transition relative overflow-hidden ${
                             t.trackNumber === 0 ? "col-span-3" : ""
                           } ${
                             isSelected
@@ -1057,8 +1172,17 @@ export default function DopaBenApp() {
                               : "bg-[#0C0F0A] text-[#C8D4C2] border-[#2C3527] hover:border-[#41EAD4] font-bold"
                           }`}
                         >
-                          <div className="text-[11px] leading-tight">
-                            {t.label}{" "}
+                          <div className="text-[11px] leading-tight flex items-center justify-center gap-1">
+                            {isComplete && (
+                              <CheckCircle2
+                                className={`w-3 h-3 shrink-0 ${
+                                  isSelected
+                                    ? "text-[#0C0F0A]"
+                                    : "text-[#FBFF12]"
+                                }`}
+                              />
+                            )}
+                            <span>{t.label}</span>
                             <span
                               className={
                                 isSelected
@@ -1066,8 +1190,30 @@ export default function DopaBenApp() {
                                   : "text-[#41EAD4] text-[10px]"
                               }
                             >
-                              ({t.rangeLabel})
+                              ({masteredCount}/{totalInTrack})
                             </span>
+                          </div>
+                          {/* トラック制覇ミニバー */}
+                          <div
+                            className={`w-full h-1 mt-1 ${
+                              isSelected ? "bg-[#0C0F0A]/25" : "bg-[#141911]"
+                            }`}
+                          >
+                            <div
+                              className={`h-full transition-all ${
+                                isSelected ? "bg-[#FF206E]" : "bg-[#41EAD4]"
+                              }`}
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.round(
+                                    (masteredCount /
+                                      Math.max(1, totalInTrack)) *
+                                      100
+                                  )
+                                )}%`,
+                              }}
+                            />
                           </div>
                         </button>
                       );
@@ -1129,7 +1275,7 @@ export default function DopaBenApp() {
               {/* 3. 出撃ボタン本体 ＋ 斜め光沢スイープ (animate-glint-sweep) */}
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={handleStartBattle}
+                onClick={() => handleStartBattle()}
                 className="w-full py-4 bg-[#FF206E] hover:brightness-110 text-white font-black text-xl tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2.5 relative overflow-hidden group transition z-10"
               >
                 {/* 斜めに走る光沢グレア */}
@@ -1151,6 +1297,18 @@ export default function DopaBenApp() {
           onToggleSkill={handleToggleSkill}
           onInstantLevelChange={handleInstantLevelChange}
           onClose={() => setIsSkillModalOpen(false)}
+        />
+      )}
+
+      {/* 📖 英検1級 Unit 01 全96語図鑑＆制覇状況モーダル */}
+      {isCodexModalOpen && (
+        <VocabCodexModal
+          wordMastery={profile.wordMastery || {}}
+          initialTrack={selectedEikenTrack}
+          onSelectTrackAndStart={(trackNum, onlyWeak) =>
+            handleStartBattle(trackNum, onlyWeak)
+          }
+          onClose={() => setIsCodexModalOpen(false)}
         />
       )}
     </div>

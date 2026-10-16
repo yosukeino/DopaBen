@@ -2,9 +2,10 @@ export type GradeLevel = "英検1級" | "中1" | "中2" | "中3" | "ALL";
 
 export type QuestionFormat =
   | "en_to_ja"       // ① 英単語(＋発音) → 日本語4択
-  | "ja_to_en"       // ② 日本語 → 英単語4択(タップ時発音)
-  | "listening"      // ③ 音声のみリスニング → 英単語＋意味4択
-  | "sentence_order"; // ④ 例文ワードバンク並び替え（総攻撃フィニッシュ）
+  | "ja_to_en"       // ② 日本語 → 英単語4択(回答後に発音)
+  | "listening"      // ③ 音声のみリスニング → 日本語の意味4択(スペル隠蔽)
+  | "sentence_fill"  // ④ 例文の文脈穴埋め → 英単語4択(英検1級本試験スタイル！)
+  | "sentence_order"; // ⑤ 例文ワードバンク並び替え（中学ステージ総攻撃フィニッシュ）
 
 export interface WordItem {
   id: string;
@@ -16,8 +17,8 @@ export interface WordItem {
   distractorsJa: string[];
   distractorsEn: string[];
   tip: string; // ミスした時・正解後の解説モーダルで出る記憶フック
-  exampleSentenceEn?: string; // 解説モーダルで表示する公式例文
-  exampleSentenceJa?: string; // 解説モーダルで表示する公式例文の和訳
+  exampleSentenceEn?: string; // 解説モーダル・穴埋め問題で使用する公式例文
+  exampleSentenceJa?: string; // 解説モーダル・穴埋め問題で使用する公式例文の和訳
 }
 
 export interface SentenceItem {
@@ -41,6 +42,7 @@ export interface GeneratedQuestion {
   promptSub?: string;
   audioText: string;
   hideTextForListening?: boolean;
+  hideAudioBeforeAnswer?: boolean; // 日→英や文脈穴埋めで回答前に正解音声がバレないようにするフラグ
   choices?: {
     id: string;
     label: string;
@@ -94,6 +96,23 @@ export interface EvolutionStageInfo {
   unlockMessage: string;
 }
 
+export interface WordMasteryRecord {
+  cleared: number;
+  missed: number;
+  lastPlayedAt: number;
+}
+
+export interface BattleWordLog {
+  wordId: string;
+  english: string;
+  japanese: string;
+  phonetic: string;
+  tip: string;
+  exampleSentenceEn?: string;
+  exampleSentenceJa?: string;
+  result: "perfect" | "revenge" | "missed";
+}
+
 export interface PlayerProfile {
   name: string;
   gender: CharacterGender;
@@ -105,4 +124,5 @@ export interface PlayerProfile {
   maxCombo: number;
   stats: FiveStats;
   activeSkillHacks: SkillHackId[];
+  wordMastery?: Record<string, WordMasteryRecord>;
 }

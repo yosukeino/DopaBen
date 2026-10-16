@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Volume2,
@@ -14,13 +14,18 @@ import {
   ShieldAlert,
   CheckCircle2,
   BookOpen,
+  Lock,
 } from "lucide-react";
 import {
+  BattleWordLog,
   FiveStats,
   GeneratedQuestion,
   PlayerProfile,
 } from "@/lib/types";
-import { buildWordQuestion } from "@/lib/questionGenerator";
+import {
+  buildWordQuestion,
+  splitSentenceByTargetWord,
+} from "@/lib/questionGenerator";
 import { soundEngine } from "@/lib/soundEngine";
 import { PixelCharacter } from "./PixelCharacter";
 
@@ -30,6 +35,8 @@ export interface BattleResultSummary {
   revengeCount: number;
   wordsCleared: number;
   statGains: Partial<FiveStats>;
+  wordLogs: BattleWordLog[];
+  masteryDeltas: Record<string, { cleared: number; missed: number }>;
 }
 
 interface BattleScreenProps {
@@ -53,13 +60,14 @@ interface AnswerFeedbackModalState {
   exampleSentenceEn?: string;
   exampleSentenceJa?: string;
   selectedChoiceId?: string;
-  // 次の問題へ進む際に確定させるスナップショット
   nextSnapshot: {
     exp: number;
     maxCombo: number;
     revengeCount: number;
     gains: FiveStats;
     deck: GeneratedQuestion[];
+    wordLogs: BattleWordLog[];
+    masteryDeltas: Record<string, { cleared: number; missed: number }>;
   };
 }
 
@@ -75,6 +83,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [maxCombo, setMaxCombo] = useState(0);
   const [earnedExp, setEarnedExp] = useState(0);
   const [revengeCount, setRevengeCount] = useState(0);
+
+  // 今回のバトルで出題された単語の戦績ログ＆習熟度差分
+  const [wordLogs, setWordLogs] = useState<BattleWordLog[]>([]);
+  const [masteryDeltas, setMasteryDeltas] = useState<
+    Record<string, { cleared: number; missed: number }>
+  >({});
 
   // カットイン＆解説モーダル状態（正解・不正解ともに表示して1タップで次へ進む）
   const [bannerText, setBannerText] = useState<string | null>(null);
@@ -118,7 +132,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
   const defaultSpeechRate = hasOverclockAudio ? 1.35 : 1.0;
 
-  // 新しい問題に切り替わった時のみ問題音声を再生（日→英の時は正解バレを防ぐため回答後に再生）
+  // 新しい問題に切り替わった時のみ問題音声を再生（hideAudioBeforeAnswerの時は回答後に再生）
   useEffect(() => {
     if (!currentQuestion) return;
     setSelectedTokens([]);
@@ -132,43 +146,48 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       const t = setTimeout(() => setBannerText(null), 1100);
       soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
       return () => clearTimeout(t);
-    } else if (currentQuestion.format !== "ja_to_en") {
+    } else if (!currentQuestion.hideAudioBeforeAnswer) {
       soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
     }
   }, [currentIndex, currentQuestion, defaultSpeechRate]);
 
-  if (!currentQuestion) return null;
-
-  const getGlobalMultiplier = () => {
+  const getGlobalMultiplier = useCallback(() => {
     let mult = 1.0;
     if (hasHardcoreHack) mult *= 2.0;
     if (hasOverclockAudio) mult *= 1.5;
     if (hasLegendAura) mult *= 2.0;
     return mult;
-  };
+  }, [hasHardcoreHack, hasOverclockAudio, hasLegendAura]);
 
-  const advanceToNext = (
-    nextExp: number,
-    nextMaxCombo: number,
-    nextRevengeCount: number,
-    updatedGains: FiveStats,
-    currentDeckSnapshot: GeneratedQuestion[]
-  ) => {
-    setBannerText(null);
-    setAnswerModal(null);
+  const advanceToNext = useCallback(
+    (
+      nextExp: number,
+      nextMaxCombo: number,
+      nextRevengeCount: number,
+      updatedGains: FiveStats,
+      currentDeckSnapshot: GeneratedQuestion[],
+      updatedLogs: BattleWordLog[],
+      updatedDeltas: Record<string, { cleared: number; missed: number }>
+    ) => {
+      setBannerText(null);
+      setAnswerModal(null);
 
-    if (currentIndex + 1 >= currentDeckSnapshot.length) {
-      onCompleteBattle({
-        earnedExp: Math.round(nextExp),
-        maxCombo: nextMaxCombo,
-        revengeCount: nextRevengeCount,
-        wordsCleared: currentDeckSnapshot.length,
-        statGains: updatedGains,
-      });
-    } else {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  };
+      if (currentIndex + 1 >= currentDeckSnapshot.length) {
+        onCompleteBattle({
+          earnedExp: Math.round(nextExp),
+          maxCombo: nextMaxCombo,
+          revengeCount: nextRevengeCount,
+          wordsCleared: updatedLogs.filter((l) => l.result !== "missed").length || currentDeckSnapshot.length,
+          statGains: updatedGains,
+          wordLogs: updatedLogs,
+          masteryDeltas: updatedDeltas,
+        });
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
+    },
+    [currentIndex, onCompleteBattle]
+  );
 
   /**
    * 4択の回答選択時：
@@ -176,132 +195,271 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
    * 2. 正解でも不正解でも「解説モーダル」を表示する
    * 3. ユーザーがもう1タップしたら次の問題へ進む（次の問題の音声と絶対に被らない！）
    */
-  const handleSelectChoice = (choice: {
-    id: string;
-    label: string;
-    speakOnTap?: string;
-    isCorrect: boolean;
-  }) => {
-    if (answerModal) return;
+  const handleSelectChoice = useCallback(
+    (choice: {
+      id: string;
+      label: string;
+      speakOnTap?: string;
+      isCorrect: boolean;
+    }) => {
+      if (!currentQuestion || answerModal) return;
 
-    const targetWord = currentQuestion.word;
-    const targetAudio = targetWord?.english || currentQuestion.audioText;
+      const targetWord = currentQuestion.word;
+      const targetAudio = targetWord?.english || currentQuestion.audioText;
 
-    if (choice.isCorrect) {
-      const newCombo = combo + 1;
-      const newMaxCombo = Math.max(maxCombo, newCombo);
-      setCombo(newCombo);
-      setMaxCombo(newMaxCombo);
+      // 習熟度デルタ＆戦績ログの更新計算
+      const nextDeltas = { ...masteryDeltas };
+      const nextLogs = [...wordLogs];
 
-      const isRevenge = Boolean(currentQuestion.isRevengeBounty);
-      const bountyMult = isRevenge
-        ? currentQuestion.bountyMultiplier || (hasBountyOverdrive ? 3.5 : 2.5)
-        : 1.0;
-
-      const baseExp = currentQuestion.isHardcoreQuestion ? 60 : 35;
-      const gained = Math.round(
-        baseExp * (1 + newCombo * 0.15) * bountyMult * getGlobalMultiplier()
-      );
-      const nextExp = earnedExp + gained;
-      setEarnedExp(nextExp);
-
-      const nextRevenge = isRevenge ? revengeCount + 1 : revengeCount;
-      if (isRevenge) setRevengeCount(nextRevenge);
-
-      const nextGains: FiveStats = {
-        vocab: statGains.vocab + (currentQuestion.isHardcoreQuestion ? 4 : 2),
-        speed: statGains.speed + (newCombo >= 3 ? 3 : 2),
-        grammar: statGains.grammar + 1,
-        listening:
-          statGains.listening +
-          (currentQuestion.format === "listening" ? 4 : 1),
-        guts: statGains.guts + (isRevenge ? 6 : 1),
-      };
-      setStatGains(nextGains);
-
-      soundEngine.playWeakHit(newCombo, isRevenge);
-      // 正解後に英単語の音声をクリアに再生（自動遷移しないので次の問題と被らない）
-      soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
-
-      setBannerType(isRevenge ? "revenge" : "weak");
-      setBannerText(
-        isRevenge
-          ? `🔥 REVENGE JACKPOT!! +${gained} EXP (×${bountyMult}倍返し!)`
-          : `WEAK!! → 1 MORE! (${newCombo} COMBO / +${gained} EXP)`
-      );
-
-      setAnswerModal({
-        isCorrect: true,
-        isRevenge,
-        gainedExp: gained,
-        bountyMultiplier: bountyMult,
-        comboCount: newCombo,
-        word: targetWord?.english || currentQuestion.audioText,
-        phonetic: targetWord?.phonetic,
-        partOfSpeech: targetWord?.partOfSpeech,
-        meaning: targetWord?.japanese || "",
-        tip: targetWord?.tip || "",
-        exampleSentenceEn: targetWord?.exampleSentenceEn,
-        exampleSentenceJa: targetWord?.exampleSentenceJa,
-        selectedChoiceId: choice.id,
-        nextSnapshot: {
-          exp: nextExp,
-          maxCombo: newMaxCombo,
-          revengeCount: nextRevenge,
-          gains: nextGains,
-          deck,
-        },
-      });
-    } else {
-      soundEngine.playBountyLock();
-      const mult = hasBountyOverdrive ? 3.5 : 2.5;
-      const nextCombo = Math.max(1, Math.floor(combo / 2));
-      setCombo(nextCombo);
-
-      // 不正解時も正解の英単語の発音をしっかり聴かせる
-      soundEngine.speakEnglish(targetAudio, 0.92);
-
-      let updatedDeck = [...deck];
       if (targetWord) {
-        const revengeFormat =
-          currentQuestion.format === "en_to_ja" ? "ja_to_en" : "en_to_ja";
-        const revengeQ = buildWordQuestion(targetWord, revengeFormat, {
-          isRevengeBounty: true,
-          bountyMultiplier: mult,
-        });
+        const prevDelta = nextDeltas[targetWord.id] || {
+          cleared: 0,
+          missed: 0,
+        };
+        nextDeltas[targetWord.id] = {
+          cleared: prevDelta.cleared + (choice.isCorrect ? 1 : 0),
+          missed: prevDelta.missed + (choice.isCorrect ? 0 : 1),
+        };
 
-        const insertPos = Math.max(currentIndex + 1, updatedDeck.length - 1);
-        updatedDeck.splice(insertPos, 0, revengeQ);
-        setDeck(updatedDeck);
+        const existingIdx = nextLogs.findIndex(
+          (l) => l.wordId === targetWord.id
+        );
+        const logStatus: BattleWordLog["result"] = choice.isCorrect
+          ? currentQuestion.isRevengeBounty
+            ? "revenge"
+            : "perfect"
+          : "missed";
+
+        if (existingIdx >= 0) {
+          nextLogs[existingIdx] = {
+            ...nextLogs[existingIdx],
+            result: logStatus,
+          };
+        } else {
+          nextLogs.push({
+            wordId: targetWord.id,
+            english: targetWord.english,
+            japanese: targetWord.japanese,
+            phonetic: targetWord.phonetic,
+            tip: targetWord.tip,
+            exampleSentenceEn: targetWord.exampleSentenceEn,
+            exampleSentenceJa: targetWord.exampleSentenceJa,
+            result: logStatus,
+          });
+        }
       }
 
-      setBannerType("bounty");
-      setBannerText(`🛡️ BOUNTY LOCK!! 次回撃破で EXP ×${mult}倍！`);
+      setMasteryDeltas(nextDeltas);
+      setWordLogs(nextLogs);
 
-      setAnswerModal({
-        isCorrect: false,
-        isRevenge: false,
-        gainedExp: 0,
-        bountyMultiplier: mult,
-        comboCount: nextCombo,
-        word: targetWord?.english || currentQuestion.audioText,
-        phonetic: targetWord?.phonetic,
-        partOfSpeech: targetWord?.partOfSpeech,
-        meaning: targetWord?.japanese || "",
-        tip: targetWord?.tip || "",
-        exampleSentenceEn: targetWord?.exampleSentenceEn,
-        exampleSentenceJa: targetWord?.exampleSentenceJa,
-        selectedChoiceId: choice.id,
-        nextSnapshot: {
-          exp: earnedExp,
-          maxCombo,
-          revengeCount,
-          gains: statGains,
-          deck: updatedDeck,
-        },
-      });
-    }
-  };
+      if (choice.isCorrect) {
+        const newCombo = combo + 1;
+        const newMaxCombo = Math.max(maxCombo, newCombo);
+        setCombo(newCombo);
+        setMaxCombo(newMaxCombo);
+
+        const isRevenge = Boolean(currentQuestion.isRevengeBounty);
+        const bountyMult = isRevenge
+          ? currentQuestion.bountyMultiplier || (hasBountyOverdrive ? 3.5 : 2.5)
+          : 1.0;
+
+        const baseExp = currentQuestion.isHardcoreQuestion ? 60 : 35;
+        const gained = Math.round(
+          baseExp * (1 + newCombo * 0.15) * bountyMult * getGlobalMultiplier()
+        );
+        const nextExp = earnedExp + gained;
+        setEarnedExp(nextExp);
+
+        const nextRevenge = isRevenge ? revengeCount + 1 : revengeCount;
+        if (isRevenge) setRevengeCount(nextRevenge);
+
+        const nextGains: FiveStats = {
+          vocab: statGains.vocab + (currentQuestion.isHardcoreQuestion ? 4 : 2),
+          speed: statGains.speed + (newCombo >= 3 ? 3 : 2),
+          grammar:
+            statGains.grammar +
+            (currentQuestion.format === "sentence_fill" ? 4 : 1),
+          listening:
+            statGains.listening +
+            (currentQuestion.format === "listening" ? 4 : 1),
+          guts: statGains.guts + (isRevenge ? 6 : 1),
+        };
+        setStatGains(nextGains);
+
+        soundEngine.playWeakHit(newCombo, isRevenge);
+        // 正解後に英単語の音声をクリアに再生（自動遷移しないので次の問題と被らない）
+        soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
+
+        setBannerType(isRevenge ? "revenge" : "weak");
+        setBannerText(
+          isRevenge
+            ? `🔥 REVENGE JACKPOT!! +${gained} EXP (×${bountyMult}倍返し!)`
+            : `WEAK!! → 1 MORE! (${newCombo} COMBO / +${gained} EXP)`
+        );
+
+        setAnswerModal({
+          isCorrect: true,
+          isRevenge,
+          gainedExp: gained,
+          bountyMultiplier: bountyMult,
+          comboCount: newCombo,
+          word: targetWord?.english || currentQuestion.audioText,
+          phonetic: targetWord?.phonetic,
+          partOfSpeech: targetWord?.partOfSpeech,
+          meaning: targetWord?.japanese || "",
+          tip: targetWord?.tip || "",
+          exampleSentenceEn: targetWord?.exampleSentenceEn,
+          exampleSentenceJa: targetWord?.exampleSentenceJa,
+          selectedChoiceId: choice.id,
+          nextSnapshot: {
+            exp: nextExp,
+            maxCombo: newMaxCombo,
+            revengeCount: nextRevenge,
+            gains: nextGains,
+            deck,
+            wordLogs: nextLogs,
+            masteryDeltas: nextDeltas,
+          },
+        });
+      } else {
+        soundEngine.playBountyLock();
+        const mult = hasBountyOverdrive ? 3.5 : 2.5;
+        const nextCombo = Math.max(1, Math.floor(combo / 2));
+        setCombo(nextCombo);
+
+        // 不正解時も正解の英単語の発音をしっかり聴かせる
+        soundEngine.speakEnglish(targetAudio, 0.92);
+
+        let updatedDeck = [...deck];
+        if (targetWord) {
+          // 倍返し問題は別角度の形式（英→日 ⇔ 日→英）でデッキ後半に挿入
+          const revengeFormat =
+            currentQuestion.format === "en_to_ja" ? "ja_to_en" : "en_to_ja";
+          const revengeQ = buildWordQuestion(targetWord, revengeFormat, {
+            isRevengeBounty: true,
+            bountyMultiplier: mult,
+          });
+
+          const insertPos = Math.min(
+            updatedDeck.length,
+            Math.max(currentIndex + 2, updatedDeck.length)
+          );
+          updatedDeck.splice(insertPos, 0, revengeQ);
+          setDeck(updatedDeck);
+        }
+
+        setBannerType("bounty");
+        setBannerText(`🛡️ BOUNTY LOCK!! 次回撃破で EXP ×${mult}倍！`);
+
+        setAnswerModal({
+          isCorrect: false,
+          isRevenge: false,
+          gainedExp: 0,
+          bountyMultiplier: mult,
+          comboCount: nextCombo,
+          word: targetWord?.english || currentQuestion.audioText,
+          phonetic: targetWord?.phonetic,
+          partOfSpeech: targetWord?.partOfSpeech,
+          meaning: targetWord?.japanese || "",
+          tip: targetWord?.tip || "",
+          exampleSentenceEn: targetWord?.exampleSentenceEn,
+          exampleSentenceJa: targetWord?.exampleSentenceJa,
+          selectedChoiceId: choice.id,
+          nextSnapshot: {
+            exp: earnedExp,
+            maxCombo,
+            revengeCount,
+            gains: statGains,
+            deck: updatedDeck,
+            wordLogs: nextLogs,
+            masteryDeltas: nextDeltas,
+          },
+        });
+      }
+    },
+    [
+      answerModal,
+      combo,
+      currentIndex,
+      currentQuestion,
+      deck,
+      defaultSpeechRate,
+      earnedExp,
+      getGlobalMultiplier,
+      hasBountyOverdrive,
+      masteryDeltas,
+      maxCombo,
+      revengeCount,
+      statGains,
+      wordLogs,
+    ]
+  );
+
+  // PCテスター向けの快適キーボードショートカット（1〜4で選択、Space/Enterで次へ、Rで発音再生）
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!currentQuestion) return;
+
+      if (answerModal) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          soundEngine.playTap();
+          const snap = answerModal.nextSnapshot;
+          advanceToNext(
+            snap.exp,
+            snap.maxCombo,
+            snap.revengeCount,
+            snap.gains,
+            snap.deck,
+            snap.wordLogs,
+            snap.masteryDeltas
+          );
+        } else if (e.key === "r" || e.key === "R") {
+          e.preventDefault();
+          soundEngine.speakEnglish(answerModal.word, defaultSpeechRate);
+        }
+        return;
+      }
+
+      if (
+        currentQuestion.phase === "STAGE1_COMBO" &&
+        currentQuestion.choices
+      ) {
+        const num = parseInt(e.key, 10);
+        if (num >= 1 && num <= currentQuestion.choices.length) {
+          const targetChoice = currentQuestion.choices[num - 1];
+          if (
+            targetChoice &&
+            !eliminatedChoiceIds.includes(targetChoice.id)
+          ) {
+            e.preventDefault();
+            handleSelectChoice(targetChoice);
+          }
+        } else if (
+          (e.key === "r" || e.key === "R") &&
+          !currentQuestion.hideAudioBeforeAnswer
+        ) {
+          e.preventDefault();
+          soundEngine.speakEnglish(
+            currentQuestion.audioText,
+            defaultSpeechRate
+          );
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    advanceToNext,
+    answerModal,
+    currentQuestion,
+    defaultSpeechRate,
+    eliminatedChoiceIds,
+    handleSelectChoice,
+  ]);
+
+  if (!currentQuestion) return null;
 
   const handleActivatePhantomEye = () => {
     if (!currentQuestion.choices || eliminatedChoiceIds.length > 0 || answerModal)
@@ -364,6 +522,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             revengeCount,
             gains: nextGains,
             deck,
+            wordLogs,
+            masteryDeltas,
           },
         });
       } else {
@@ -385,13 +545,28 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setSelectedTokens((prev) => prev.filter((t) => t.id !== tokenId));
   };
 
+  // 例文中のターゲット語をハイライト表示するヘルパー
+  const renderHighlightedSentence = (sentence: string, baseWord: string) => {
+    const split = splitSentenceByTargetWord(sentence, baseWord);
+    if (!split) return <span>{sentence}</span>;
+    return (
+      <span>
+        {split.before}
+        <span className="text-[#FBFF12] font-black underline decoration-[#FF206E] decoration-2 underline-offset-2 px-0.5">
+          {split.matched}
+        </span>
+        {split.after}
+      </span>
+    );
+  };
+
   const progressPercent = Math.round(((currentIndex + 1) / deck.length) * 100);
   const isLastQuestion = answerModal
     ? currentIndex + 1 >= answerModal.nextSnapshot.deck.length
     : currentIndex + 1 >= deck.length;
 
   return (
-    <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-3.5 relative overflow-hidden">
+    <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-3.5 pb-6 relative overflow-x-hidden">
       {/* 上部ステータス＆進捗バー */}
       <div className="relative z-20 space-y-2">
         <div className="flex items-center justify-between">
@@ -446,6 +621,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             </strong>
           </span>
           <div className="flex items-center gap-1.5">
+            {currentQuestion.format === "sentence_fill" && (
+              <span className="bg-[#41EAD4]/20 text-[#41EAD4] border border-[#41EAD4] px-1.5 py-0.5 text-[10px] font-black">
+                文脈穴埋め
+              </span>
+            )}
             {hasHardcoreHack && (
               <span className="bg-[#FF206E]/25 text-[#FBFF12] border border-[#FF206E] px-1.5 py-0.5 text-[10px] font-black">
                 鬼モード×2.0
@@ -469,7 +649,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             animate={{ x: 0, opacity: 1, rotate: 0 }}
             exit={{ x: -90, opacity: 0, rotate: -1.5 }}
             transition={{ duration: 0.2 }}
-            className="space-y-4"
+            className="space-y-3.5"
           >
             {/* キャラクターミニ応援＆問題ヘッダー */}
             <div className="flex items-center gap-3">
@@ -477,7 +657,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 <PixelCharacter
                   gender={profile.gender}
                   stage={profile.level}
-                  size={58}
+                  size={54}
                   mood={answerModal?.isCorrect ? "happy" : "idle"}
                   showAura={false}
                 />
@@ -488,7 +668,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                   className={`inline-block px-2.5 py-0.5 text-[11px] font-black -skew-x-12 mb-1 ${
                     currentQuestion.isRevengeBounty
                       ? "bg-[#FBFF12] text-[#0C0F0A] animate-pulse"
-                      : currentQuestion.phase === "STAGE2_ALLOUT"
+                      : currentQuestion.format === "sentence_fill"
                       ? "bg-[#41EAD4] text-[#0C0F0A]"
                       : "bg-[#FF206E] text-white"
                   }`}
@@ -506,47 +686,98 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
             {/* ターゲット問題パネル */}
             <div
-              className={`p-5 border-2 relative clip-p5-card ${
+              className={`p-4 border-2 relative clip-p5-card ${
                 currentQuestion.isRevengeBounty
                   ? "bg-[#141911] border-[#FBFF12] shadow-p5-yellow"
-                  : currentQuestion.phase === "STAGE2_ALLOUT"
+                  : currentQuestion.format === "sentence_fill"
                   ? "bg-[#141911] border-[#41EAD4] shadow-p5-cyan"
                   : "bg-[#141911] border-white shadow-p5-pink"
               }`}
             >
               <div className="text-center space-y-2">
-                <div className="text-2xl sm:text-3xl font-black tracking-tight text-white break-words">
-                  {currentQuestion.promptMain}
+                <div
+                  className={`${
+                    currentQuestion.format === "sentence_fill"
+                      ? "text-base sm:text-lg leading-relaxed text-left font-bold"
+                      : "text-2xl sm:text-3xl font-black tracking-tight"
+                  } text-white break-words`}
+                >
+                  {currentQuestion.format === "sentence_fill" &&
+                  currentQuestion.word?.exampleSentenceEn ? (
+                    answerModal ? (
+                      renderHighlightedSentence(
+                        currentQuestion.word.exampleSentenceEn,
+                        currentQuestion.word.english
+                      )
+                    ) : (
+                      <span>
+                        {currentQuestion.promptMain
+                          .split("[  ______  ]")
+                          .map((part, i, arr) => (
+                            <React.Fragment key={i}>
+                              {part}
+                              {i < arr.length - 1 && (
+                                <span className="inline-block bg-[#0C0F0A] text-[#FBFF12] border-b-2 border-[#FBFF12] px-2.5 py-0.5 mx-1 font-black tracking-wider">
+                                  ______
+                                </span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                      </span>
+                    )
+                  ) : (
+                    currentQuestion.promptMain
+                  )}
                 </div>
+
                 {currentQuestion.promptSub && (
-                  <div className="text-xs font-bold text-[#41EAD4]">
+                  <div
+                    className={`text-xs font-bold ${
+                      currentQuestion.format === "sentence_fill"
+                        ? "text-[#C8D4C2] text-left border-t border-[#2C3527] pt-1.5"
+                        : "text-[#41EAD4]"
+                    }`}
+                  >
                     {currentQuestion.promptSub}
                   </div>
                 )}
 
-                <div className="pt-2 flex items-center justify-center gap-3">
-                  <button
-                    onClick={() =>
-                      soundEngine.speakEnglish(
-                        currentQuestion.audioText,
-                        defaultSpeechRate
-                      )
-                    }
-                    className="bg-[#FF206E] hover:brightness-110 text-white font-black text-xs px-3.5 py-2 border border-white -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    発音を聞く
-                  </button>
-                  <button
-                    onClick={() =>
-                      soundEngine.speakEnglish(currentQuestion.audioText, 0.6)
-                    }
-                    className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-3 py-2 border border-[#41EAD4] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
-                    title="ゆっくり発音"
-                  >
-                    <Turtle className="w-4 h-4" />
-                    ゆっくり
-                  </button>
+                {/* 音声ボタン：答えが英語の形式（ja_to_en / sentence_fill）では回答前に答えがバレないようロック表示 */}
+                <div className="pt-1.5 flex items-center justify-center gap-3">
+                  {currentQuestion.hideAudioBeforeAnswer && !answerModal ? (
+                    <div className="text-[11px] font-bold text-[#A3B19B] bg-[#0C0F0A] border border-[#2C3527] px-3 py-1.5 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-[#FBFF12]" />
+                      選択すると英単語の発音が再生されます
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() =>
+                          soundEngine.speakEnglish(
+                            currentQuestion.audioText,
+                            defaultSpeechRate
+                          )
+                        }
+                        className="bg-[#FF206E] hover:brightness-110 text-white font-black text-xs px-3.5 py-1.5 border border-white -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        発音を聞く
+                      </button>
+                      <button
+                        onClick={() =>
+                          soundEngine.speakEnglish(
+                            currentQuestion.audioText,
+                            0.6
+                          )
+                        }
+                        className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-3 py-1.5 border border-[#41EAD4] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
+                        title="ゆっくり発音"
+                      >
+                        <Turtle className="w-4 h-4" />
+                        ゆっくり
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -554,7 +785,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             {/* Stage 1: 4択ボタン */}
             {currentQuestion.phase === "STAGE1_COMBO" &&
               currentQuestion.choices && (
-                <div className="space-y-2.5 pt-1">
+                <div className="space-y-2 pt-0.5">
                   {hasPhantomEye &&
                     eliminatedChoiceIds.length === 0 &&
                     !answerModal && (
@@ -607,13 +838,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         whileTap={isAnswered ? undefined : { scale: 0.96, x: 6 }}
                         disabled={isAnswered}
                         onClick={() => handleSelectChoice(choice)}
-                        className={`w-full py-3.5 px-4 text-left border-2 transition flex items-center justify-between group ${
+                        className={`w-full py-3 px-4 text-left border-2 transition flex items-center justify-between group ${
                           idx % 2 === 0 ? "clip-p5-btn" : "clip-p5-btn-alt"
                         } ${choiceStyle}`}
                       >
                         <div className="flex items-center gap-3">
                           <span
-                            className={`w-6 h-6 font-black text-xs flex items-center justify-center border -skew-x-12 ${
+                            className={`w-6 h-6 font-black text-xs flex items-center justify-center border -skew-x-12 shrink-0 ${
                               isAnswered && choice.isCorrect
                                 ? "bg-[#41EAD4] text-[#0C0F0A] border-white"
                                 : "bg-[#FF206E] group-hover:bg-[#0C0F0A] text-white group-hover:text-[#FBFF12] border-white"
@@ -632,7 +863,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                             )}
                           </div>
                         </div>
-                        <Zap className="w-4 h-4 text-[#FBFF12] opacity-80 group-hover:opacity-100 group-hover:translate-x-1 transition" />
+                        <Zap className="w-4 h-4 text-[#FBFF12] opacity-80 group-hover:opacity-100 group-hover:translate-x-1 transition shrink-0" />
                       </motion.button>
                     );
                   })}
@@ -705,142 +936,164 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       {/* 正解・不正解共通『解説＆発音確認モーダル』（もう1タップで次の問題へ進む） */}
       <AnimatePresence>
         {answerModal && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            transition={{ type: "spring", stiffness: 380, damping: 28 }}
-            className="fixed inset-x-0 bottom-0 z-50 p-3.5 max-w-md mx-auto"
-          >
-            <div
-              className={`bg-[#141911] border-2 p-4 shadow-[0_-10px_35px_rgba(12,15,10,0.92)] space-y-3 ${
-                answerModal.isCorrect
-                  ? "border-[#41EAD4] shadow-[0_-6px_28px_rgba(65,234,212,0.3)]"
-                  : "border-[#FBFF12] shadow-[0_-6px_28px_rgba(255,32,110,0.35)]"
-              }`}
+          <>
+            {/* 背景の半透明暗幕（下層の選択肢と文字が重なって読みづらくなるのを防ぐ） */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-[#0C0F0A]/75 backdrop-blur-[2px] z-40"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 60 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed inset-x-0 bottom-0 z-50 p-3.5 max-w-md mx-auto"
             >
-              {/* 1. 判定ヘッダー */}
-              <div className="flex items-center justify-between gap-2">
-                {answerModal.isCorrect ? (
-                  <span className="bg-[#41EAD4] text-[#0C0F0A] font-black text-xs px-2.5 py-0.5 -skew-x-12 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {answerModal.isRevenge
-                      ? `REVENGE JACKPOT!! ×${answerModal.bountyMultiplier}倍返し撃破！`
-                      : `WEAK!! 正解！ (${answerModal.comboCount} CHAIN)`}
-                  </span>
-                ) : (
-                  <span className="bg-[#FBFF12] text-[#0C0F0A] font-black text-xs px-2.5 py-0.5 -skew-x-12 flex items-center gap-1">
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    ペナルティなし！倍返し懸賞金ロックオン！
-                  </span>
-                )}
-
-                <span
-                  className={`font-black text-xs ${
-                    answerModal.isCorrect ? "text-[#FBFF12]" : "text-[#41EAD4]"
-                  }`}
-                >
-                  {answerModal.isCorrect
-                    ? `+${answerModal.gainedExp} EXP GET!!`
-                    : `次回撃破で EXP ×${answerModal.bountyMultiplier}倍！`}
-                </span>
-              </div>
-
-              {/* 2. 見出し語・発音・意味・解説フック */}
-              <div className="bg-[#0C0F0A] border border-[#2C3527] p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="text-xl font-black text-white">
-                        {answerModal.word}
-                      </span>
-                      {answerModal.phonetic && (
-                        <span className="text-xs font-bold text-[#41EAD4]">
-                          {answerModal.phonetic}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm font-black text-[#FBFF12] mt-0.5">
-                      ＝ {answerModal.meaning}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      soundEngine.speakEnglish(
-                        answerModal.word,
-                        defaultSpeechRate
-                      )
-                    }
-                    className="bg-[#FF206E] hover:brightness-110 px-2.5 py-2 border border-white text-white text-xs font-black flex items-center gap-1 shrink-0 active:scale-95 transition"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    発音
-                  </button>
-                </div>
-
-                {answerModal.tip && (
-                  <div className="text-xs text-[#C8D4C2] border-t border-[#2C3527] pt-2 leading-relaxed">
-                    💡 <span className="font-bold">{answerModal.tip}</span>
-                  </div>
-                )}
-
-                {/* 公式例文＆和訳（英検1級などで登録されている場合に表示＋音声再生可能） */}
-                {answerModal.exampleSentenceEn && (
-                  <div className="bg-[#141911] border border-[#2C3527] p-2.5 space-y-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="text-xs font-bold text-white leading-snug">
-                        <BookOpen className="w-3.5 h-3.5 text-[#41EAD4] inline mr-1 -mt-0.5" />
-                        {answerModal.exampleSentenceEn}
-                      </div>
-                      <button
-                        onClick={() =>
-                          soundEngine.speakEnglish(
-                            answerModal.exampleSentenceEn!,
-                            defaultSpeechRate
-                          )
-                        }
-                        className="text-[10px] font-black text-[#41EAD4] hover:text-[#FBFF12] border border-[#41EAD4] px-1.5 py-0.5 shrink-0"
-                      >
-                        🔊 例文
-                      </button>
-                    </div>
-                    {answerModal.exampleSentenceJa && (
-                      <div className="text-[11px] text-[#A3B19B]">
-                        {answerModal.exampleSentenceJa}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* 3. もう1タップで次の問題へ進むボタン */}
-              <button
-                onClick={() => {
-                  soundEngine.playTap();
-                  const snap = answerModal.nextSnapshot;
-                  advanceToNext(
-                    snap.exp,
-                    snap.maxCombo,
-                    snap.revengeCount,
-                    snap.gains,
-                    snap.deck
-                  );
-                }}
-                className={`w-full py-3.5 font-black text-base border-2 border-white -skew-x-6 active:scale-95 transition ${
+              <div
+                className={`bg-[#141911] border-2 p-4 space-y-3 ${
                   answerModal.isCorrect
-                    ? "bg-[#FF206E] text-white shadow-[4px_4px_0_#41EAD4]"
-                    : "bg-[#FBFF12] text-[#0C0F0A] shadow-[4px_4px_0_#FF206E]"
+                    ? "border-[#41EAD4] shadow-[0_-8px_32px_rgba(65,234,212,0.35)]"
+                    : "border-[#FBFF12] shadow-[0_-8px_32px_rgba(255,32,110,0.4)]"
                 }`}
               >
-                {isLastQuestion
-                  ? "バトル完了！リザルト画面へ進む ▶"
-                  : answerModal.isCorrect
-                  ? "次の問題へ進む（1 MORE!） ▶"
-                  : "覚えた！次の問題へ進む（後で倍返し！） ▶"}
-              </button>
-            </div>
-          </motion.div>
+                {/* 1. 判定ヘッダー */}
+                <div className="flex items-center justify-between gap-2">
+                  {answerModal.isCorrect ? (
+                    <span className="bg-[#41EAD4] text-[#0C0F0A] font-black text-xs px-2.5 py-0.5 -skew-x-12 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {answerModal.isRevenge
+                        ? `REVENGE JACKPOT!! ×${answerModal.bountyMultiplier}倍返し撃破！`
+                        : `WEAK!! 正解！ (${answerModal.comboCount} CHAIN)`}
+                    </span>
+                  ) : (
+                    <span className="bg-[#FBFF12] text-[#0C0F0A] font-black text-xs px-2.5 py-0.5 -skew-x-12 flex items-center gap-1">
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      ペナルティなし！倍返し懸賞金ロックオン！
+                    </span>
+                  )}
+
+                  <span
+                    className={`font-black text-xs ${
+                      answerModal.isCorrect
+                        ? "text-[#FBFF12]"
+                        : "text-[#41EAD4]"
+                    }`}
+                  >
+                    {answerModal.isCorrect
+                      ? `+${answerModal.gainedExp} EXP GET!!`
+                      : `次回撃破で EXP ×${answerModal.bountyMultiplier}倍！`}
+                  </span>
+                </div>
+
+                {/* 2. 見出し語・発音・意味・解説フック */}
+                <div className="bg-[#0C0F0A] border border-[#2C3527] p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-xl font-black text-white">
+                          {answerModal.word}
+                        </span>
+                        {answerModal.phonetic && (
+                          <span className="text-xs font-bold text-[#41EAD4]">
+                            {answerModal.phonetic}
+                          </span>
+                        )}
+                        {answerModal.partOfSpeech && (
+                          <span className="text-[10px] font-bold text-[#A3B19B]">
+                            {answerModal.partOfSpeech}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm font-black text-[#FBFF12] mt-0.5">
+                        ＝ {answerModal.meaning}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        soundEngine.speakEnglish(
+                          answerModal.word,
+                          defaultSpeechRate
+                        )
+                      }
+                      className="bg-[#FF206E] hover:brightness-110 px-2.5 py-2 border border-white text-white text-xs font-black flex items-center gap-1 shrink-0 active:scale-95 transition"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      発音
+                    </button>
+                  </div>
+
+                  {answerModal.tip && (
+                    <div className="text-xs text-[#C8D4C2] border-t border-[#2C3527] pt-2 leading-relaxed">
+                      💡 <span className="font-bold">{answerModal.tip}</span>
+                    </div>
+                  )}
+
+                  {/* 公式例文＆和訳（ターゲット単語をレモンイエローでハイライト＋例文音声再生） */}
+                  {answerModal.exampleSentenceEn && (
+                    <div className="bg-[#141911] border border-[#2C3527] p-2.5 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-xs font-bold text-white leading-snug">
+                          <BookOpen className="w-3.5 h-3.5 text-[#41EAD4] inline mr-1 -mt-0.5" />
+                          {renderHighlightedSentence(
+                            answerModal.exampleSentenceEn,
+                            answerModal.word
+                          )}
+                        </div>
+                        <button
+                          onClick={() =>
+                            soundEngine.speakEnglish(
+                              answerModal.exampleSentenceEn!,
+                              defaultSpeechRate
+                            )
+                          }
+                          className="text-[10px] font-black text-[#41EAD4] hover:text-[#FBFF12] border border-[#41EAD4] px-1.5 py-0.5 shrink-0"
+                        >
+                          🔊 例文
+                        </button>
+                      </div>
+                      {answerModal.exampleSentenceJa && (
+                        <div className="text-[11px] text-[#A3B19B]">
+                          {answerModal.exampleSentenceJa}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. もう1タップで次の問題へ進むボタン */}
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    const snap = answerModal.nextSnapshot;
+                    advanceToNext(
+                      snap.exp,
+                      snap.maxCombo,
+                      snap.revengeCount,
+                      snap.gains,
+                      snap.deck,
+                      snap.wordLogs,
+                      snap.masteryDeltas
+                    );
+                  }}
+                  className={`w-full py-3.5 font-black text-base border-2 border-white -skew-x-6 active:scale-95 transition ${
+                    answerModal.isCorrect
+                      ? "bg-[#FF206E] text-white shadow-[4px_4px_0_#41EAD4]"
+                      : "bg-[#FBFF12] text-[#0C0F0A] shadow-[4px_4px_0_#FF206E]"
+                  }`}
+                >
+                  {isLastQuestion
+                    ? "バトル完了！リザルト画面へ進む ▶"
+                    : answerModal.isCorrect
+                    ? "次の問題へ進む（1 MORE!） ▶"
+                    : "覚えた！次の問題へ進む（後で倍返し！） ▶"}
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
