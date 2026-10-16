@@ -72,8 +72,18 @@ export default function DopaBenApp() {
   const [isMuted, setIsMuted] = useState(false);
   const [slashTransition, setSlashTransition] = useState(false);
 
-  // ローカルストレージから復元
+  // ローカルストレージから復元 ＆ 過去の別アプリのService Workerキャッシュを自動解除
   useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister();
+          }
+        })
+        .catch(() => {});
+    }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
