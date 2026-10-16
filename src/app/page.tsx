@@ -426,62 +426,79 @@ export default function DopaBenApp() {
       {/* === 3. ホーム拠点（アジト）画面 === */}
       {screen === "home" && (
         <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-3.5 space-y-3">
-          {/* トップヘッダー：タイトルロゴ ＆ 男女切替 ＆ 音量 */}
-          <header className="flex items-center justify-between border-b-2 border-[#2C3527] pb-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-[#FF206E] text-white font-black text-xl px-3 py-1 -skew-x-12 border-2 border-white shadow-[3px_3px_0_#FBFF12] tracking-tighter">
-                ドパベン
-              </div>
-              <div>
-                <div className="text-[10px] font-black text-[#41EAD4] tracking-widest">
+          {/* トップヒーローヘッダー：生成AIカスタムロゴ（ダイカット透過加工）＆操作バー */}
+          <header className="relative pt-1 pb-2 border-b-2 border-[#2C3527]">
+            {/* 上部ユーティリティバー（ステータス表記 ＆ 男女切替・音量） */}
+            <div className="flex items-center justify-between mb-1.5 relative z-20">
+              <div className="flex items-center gap-1.5">
+                <span className="bg-[#FF206E] text-white text-[10px] font-black px-2 py-0.5 -skew-x-12 border border-white">
                   DOPAMINE × STUDY
+                </span>
+                <span className="text-[10px] font-black text-[#41EAD4] tracking-wider">
+                  脳汁育成イングリッシュ
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {/* 男子 / 女子 ドット絵切り替え */}
+                <div className="flex bg-[#141911] border border-[#2C3527] p-0.5">
+                  <button
+                    onClick={() => handleToggleGender("boy")}
+                    className={`px-2.5 py-1 text-[11px] font-black transition ${
+                      profile.gender === "boy"
+                        ? "bg-[#41EAD4] text-[#0C0F0A]"
+                        : "text-[#A3B19B] hover:text-white"
+                    }`}
+                  >
+                    男子
+                  </button>
+                  <button
+                    onClick={() => handleToggleGender("girl")}
+                    className={`px-2.5 py-1 text-[11px] font-black transition ${
+                      profile.gender === "girl"
+                        ? "bg-[#FF206E] text-white"
+                        : "text-[#A3B19B] hover:text-white"
+                    }`}
+                  >
+                    女子
+                  </button>
                 </div>
-                <div className="text-xs font-extrabold text-white">
-                  中学英単語・脳汁育成バトル
-                </div>
+
+                <button
+                  onClick={() => {
+                    const nextMute = !isMuted;
+                    setIsMuted(nextMute);
+                    soundEngine.setMuted(nextMute);
+                  }}
+                  className="p-1.5 bg-[#141911] border border-[#2C3527] text-white hover:border-[#41EAD4] transition"
+                  title="音声ON/OFF"
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-4 h-4 text-[#FF206E]" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-[#FBFF12]" />
+                  )}
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {/* 男子 / 女子 ドット絵切り替え (#41EAD4 & #FF206E で鮮やかに区別) */}
-              <div className="flex bg-[#141911] border border-[#2C3527] p-0.5">
-                <button
-                  onClick={() => handleToggleGender("boy")}
-                  className={`px-2.5 py-1 text-[11px] font-black transition ${
-                    profile.gender === "boy"
-                      ? "bg-[#41EAD4] text-[#0C0F0A]"
-                      : "text-[#A3B19B] hover:text-white"
-                  }`}
-                >
-                  男子
-                </button>
-                <button
-                  onClick={() => handleToggleGender("girl")}
-                  className={`px-2.5 py-1 text-[11px] font-black transition ${
-                    profile.gender === "girl"
-                      ? "bg-[#FF206E] text-white"
-                      : "text-[#A3B19B] hover:text-white"
-                  }`}
-                >
-                  女子
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  const nextMute = !isMuted;
-                  setIsMuted(nextMute);
-                  soundEngine.setMuted(nextMute);
+            {/* メインロゴビジュアル（ダイカットステッカー加工＋背面ネオングロー） */}
+            <div className="relative flex justify-center items-center py-1">
+              <div
+                className="absolute inset-x-6 inset-y-2 rounded-full blur-2xl opacity-35 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(circle, #FF206E 0%, #41EAD4 55%, transparent 80%)",
                 }}
-                className="p-2 bg-[#141911] border border-[#2C3527] text-white hover:border-[#41EAD4] transition"
-                title="音声ON/OFF"
-              >
-                {isMuted ? (
-                  <VolumeX className="w-4 h-4 text-[#FF206E]" />
-                ) : (
-                  <Volume2 className="w-4 h-4 text-[#FBFF12]" />
-                )}
-              </button>
+              />
+              <motion.img
+                src="/dopaben-logo.png"
+                alt="ドパベン 新感覚学習アプリ"
+                initial={{ scale: 0.92, opacity: 0, y: -6 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                className="w-full max-w-[330px] h-auto object-contain relative z-10 drop-shadow-[0_6px_16px_rgba(255,32,110,0.45)] select-none"
+              />
             </div>
           </header>
 
