@@ -115,6 +115,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     guts: 2,
   });
 
+  // 音声再生中フラグ（ボタンの波形アニメ・二重再生防止用）
+  const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
+
+  useEffect(() => {
+    return soundEngine.onSpeakingChange((speaking) => {
+      setIsSpeakingAudio(speaking);
+    });
+  }, []);
+
   const currentQuestion = deck[currentIndex];
   const hasBountyOverdrive =
     profile.level >= 2 &&
@@ -132,23 +141,37 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
   const defaultSpeechRate = hasOverclockAudio ? 1.35 : 1.0;
 
-  // 新しい問題に切り替わった時のみ問題音声を再生（hideAudioBeforeAnswerの時は回答後に再生）
+  const isAdvancingRef = React.useRef(false);
+
+  // 新しい問題に切り替わった時：前の音声を確実にリセットし、画面描画の完了(200ms)を待ってから発話を開始
   useEffect(() => {
+    isAdvancingRef.current = false;
     if (!currentQuestion) return;
     setSelectedTokens([]);
     setEliminatedChoiceIds([]);
     setAnswerModal(null);
+    soundEngine.stopSpeech();
+
+    let timer: NodeJS.Timeout | null = null;
 
     if (currentQuestion.phase === "STAGE2_ALLOUT") {
       soundEngine.playAllOutIntro();
       setBannerType("allout");
       setBannerText("HOLD UP!! // 総攻撃チャンス！");
-      const t = setTimeout(() => setBannerText(null), 1100);
-      soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
-      return () => clearTimeout(t);
+      timer = setTimeout(() => {
+        setBannerText(null);
+        soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
+      }, 750);
     } else if (!currentQuestion.hideAudioBeforeAnswer) {
-      soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
+      // 画面切り替えのトランジションが落ち着いた200ms後に音声を再生
+      timer = setTimeout(() => {
+        soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
+      }, 200);
     }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [currentIndex, currentQuestion, defaultSpeechRate]);
 
   const getGlobalMultiplier = useCallback(() => {
@@ -169,6 +192,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       updatedLogs: BattleWordLog[],
       updatedDeltas: Record<string, { cleared: number; missed: number }>
     ) => {
+      if (isAdvancingRef.current) return;
+      isAdvancingRef.current = true;
+
+      soundEngine.stopSpeech();
       setBannerText(null);
       setAnswerModal(null);
 
@@ -287,8 +314,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setStatGains(nextGains);
 
         soundEngine.playWeakHit(newCombo, isRevenge);
-        // 正解後に英単語の音声をクリアに再生（自動遷移しないので次の問題と被らない）
-        soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
+        // 正解SEの減衰(140ms)を待ってからネイティブ発音を再生（音声被り・OSオーディオドライバの競合・途中切断を完全解消）
+        setTimeout(() => {
+          soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
+        }, 140);
 
         setBannerType(isRevenge ? "revenge" : "weak");
         setBannerText(
@@ -327,8 +356,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         const nextCombo = Math.max(1, Math.floor(combo / 2));
         setCombo(nextCombo);
 
-        // 不正解時も正解の英単語の発音をしっかり聴かせる
-        soundEngine.speakEnglish(targetAudio, 0.92);
+        // 不正解ロック音の後に正解英単語の発音をしっかり聴かせる
+        setTimeout(() => {
+          soundEngine.speakEnglish(targetAudio, 0.9);
+        }, 180);
 
         let updatedDeck = [...deck];
         if (targetWord) {
@@ -743,11 +774,43 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 )}
 
                 {/* 音声ボタン：答えが英語の形式（ja_to_en / sentence_fill）では回答前に答えがバレないようロック表示 */}
-                <div className="pt-1.5 flex items-center justify-center gap-3">
+                <div className="pt-1.5 flex items-center justify-center gap-2.5 flex-wrap">
                   {currentQuestion.hideAudioBeforeAnswer && !answerModal ? (
                     <div className="text-[11px] font-bold text-[#A3B19B] bg-[#0C0F0A] border border-[#2C3527] px-3 py-1.5 flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-[#FBFF12]" />
                       選択すると英単語の発音が再生されます
+                    </div>
+                  ) : currentQuestion.format === "listening" ? (
+                    <div className="w-full flex items-center justify-center gap-2.5">
+                      <button
+                        onClick={() =>
+                          soundEngine.speakEnglish(
+                            currentQuestion.audioText,
+                            defaultSpeechRate
+                          )
+                        }
+                        className={`px-4 py-2 text-sm font-black border-2 -skew-x-6 flex items-center justify-center gap-2 active:scale-95 transition ${
+                          isSpeakingAudio
+                            ? "bg-[#FBFF12] text-[#0C0F0A] border-[#FBFF12] shadow-[0_0_15px_rgba(251,255,18,0.7)] animate-pulse"
+                            : "bg-[#41EAD4] text-[#0C0F0A] border-white shadow-[3px_3px_0_#FF206E] hover:brightness-110"
+                        }`}
+                      >
+                        <Volume2 className={`w-5 h-5 ${isSpeakingAudio ? "animate-bounce" : ""}`} />
+                        {isSpeakingAudio ? "🔊 音声を再生中..." : "🔊 もう一度聴く (Rキー)"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          soundEngine.speakEnglish(
+                            currentQuestion.audioText,
+                            0.7
+                          )
+                        }
+                        className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-3 py-2 border border-[#41EAD4] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
+                        title="ゆっくり再生 (0.7倍速)"
+                      >
+                        <Turtle className="w-4 h-4" />
+                        0.7x
+                      </button>
                     </div>
                   ) : (
                     <>
@@ -758,23 +821,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                             defaultSpeechRate
                           )
                         }
-                        className="bg-[#FF206E] hover:brightness-110 text-white font-black text-xs px-3.5 py-1.5 border border-white -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
+                        className={`font-black text-xs px-3.5 py-1.5 border -skew-x-6 flex items-center gap-1.5 active:scale-95 transition ${
+                          isSpeakingAudio
+                            ? "bg-[#FBFF12] text-[#0C0F0A] border-[#FBFF12] shadow-[0_0_12px_rgba(251,255,18,0.6)] animate-pulse"
+                            : "bg-[#FF206E] hover:brightness-110 text-white border-white"
+                        }`}
                       >
-                        <Volume2 className="w-4 h-4" />
-                        発音を聞く
+                        <Volume2 className={`w-4 h-4 ${isSpeakingAudio ? "animate-bounce" : ""}`} />
+                        {isSpeakingAudio ? "再生中..." : "発音を聞く (R)"}
                       </button>
                       <button
                         onClick={() =>
                           soundEngine.speakEnglish(
                             currentQuestion.audioText,
-                            0.6
+                            0.7
                           )
                         }
                         className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-3 py-1.5 border border-[#41EAD4] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
-                        title="ゆっくり発音"
+                        title="ゆっくり発音 (0.7倍速)"
                       >
                         <Turtle className="w-4 h-4" />
-                        ゆっくり
+                        0.7x
                       </button>
                     </>
                   )}
@@ -1012,18 +1079,38 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       </div>
                     </div>
 
-                    <button
-                      onClick={() =>
-                        soundEngine.speakEnglish(
-                          answerModal.word,
-                          defaultSpeechRate
-                        )
-                      }
-                      className="bg-[#FF206E] hover:brightness-110 px-2.5 py-2 border border-white text-white text-xs font-black flex items-center gap-1 shrink-0 active:scale-95 transition"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                      発音
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() =>
+                          soundEngine.speakEnglish(
+                            answerModal.word,
+                            defaultSpeechRate
+                          )
+                        }
+                        className={`px-2.5 py-2 border text-xs font-black flex items-center gap-1 active:scale-95 transition ${
+                          isSpeakingAudio
+                            ? "bg-[#FBFF12] text-[#0C0F0A] border-[#FBFF12] shadow-[0_0_12px_rgba(251,255,18,0.6)] animate-pulse"
+                            : "bg-[#FF206E] hover:brightness-110 border-white text-white"
+                        }`}
+                        title="発音を再生 (Rキー)"
+                      >
+                        <Volume2 className={`w-4 h-4 ${isSpeakingAudio ? "animate-bounce" : ""}`} />
+                        {isSpeakingAudio ? "再生中" : "発音 (R)"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          soundEngine.speakEnglish(
+                            answerModal.word,
+                            0.7
+                          )
+                        }
+                        className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-2 py-2 border border-[#41EAD4] flex items-center gap-1 active:scale-95 transition"
+                        title="ゆっくり発音 (0.7倍速)"
+                      >
+                        <Turtle className="w-3.5 h-3.5" />
+                        0.7x
+                      </button>
+                    </div>
                   </div>
 
                   {answerModal.tip && (
@@ -1050,9 +1137,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                               defaultSpeechRate
                             )
                           }
-                          className="text-[10px] font-black text-[#41EAD4] hover:text-[#FBFF12] border border-[#41EAD4] px-1.5 py-0.5 shrink-0"
+                          className="text-[10px] font-black text-[#41EAD4] hover:text-[#FBFF12] border border-[#41EAD4] px-1.5 py-0.5 shrink-0 flex items-center gap-1"
                         >
-                          🔊 例文
+                          <Volume2 className="w-3 h-3" /> 例文
                         </button>
                       </div>
                       {answerModal.exampleSentenceJa && (
@@ -1079,17 +1166,22 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       snap.masteryDeltas
                     );
                   }}
-                  className={`w-full py-3.5 font-black text-base border-2 border-white -skew-x-6 active:scale-95 transition ${
+                  className={`w-full py-3.5 font-black text-base border-2 border-white -skew-x-6 active:scale-95 transition flex items-center justify-center gap-2 ${
                     answerModal.isCorrect
                       ? "bg-[#FF206E] text-white shadow-[4px_4px_0_#41EAD4]"
                       : "bg-[#FBFF12] text-[#0C0F0A] shadow-[4px_4px_0_#FF206E]"
                   }`}
                 >
-                  {isLastQuestion
-                    ? "バトル完了！リザルト画面へ進む ▶"
-                    : answerModal.isCorrect
-                    ? "次の問題へ進む（1 MORE!） ▶"
-                    : "覚えた！次の問題へ進む（後で倍返し！） ▶"}
+                  <span>
+                    {isLastQuestion
+                      ? "バトル完了！リザルト画面へ進む ▶"
+                      : answerModal.isCorrect
+                      ? "次の問題へ進む（1 MORE!） ▶"
+                      : "覚えた！次の問題へ進む（後で倍返し！） ▶"}
+                  </span>
+                  <span className="text-[10px] opacity-75 font-mono px-1.5 py-0.5 border border-current rounded hidden sm:inline">
+                    [Space / Enter]
+                  </span>
                 </button>
               </div>
             </motion.div>
