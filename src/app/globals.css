@@ -3,11 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --dopa-black: #0C0F0A;
-  --dopa-surface: #141911;
-  --dopa-pink: #FF206E;
-  --dopa-yellow: #FBFF12;
-  --dopa-cyan: #41EAD4;
+  --dopa-black: #0B0D12;
+  --dopa-surface: #131720;
+  --dopa-border: #262D3D;
+  --dopa-yellow: #FACC15;
+  --dopa-emerald: #10B981;
+  --dopa-red: #EF4444;
   --dopa-white: #FFFFFF;
 }
 
@@ -19,7 +20,7 @@
 
 html,
 body {
-  background-color: #0C0F0A;
+  background-color: #0B0D12;
   color: #FFFFFF;
   font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, -apple-system, sans-serif;
   overflow-x: clip;
@@ -28,18 +29,18 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Halftone comic dot background pattern using #FF206E and #41EAD4 */
+/* Subtle halftone dot background on dark base */
 .bg-halftone {
-  background-color: #0C0F0A;
-  background-image: radial-gradient(rgba(255, 32, 110, 0.22) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(65, 234, 212, 0.09) 1px, transparent 1px);
+  background-color: #0B0D12;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1.2px, transparent 1.2px),
+    radial-gradient(rgba(250, 204, 21, 0.05) 1px, transparent 1px);
   background-size: 18px 18px, 9px 9px;
   background-position: 0 0, 4.5px 4.5px;
 }
 
 .bg-halftone-pink {
-  background-color: #FF206E;
-  background-image: radial-gradient(rgba(12, 15, 10, 0.28) 2px, transparent 2px);
+  background-color: #EF4444;
+  background-image: radial-gradient(rgba(11, 13, 18, 0.25) 2px, transparent 2px);
   background-size: 12px 12px;
 }
 
@@ -64,25 +65,25 @@ body {
   clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
 }
 
-/* Hard comic offset shadows (using box-shadow to avoid mobile GPU filter layer scroll blocking) */
+/* Hard comic offset shadows (unified 4-color system) */
 .shadow-p5-white {
   box-shadow: 4px 4px 0px #FFFFFF;
 }
 
 .shadow-p5-pink {
-  box-shadow: 5px 5px 0px #FF206E;
+  box-shadow: 4px 4px 0px #EF4444;
 }
 
 .shadow-p5-cyan {
-  box-shadow: 5px 5px 0px #41EAD4;
+  box-shadow: 4px 4px 0px #10B981;
 }
 
 .shadow-p5-black {
-  box-shadow: 5px 5px 0px #0C0F0A;
+  box-shadow: 4px 4px 0px #0B0D12;
 }
 
 .shadow-p5-yellow {
-  box-shadow: 4px 4px 0px #FBFF12;
+  box-shadow: 4px 4px 0px #FACC15;
 }
 
 /* ==========================================================================

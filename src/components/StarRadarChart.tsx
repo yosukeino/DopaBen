@@ -143,27 +143,27 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
       >
         <defs>
           <radialGradient id="dopaRadarFill" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FF206E" stopOpacity="0.88" />
-            <stop offset="100%" stopColor="#FF206E" stopOpacity="0.45" />
+            <stop offset="0%" stopColor="#10B981" stopOpacity="0.82" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.35" />
           </radialGradient>
           <radialGradient id="dopaRadarResultFill" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FBFF12" stopOpacity="0.92" />
-            <stop offset="55%" stopColor="#FF206E" stopOpacity="0.78" />
-            <stop offset="100%" stopColor="#41EAD4" stopOpacity="0.55" />
+            <stop offset="0%" stopColor="#FACC15" stopOpacity="0.92" />
+            <stop offset="55%" stopColor="#10B981" stopOpacity="0.78" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.45" />
           </radialGradient>
         </defs>
 
-        {/* 背景の斜め五角形グリッド (#0C0F0A ベース × #41EAD4 外枠アクセント) */}
+        {/* 背景の五角形グリッド (#0B0D12 ベース × #262D3D 外枠) */}
         <polygon
           points={outerPolygon}
-          fill="#0C0F0A"
-          stroke="#41EAD4"
+          fill="#0B0D12"
+          stroke="#262D3D"
           strokeWidth="2"
         />
         <polygon
           points={midPolygon}
           fill="none"
-          stroke="#2C3527"
+          stroke="#262D3D"
           strokeWidth="1.2"
           strokeDasharray="3 3"
         />
@@ -178,18 +178,18 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
               y1={cy}
               x2={p.x}
               y2={p.y}
-              stroke="#222A1E"
+              stroke="#1E2533"
               strokeWidth="1.2"
             />
           );
         })}
 
-        {/* リザルト専用：中心から外側へ弾ける二重のネオン衝撃波リング */}
+        {/* リザルト専用：中心から外側へ弾ける二重の衝撃波リング */}
         {isResult && shockwave1Opacity > 0.01 && (
           <polygon
             points={shockwave1Polygon}
             fill="none"
-            stroke="#FBFF12"
+            stroke="#FACC15"
             strokeWidth="3"
             strokeOpacity={shockwave1Opacity}
           />
@@ -198,18 +198,18 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
           <polygon
             points={shockwave2Polygon}
             fill="none"
-            stroke="#41EAD4"
+            stroke="#10B981"
             strokeWidth="2"
             strokeDasharray="6 3"
             strokeOpacity={shockwave2Opacity}
           />
         )}
 
-        {/* プレイヤーの現在のステータス領域 */}
+        {/* プレイヤーの現在のステータス領域 (エメラルド塗り × イエローエッジ) */}
         <polygon
           points={statPolygon}
           fill={isResult ? "url(#dopaRadarResultFill)" : "url(#dopaRadarFill)"}
-          stroke="#FBFF12"
+          stroke="#FACC15"
           strokeWidth={isResult && animProgress < 1 ? "3.5" : "2.5"}
         />
 
@@ -229,7 +229,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
                   cy={dot.y}
                   r={Math.min(13, 6.5 * animRatio)}
                   fill="none"
-                  stroke="#41EAD4"
+                  stroke="#10B981"
                   strokeWidth="1.8"
                   strokeOpacity={Math.min(1, (animRatio - 1) * 2.5)}
                 />
@@ -244,8 +244,8 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
                     4.5 * (0.8 + (isResult ? 0.45 : 0.25) * animRatio)
                   )
                 )}
-                fill="#FBFF12"
-                stroke="#0C0F0A"
+                fill="#FACC15"
+                stroke="#0B0D12"
                 strokeWidth="1.5"
               />
               <text
@@ -260,7 +260,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
                 x={labelPos.x}
                 y={labelPos.y + 9}
                 textAnchor="middle"
-                className="fill-[#41EAD4] font-extrabold text-[10px]"
+                className="fill-[#10B981] font-extrabold text-[10px]"
               >
                 Lv.{Math.floor(stats[axis.key] / 10) + 1} ({stats[axis.key]})
               </text>
@@ -273,7 +273,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
                     (isResult && animRatio > 1 ? (animRatio - 1) * 14 : 0)
                   }
                   textAnchor="middle"
-                  className="fill-[#FBFF12] font-black text-[11px]"
+                  className="fill-[#FACC15] font-black text-[11px]"
                 >
                   ♪♪+{gain}
                 </text>

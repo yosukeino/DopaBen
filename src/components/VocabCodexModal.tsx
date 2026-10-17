@@ -105,22 +105,22 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
     : `Track 00${activeTrack}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0C0F0A]/90 backdrop-blur-sm flex items-center justify-center p-3">
+    <div className="fixed inset-0 z-50 bg-[#0B0D12]/90 backdrop-blur-sm flex items-center justify-center p-3">
       <motion.div
         initial={{ scale: 0.92, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-md max-h-[90vh] bg-[#141911] border-2 border-white shadow-p5-cyan flex flex-col overflow-hidden"
+        className="w-full max-w-md max-h-[90vh] bg-[#131720] border-2 border-white shadow-p5-yellow flex flex-col overflow-hidden"
       >
         {/* ヘッダー */}
-        <div className="bg-[#FF206E] p-3.5 flex items-center justify-between border-b-2 border-white">
+        <div className="bg-[#131720] p-3.5 flex items-center justify-between border-b-2 border-white">
           <div>
-            <div className="text-[10px] font-black text-[#FBFF12] tracking-widest">
+            <div className="text-[10px] font-black text-[#FACC15] tracking-widest">
               {isTarget1800
                 ? "JUNIOR HIGH CODEX // 中学英単語ターゲット1800 全1,800語DB"
                 : "EIKEN GRADE 1 CODEX // Unit 01 全96語データベース"}
             </div>
             <h2 className="text-lg font-black text-white flex items-center gap-1.5">
-              <BookOpen className="w-5 h-5 text-[#FBFF12]" />
+              <BookOpen className="w-5 h-5 text-[#FACC15]" />
               {isTarget1800
                 ? "中学英単語ステージ 図鑑＆制覇率"
                 : "英検1級 単語図鑑＆制覇ステータス"}
@@ -131,14 +131,14 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
               soundEngine.playTap();
               onClose();
             }}
-            className="bg-[#0C0F0A] text-white p-1.5 border border-white hover:bg-white hover:text-[#0C0F0A] transition"
+            className="bg-[#0B0D12] text-white p-1.5 border border-white hover:bg-[#FACC15] hover:text-[#0B0D12] transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* 総合制覇プログレス＆フィルター */}
-        <div className="p-3 bg-[#0C0F0A] border-b border-[#2C3527] space-y-2.5">
+        <div className="p-3 bg-[#0B0D12] border-b border-[#262D3D] space-y-2.5">
           {/* カテゴリ切り替え（中学英単語1800 vs 英検1級） */}
           <div className="grid grid-cols-2 gap-1.5">
             <button
@@ -151,8 +151,8 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
               }}
               className={`py-1 px-2 text-[11px] font-black border transition ${
                 isTarget1800
-                  ? "bg-[#FBFF12] text-[#0C0F0A] border-white"
-                  : "bg-[#141911] text-[#A3B19B] border-[#2C3527] hover:text-white"
+                  ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                  : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:text-white"
               }`}
             >
               🎯 中学英単語 (全1,800語)
@@ -167,8 +167,8 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
               }}
               className={`py-1 px-2 text-[11px] font-black border transition ${
                 !isTarget1800
-                  ? "bg-[#FBFF12] text-[#0C0F0A] border-white"
-                  : "bg-[#141911] text-[#A3B19B] border-[#2C3527] hover:text-white"
+                  ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                  : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:text-white"
               }`}
             >
               👑 英検1級 (全96語)
@@ -176,22 +176,22 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-xs font-black">
-            <span className="text-[#41EAD4] flex items-center gap-1">
-              <Trophy className="w-3.5 h-3.5 text-[#FBFF12]" />
+            <span className="text-[#10B981] flex items-center gap-1">
+              <Trophy className="w-3.5 h-3.5 text-[#FACC15]" />
               {activeScopeLabel} 制覇: {scopeMastered} / {scopeWords.length} 語 (
               {Math.round(
                 (scopeMastered / Math.max(1, scopeWords.length)) * 100
               )}
               %)
             </span>
-            <span className="text-[10px] text-[#C8D4C2] font-bold">
+            <span className="text-[10px] text-[#94A3B8] font-bold">
               全体: {totalMastered}/{allCategoryWords.length}語
             </span>
           </div>
 
-          <div className="w-full h-2.5 bg-[#141911] border border-white -skew-x-12 p-0.5">
+          <div className="w-full h-2.5 bg-[#131720] border border-white -skew-x-12 p-0.5">
             <div
-              className="h-full bg-gradient-to-r from-[#FF206E] via-[#FBFF12] to-[#41EAD4] transition-all duration-300"
+              className="h-full bg-[#10B981] transition-all duration-300"
               style={{
                 width: `${Math.min(
                   100,
@@ -203,7 +203,7 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
             />
           </div>
 
-          {/* ステージ / トラック切り替えピル */}
+          {/* ステージ / トラック切り替えピル（選択中＝すべて黄色 #FACC15 に統一） */}
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {isTarget1800
               ? TARGET1800_STAGES.map((s) => {
@@ -219,8 +219,8 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                       }}
                       className={`px-2.5 py-1 text-[11px] font-black border shrink-0 transition ${
                         isSelected
-                          ? "bg-[#41EAD4] text-[#0C0F0A] border-white"
-                          : "bg-[#141911] text-[#C8D4C2] border-[#2C3527] hover:border-[#41EAD4]"
+                          ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                          : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
                       }`}
                     >
                       {s.label} ({s.rangeLabel})
@@ -239,8 +239,8 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                       }}
                       className={`px-2.5 py-1 text-[11px] font-black border shrink-0 transition ${
                         isSelected
-                          ? "bg-[#FBFF12] text-[#0C0F0A] border-white"
-                          : "bg-[#141911] text-[#C8D4C2] border-[#2C3527] hover:border-[#41EAD4]"
+                          ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                          : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
                       }`}
                     >
                       {t.trackNumber === 0 ? "全96語" : `T00${t.trackNumber}`}
@@ -249,9 +249,9 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                 })}
           </div>
 
-          {/* 状態フィルター＆検索 */}
+          {/* 状態フィルター＆検索（選択中フィルター＝黄色 #FACC15 に統一） */}
           <div className="flex items-center gap-2">
-            <div className="flex bg-[#141911] border border-[#2C3527] p-0.5 shrink-0">
+            <div className="flex bg-[#131720] border border-[#262D3D] p-0.5 shrink-0">
               {(
                 [
                   { id: "all", label: "すべて" },
@@ -268,8 +268,8 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                   }}
                   className={`px-2 py-1 text-[10px] font-black transition ${
                     filterMode === f.id
-                      ? "bg-[#41EAD4] text-[#0C0F0A]"
-                      : "text-[#A3B19B] hover:text-white"
+                      ? "bg-[#FACC15] text-[#0B0D12]"
+                      : "text-[#94A3B8] hover:text-white"
                   }`}
                 >
                   {f.label}
@@ -278,7 +278,7 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
             </div>
 
             <div className="relative flex-1">
-              <Search className="w-3.5 h-3.5 text-[#A3B19B] absolute left-2 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-2 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
@@ -287,7 +287,7 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                   setDisplayLimit(80);
                 }}
                 placeholder="英単語・意味・番号で検索..."
-                className="w-full bg-[#141911] border border-[#2C3527] focus:border-[#41EAD4] text-xs text-white pl-7 pr-2 py-1 outline-none"
+                className="w-full bg-[#131720] border border-[#262D3D] focus:border-[#FACC15] text-xs text-white pl-7 pr-2 py-1 outline-none"
               />
             </div>
           </div>
@@ -296,7 +296,7 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
         {/* 単語カード一覧 */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
           {visibleWords.length === 0 ? (
-            <div className="text-center py-8 text-xs text-[#A3B19B] font-bold">
+            <div className="text-center py-8 text-xs text-[#94A3B8] font-bold">
               該当する英単語がありません。フィルターを切り替えてください。
             </div>
           ) : (
@@ -309,18 +309,18 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                 return (
                   <div
                     key={w.id}
-                    className={`p-3 bg-[#0C0F0A] border transition space-y-1.5 ${
+                    className={`p-3 bg-[#0B0D12] border transition space-y-1.5 ${
                       isMastered
-                        ? "border-[#41EAD4]"
+                        ? "border-[#10B981]"
                         : isWeak
-                        ? "border-[#FF206E]"
-                        : "border-[#2C3527]"
+                        ? "border-[#EF4444]"
+                        : "border-[#262D3D]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-black bg-[#141911] text-[#41EAD4] border border-[#2C3527] px-1.5 py-0.5">
+                          <span className="text-[10px] font-black bg-[#131720] text-[#94A3B8] border border-[#262D3D] px-1.5 py-0.5">
                             #{w.num}{" "}
                             {isTarget1800
                               ? `(Lv.${String(w.track).padStart(2, "0")})`
@@ -329,29 +329,29 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                           <span className="text-base font-black text-white">
                             {w.english}
                           </span>
-                          <span className="text-xs text-[#A3B19B] font-bold">
+                          <span className="text-xs text-[#94A3B8] font-bold">
                             {w.phonetic}
                           </span>
                           {isMastered && (
-                            <span className="bg-[#41EAD4] text-[#0C0F0A] text-[10px] font-black px-1.5 py-0.5 flex items-center gap-0.5">
+                            <span className="bg-[#10B981] text-[#0B0D12] text-[10px] font-black px-1.5 py-0.5 flex items-center gap-0.5">
                               <CheckCircle2 className="w-3 h-3" /> 制覇 (
                               {m.cleared})
                             </span>
                           )}
                           {isWeak && (
-                            <span className="bg-[#FF206E] text-white text-[10px] font-black px-1.5 py-0.5">
+                            <span className="bg-[#EF4444] text-white text-[10px] font-black px-1.5 py-0.5">
                               🔥 要復習 (ミス{m.missed})
                             </span>
                           )}
                         </div>
-                        <div className="text-xs font-black text-[#FBFF12] mt-1">
+                        <div className="text-xs font-black text-[#FACC15] mt-1">
                           ＝ {w.japanese}
                         </div>
                       </div>
 
                       <button
                         onClick={() => soundEngine.speakEnglish(w.english, 1.0)}
-                        className="bg-[#FF206E] hover:brightness-110 text-white p-2 border border-white shrink-0 active:scale-95 transition"
+                        className="bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] text-[#FACC15] p-2 border border-[#FACC15] shrink-0 active:scale-95 transition"
                         title="単語発音"
                       >
                         <Volume2 className="w-4 h-4" />
@@ -359,13 +359,13 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                     </div>
 
                     {w.tip && (
-                      <div className="text-[11px] text-[#C8D4C2] leading-snug">
+                      <div className="text-[11px] text-[#94A3B8] leading-snug">
                         💡 {w.tip}
                       </div>
                     )}
 
                     {w.exampleSentenceEn && (
-                      <div className="bg-[#141911] border border-[#2C3527] p-2 text-[11px] space-y-0.5">
+                      <div className="bg-[#131720] border border-[#262D3D] p-2 text-[11px] space-y-0.5">
                         <div className="flex items-start justify-between gap-2">
                           <span className="text-white font-bold">
                             {w.exampleSentenceEn}
@@ -377,13 +377,13 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                                 1.0
                               )
                             }
-                            className="text-[10px] font-black text-[#41EAD4] hover:text-[#FBFF12] border border-[#41EAD4] px-1.5 py-0.5 shrink-0"
+                            className="text-[10px] font-black text-[#FACC15] hover:bg-[#FACC15] hover:text-[#0B0D12] border border-[#FACC15] px-1.5 py-0.5 shrink-0 transition"
                           >
                             🔊 例文
                           </button>
                         </div>
                         {w.exampleSentenceJa && (
-                          <div className="text-[#A3B19B]">
+                          <div className="text-[#94A3B8]">
                             {w.exampleSentenceJa}
                           </div>
                         )}
@@ -400,7 +400,7 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                     soundEngine.playTap();
                     setDisplayLimit((prev) => prev + 100);
                   }}
-                  className="w-full py-2.5 bg-[#141911] hover:bg-[#1D2419] text-[#41EAD4] font-black text-xs border border-[#41EAD4]"
+                  className="w-full py-2.5 bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] text-[#FACC15] font-black text-xs border border-[#FACC15] transition"
                 >
                   ▼ さらに100語を表示（残り {filteredWords.length - displayLimit}{" "}
                   語）
@@ -411,13 +411,13 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
         </div>
 
         {/* フッターアクション：選択中ステージ／トラックで即出撃 */}
-        <div className="p-3 bg-[#0C0F0A] border-t-2 border-[#2C3527] flex gap-2">
+        <div className="p-3 bg-[#0B0D12] border-t-2 border-[#262D3D] flex gap-2">
           <button
             onClick={() => {
               soundEngine.playTap();
               onSelectTrackAndStart(activeTrack, false, activeCategory);
             }}
-            className="flex-1 py-3 bg-[#FF206E] hover:brightness-110 text-white font-black text-xs border-2 border-white -skew-x-6 shadow-[3px_3px_0_#FBFF12] active:scale-95 transition"
+            className="flex-1 py-3 bg-[#EF4444] hover:brightness-110 text-white font-black text-xs border-2 border-white -skew-x-6 shadow-[3px_3px_0_#FACC15] active:scale-95 transition"
           >
             ⚡ この範囲（{activeScopeLabel}）で出撃！
           </button>
@@ -427,7 +427,7 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                 soundEngine.playTap();
                 onSelectTrackAndStart(activeTrack, true, activeCategory);
               }}
-              className="py-3 px-3 bg-[#FBFF12] text-[#0C0F0A] font-black text-xs border-2 border-white -skew-x-6 shadow-[3px_3px_0_#41EAD4] active:scale-95 transition shrink-0"
+              className="py-3 px-3 bg-[#FACC15] text-[#0B0D12] font-black text-xs border-2 border-white -skew-x-6 shadow-[3px_3px_0_#10B981] active:scale-95 transition shrink-0"
             >
               🔥 苦手優先出撃
             </button>

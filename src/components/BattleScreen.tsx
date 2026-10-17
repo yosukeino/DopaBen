@@ -583,7 +583,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     return (
       <span>
         {split.before}
-        <span className="text-[#FBFF12] font-black underline decoration-[#FF206E] decoration-2 underline-offset-2 px-0.5">
+        <span className="text-[#FACC15] font-black underline decoration-[#FACC15] decoration-2 underline-offset-2 px-0.5">
           {split.matched}
         </span>
         {split.after}
@@ -597,7 +597,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     : currentIndex + 1 >= deck.length;
 
   return (
-    <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0C0F0A] bg-halftone p-3.5 pb-6 relative overflow-x-hidden">
+    <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0B0D12] bg-halftone p-3.5 pb-6 relative overflow-x-hidden">
       {/* 上部ステータス＆進捗バー */}
       <div className="relative z-20 space-y-2">
         <div className="flex items-center justify-between">
@@ -606,9 +606,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               soundEngine.playTap();
               onAbort();
             }}
-            className="bg-[#141911] border border-[#2C3527] px-2.5 py-1 text-xs font-black flex items-center gap-1 hover:border-[#41EAD4]"
+            className="bg-[#131720] border border-[#262D3D] px-2.5 py-1 text-xs font-black flex items-center gap-1 hover:border-[#FACC15]"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-[#41EAD4]" /> 拠点へ
+            <ArrowLeft className="w-3.5 h-3.5 text-[#FACC15]" /> 拠点へ
           </button>
 
           <div className="flex items-center gap-2">
@@ -616,9 +616,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               key={combo}
               initial={{ scale: 1.35 }}
               animate={{ scale: 1 }}
-              className="bg-[#FF206E] text-white px-2.5 py-1 font-black text-xs -skew-x-12 border border-white flex items-center gap-1"
+              className="bg-[#131720] text-white px-2.5 py-1 font-black text-xs -skew-x-12 border border-white flex items-center gap-1"
             >
-              <Flame className="w-3.5 h-3.5 fill-[#FBFF12] text-[#FBFF12]" />
+              <Flame className="w-3.5 h-3.5 fill-[#FACC15] text-[#FACC15]" />
               {combo} CHAIN
             </motion.div>
 
@@ -626,23 +626,23 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               key={earnedExp}
               initial={{ scale: 1.25 }}
               animate={{ scale: 1 }}
-              className="bg-[#FBFF12] text-[#0C0F0A] px-2.5 py-1 font-black text-xs -skew-x-12 border border-[#0C0F0A]"
+              className="bg-[#FACC15] text-[#0B0D12] px-2.5 py-1 font-black text-xs -skew-x-12 border border-[#0B0D12]"
             >
               +{earnedExp} EXP
             </motion.div>
           </div>
         </div>
 
-        {/* 斜めプログレスバー */}
-        <div className="w-full h-3 bg-[#141911] border border-[#2C3527] -skew-x-12 overflow-hidden p-0.5">
+        {/* 斜めプログレスバー（制覇・進行＝エメラルドグリーン） */}
+        <div className="w-full h-3 bg-[#131720] border border-[#262D3D] -skew-x-12 overflow-hidden p-0.5">
           <motion.div
-            className="h-full bg-gradient-to-r from-[#FF206E] via-[#FBFF12] to-[#41EAD4]"
+            className="h-full bg-[#10B981]"
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.3 }}
           />
         </div>
 
-        <div className="flex items-center justify-between text-[11px] font-bold text-[#A3B19B]">
+        <div className="flex items-center justify-between text-[11px] font-bold text-[#94A3B8]">
           <span>
             QUESTION:{" "}
             <strong className="text-white">
@@ -653,17 +653,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           </span>
           <div className="flex items-center gap-1.5">
             {currentQuestion.format === "sentence_fill" && (
-              <span className="bg-[#41EAD4]/20 text-[#41EAD4] border border-[#41EAD4] px-1.5 py-0.5 text-[10px] font-black">
+              <span className="bg-[#131720] text-[#FACC15] border border-[#FACC15] px-1.5 py-0.5 text-[10px] font-black">
                 文脈穴埋め
               </span>
             )}
             {hasHardcoreHack && (
-              <span className="bg-[#FF206E]/25 text-[#FBFF12] border border-[#FF206E] px-1.5 py-0.5 text-[10px] font-black">
-                鬼モード×2.0
+              <span className="bg-[#FACC15] text-[#0B0D12] border border-white px-1.5 py-0.5 text-[10px] font-black">
+                激ムズEXP×2.0
               </span>
             )}
             {hasOverclockAudio && (
-              <span className="bg-[#0C0F0A] text-[#41EAD4] border border-[#41EAD4] px-1.5 py-0.5 text-[10px] font-black">
+              <span className="bg-[#131720] text-[#FACC15] border border-[#FACC15] px-1.5 py-0.5 text-[10px] font-black">
                 1.35x倍速
               </span>
             )}
@@ -684,7 +684,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           >
             {/* キャラクターミニ応援＆問題ヘッダー */}
             <div className="flex items-center gap-3">
-              <div className="bg-[#141911] border-2 border-[#41EAD4] p-1 shrink-0 shadow-[3px_3px_0_#FF206E]">
+              <div className="bg-[#131720] border-2 border-white p-1 shrink-0 shadow-[3px_3px_0_#FACC15]">
                 <PixelCharacter
                   gender={profile.gender}
                   stage={profile.level}
@@ -696,18 +696,16 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
               <div className="flex-1">
                 <div
-                  className={`inline-block px-2.5 py-0.5 text-[11px] font-black -skew-x-12 mb-1 ${
+                  className={`inline-block px-2.5 py-0.5 text-[11px] font-black -skew-x-12 mb-1 border ${
                     currentQuestion.isRevengeBounty
-                      ? "bg-[#FBFF12] text-[#0C0F0A] animate-pulse"
-                      : currentQuestion.format === "sentence_fill"
-                      ? "bg-[#41EAD4] text-[#0C0F0A]"
-                      : "bg-[#FF206E] text-white"
+                      ? "bg-[#EF4444] text-white border-white animate-pulse"
+                      : "bg-[#FACC15] text-[#0B0D12] border-white"
                   }`}
                 >
                   {currentQuestion.promptTitle}
                 </div>
                 {currentQuestion.isRevengeBounty && (
-                  <div className="text-xs font-black text-[#FBFF12] flex items-center gap-1">
+                  <div className="text-xs font-black text-[#FACC15] flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     今撃破で EXP ×{currentQuestion.bountyMultiplier}倍 ＆ 度胸爆伸び！
                   </div>
@@ -717,12 +715,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
             {/* ターゲット問題パネル */}
             <div
-              className={`p-4 border-2 relative clip-p5-card ${
+              className={`p-4 border-2 relative clip-p5-card bg-[#131720] ${
                 currentQuestion.isRevengeBounty
-                  ? "bg-[#141911] border-[#FBFF12] shadow-p5-yellow"
-                  : currentQuestion.format === "sentence_fill"
-                  ? "bg-[#141911] border-[#41EAD4] shadow-p5-cyan"
-                  : "bg-[#141911] border-white shadow-p5-pink"
+                  ? "border-[#EF4444] shadow-p5-red"
+                  : "border-white shadow-p5-yellow"
               }`}
             >
               <div className="text-center space-y-2">
@@ -749,7 +745,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                               {part}
                               {i < arr.length - 1 && (
                                 <span
-                                  className="inline-block align-middle bg-[#0C0F0A] border-2 border-[#FBFF12] w-20 sm:w-24 h-7 sm:h-8 mx-1.5 rounded-[2px] shadow-[0_0_8px_rgba(251,255,18,0.25)]"
+                                  className="inline-block align-middle bg-[#0B0D12] border-2 border-[#FACC15] w-20 sm:w-24 h-7 sm:h-8 mx-1.5 rounded-[2px] shadow-[0_0_8px_rgba(250,204,21,0.25)]"
                                   aria-label="空欄"
                                 />
                               )}
@@ -766,8 +762,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                   <div
                     className={`text-xs font-bold ${
                       currentQuestion.format === "sentence_fill"
-                        ? "text-[#C8D4C2] text-left border-t border-[#2C3527] pt-1.5"
-                        : "text-[#41EAD4]"
+                        ? "text-[#94A3B8] text-left border-t border-[#262D3D] pt-1.5"
+                        : "text-[#FACC15]"
                     }`}
                   >
                     {currentQuestion.promptSub}
@@ -777,8 +773,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 {/* 音声ボタン：答えが英語の形式（ja_to_en / sentence_fill）では回答前に答えがバレないようロック表示 */}
                 <div className="pt-1.5 flex items-center justify-center gap-2.5 flex-wrap">
                   {currentQuestion.hideAudioBeforeAnswer && !answerModal ? (
-                    <div className="text-[11px] font-bold text-[#A3B19B] bg-[#0C0F0A] border border-[#2C3527] px-3 py-1.5 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-[#FBFF12]" />
+                    <div className="text-[11px] font-bold text-[#94A3B8] bg-[#0B0D12] border border-[#262D3D] px-3 py-1.5 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-[#FACC15]" />
                       選択すると英単語の発音が再生されます
                     </div>
                   ) : currentQuestion.format === "listening" ? (
@@ -792,8 +788,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         }
                         className={`px-4 py-2 text-sm font-black border-2 -skew-x-6 flex items-center justify-center gap-2 active:scale-95 transition ${
                           isSpeakingAudio
-                            ? "bg-[#FBFF12] text-[#0C0F0A] border-[#FBFF12] shadow-[0_0_15px_rgba(251,255,18,0.7)] animate-pulse"
-                            : "bg-[#41EAD4] text-[#0C0F0A] border-white shadow-[3px_3px_0_#FF206E] hover:brightness-110"
+                            ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[0_0_15px_rgba(250,204,21,0.7)] animate-pulse"
+                            : "bg-[#0B0D12] text-[#FACC15] border-[#FACC15] hover:bg-[#FACC15] hover:text-[#0B0D12]"
                         }`}
                       >
                         <Volume2 className={`w-5 h-5 ${isSpeakingAudio ? "animate-bounce" : ""}`} />
@@ -806,7 +802,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                             0.7
                           )
                         }
-                        className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-3 py-2 border border-[#41EAD4] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
+                        className="bg-[#0B0D12] hover:border-white text-[#94A3B8] hover:text-white font-black text-xs px-3 py-2 border border-[#262D3D] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
                         title="ゆっくり再生 (0.7倍速)"
                       >
                         <Turtle className="w-4 h-4" />
@@ -824,8 +820,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         }
                         className={`font-black text-xs px-3.5 py-1.5 border -skew-x-6 flex items-center gap-1.5 active:scale-95 transition ${
                           isSpeakingAudio
-                            ? "bg-[#FBFF12] text-[#0C0F0A] border-[#FBFF12] shadow-[0_0_12px_rgba(251,255,18,0.6)] animate-pulse"
-                            : "bg-[#FF206E] hover:brightness-110 text-white border-white"
+                            ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[0_0_12px_rgba(250,204,21,0.6)] animate-pulse"
+                            : "bg-[#0B0D12] hover:bg-[#FACC15] hover:text-[#0B0D12] text-[#FACC15] border-[#FACC15]"
                         }`}
                       >
                         <Volume2 className={`w-4 h-4 ${isSpeakingAudio ? "animate-bounce" : ""}`} />
@@ -838,7 +834,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                             0.7
                           )
                         }
-                        className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-3 py-1.5 border border-[#41EAD4] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
+                        className="bg-[#0B0D12] hover:border-white text-[#94A3B8] hover:text-white font-black text-xs px-3 py-1.5 border border-[#262D3D] -skew-x-6 flex items-center gap-1.5 active:scale-95 transition"
                         title="ゆっくり発音 (0.7倍速)"
                       >
                         <Turtle className="w-4 h-4" />
@@ -860,7 +856,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       <div className="flex justify-end">
                         <button
                           onClick={handleActivatePhantomEye}
-                          className="bg-[#0C0F0A] text-[#41EAD4] border border-[#41EAD4] px-3 py-1 text-xs font-black -skew-x-6 flex items-center gap-1.5 hover:bg-[#41EAD4] hover:text-[#0C0F0A] transition"
+                          className="bg-[#0B0D12] text-[#FACC15] border border-[#FACC15] px-3 py-1 text-xs font-black -skew-x-6 flex items-center gap-1.5 hover:bg-[#FACC15] hover:text-[#0B0D12] transition"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           特権ハック：誤答を2つ消去（PHANTOM EYE）
@@ -874,7 +870,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       return (
                         <div
                           key={choice.id}
-                          className="w-full py-3 px-4 bg-[#0C0F0A]/50 border border-[#2C3527] text-[#2C3527] text-xs font-black line-through text-center -skew-x-3"
+                          className="w-full py-3 px-4 bg-[#0B0D12]/50 border border-[#262D3D] text-[#94A3B8]/50 text-xs font-black line-through text-center -skew-x-3"
                         >
                           [PHANTOM EYE により消去済み]
                         </div>
@@ -886,17 +882,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       answerModal?.selectedChoiceId === choice.id;
 
                     let choiceStyle =
-                      "bg-[#141911] hover:bg-[#FF206E] border-white shadow-[4px_4px_0_#FF206E] hover:shadow-[4px_4px_0_#FBFF12]";
+                      "bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] border-white shadow-[4px_4px_0_#262D3D] hover:shadow-[4px_4px_0_#FFFFFF]";
                     if (isAnswered) {
                       if (choice.isCorrect) {
                         choiceStyle =
-                          "bg-[#141911] border-[#41EAD4] shadow-[4px_4px_0_#41EAD4]";
+                          "bg-[#10B981]/25 border-[#10B981] shadow-[4px_4px_0_#10B981]";
                       } else if (isSelectedChoice && !choice.isCorrect) {
                         choiceStyle =
-                          "bg-[#FF206E]/30 border-[#FF206E] opacity-80";
+                          "bg-[#EF4444]/30 border-[#EF4444] opacity-90";
                       } else {
                         choiceStyle =
-                          "bg-[#0C0F0A]/60 border-[#2C3527] opacity-45";
+                          "bg-[#0B0D12]/60 border-[#262D3D] opacity-45";
                       }
                     }
 
@@ -914,37 +910,39 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           <span
                             className={`w-6 h-6 font-black text-xs flex items-center justify-center border -skew-x-12 shrink-0 ${
                               isAnswered && choice.isCorrect
-                                ? "bg-[#41EAD4] text-[#0C0F0A] border-white"
-                                : "bg-[#FF206E] group-hover:bg-[#0C0F0A] text-white group-hover:text-[#FBFF12] border-white"
+                                ? "bg-[#10B981] text-[#0B0D12] border-white"
+                                : isAnswered && isSelectedChoice && !choice.isCorrect
+                                ? "bg-[#EF4444] text-white border-white"
+                                : "bg-[#0B0D12] group-hover:bg-[#0B0D12] text-[#FACC15] group-hover:text-[#FACC15] border-[#262D3D]"
                             }`}
                           >
                             {idx + 1}
                           </span>
                           <div>
-                            <div className="font-black text-base text-white tracking-wide">
+                            <div className="font-black text-base text-white group-hover:text-[#0B0D12] tracking-wide">
                               {choice.label}
                             </div>
                             {choice.subLabel && (
-                              <div className="text-[11px] text-[#41EAD4] group-hover:text-white">
+                              <div className="text-[11px] text-[#94A3B8] group-hover:text-[#0B0D12]">
                                 {choice.subLabel}
                               </div>
                             )}
                           </div>
                         </div>
-                        <Zap className="w-4 h-4 text-[#FBFF12] opacity-80 group-hover:opacity-100 group-hover:translate-x-1 transition shrink-0" />
+                        <Zap className="w-4 h-4 text-[#FACC15] group-hover:text-[#0B0D12] opacity-80 group-hover:opacity-100 group-hover:translate-x-1 transition shrink-0" />
                       </motion.button>
                     );
                   })}
                 </div>
               )}
 
-            {/* Stage 2: 総攻撃（中学ステージ用の例文ワードバンク並び替え） */}
+            {/* Stage 2: 総攻撃（例文ワードバンク並び替え） */}
             {currentQuestion.phase === "STAGE2_ALLOUT" &&
               currentQuestion.wordBank && (
                 <div className="space-y-4">
-                  <div className="min-h-[76px] p-3 bg-[#141911] border-2 border-[#FBFF12] flex flex-wrap items-center gap-2">
+                  <div className="min-h-[76px] p-3 bg-[#131720] border-2 border-[#FACC15] flex flex-wrap items-center gap-2">
                     {selectedTokens.length === 0 ? (
-                      <span className="text-xs text-[#A3B19B] font-bold">
+                      <span className="text-xs text-[#94A3B8] font-bold">
                         下の英単語チップを順番にタップして英文を完成させろ！
                       </span>
                     ) : (
@@ -954,7 +952,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           initial={{ scale: 0.8, y: 10 }}
                           animate={{ scale: 1, y: 0 }}
                           onClick={() => handleRemoveSelectedToken(tok.id)}
-                          className="bg-[#FBFF12] text-[#0C0F0A] font-black text-sm px-3 py-1.5 border border-[#0C0F0A] -skew-x-6 shadow-[2px_2px_0_#FF206E]"
+                          className="bg-[#FACC15] text-[#0B0D12] font-black text-sm px-3 py-1.5 border border-white -skew-x-6"
                         >
                           {tok.text}
                         </motion.button>
@@ -972,8 +970,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           onClick={() => handleTapToken(tok)}
                           className={`px-3.5 py-2.5 font-black text-sm border-2 -skew-x-6 transition ${
                             isUsed
-                              ? "bg-[#141911] border-[#2C3527] text-[#2C3527] opacity-40"
-                              : "bg-[#141911] border-white text-white shadow-[3px_3px_0_#41EAD4] hover:bg-[#FF206E] active:scale-95"
+                              ? "bg-[#131720] border-[#262D3D] text-[#262D3D] opacity-40"
+                              : "bg-[#131720] border-white text-white hover:bg-[#FACC15] hover:text-[#0B0D12] active:scale-95"
                           }`}
                         >
                           {tok.text}
@@ -989,7 +987,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           soundEngine.playTap();
                           setSelectedTokens([]);
                         }}
-                        className="text-xs text-[#41EAD4] hover:text-white flex items-center gap-1 font-bold"
+                        className="text-xs text-[#FACC15] hover:text-white flex items-center gap-1 font-bold"
                       >
                         <RotateCcw className="w-3.5 h-3.5" /> 最初から並べ直す
                       </button>
@@ -1027,8 +1025,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               <div
                 className={`border-2 p-4 space-y-3 ${
                   answerModal.isCorrect
-                    ? "bg-gradient-to-b from-[#059669] via-[#047857] to-[#064E3B] border-[#6EE7B7] shadow-[0_-10px_40px_rgba(16,185,129,0.65)]"
-                    : "bg-gradient-to-b from-[#DC2626] via-[#B91C1C] to-[#7F1D1D] border-[#FCA5A5] shadow-[0_-10px_40px_rgba(239,68,68,0.75)]"
+                    ? "bg-gradient-to-b from-[#10B981] via-[#059669] to-[#064E3B] border-white shadow-[0_-10px_40px_rgba(16,185,129,0.65)]"
+                    : "bg-gradient-to-b from-[#EF4444] via-[#DC2626] to-[#7F1D1D] border-white shadow-[0_-10px_40px_rgba(239,68,68,0.75)]"
                 }`}
               >
                 {/* 1. 判定ヘッダー（正解：エメラルド×白 / 不正解：レッド×黄色） */}
@@ -1041,7 +1039,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         : `⭕ 正解！！ GREAT!! (${answerModal.comboCount} CHAIN)`}
                     </span>
                   ) : (
-                    <span className="bg-[#FBFF12] text-[#7F1D1D] font-black text-xs sm:text-sm px-3 py-1 -skew-x-12 flex items-center gap-1.5 shadow-[3px_3px_0_#450A0A]">
+                    <span className="bg-[#FACC15] text-[#0B0D12] font-black text-xs sm:text-sm px-3 py-1 -skew-x-12 flex items-center gap-1.5 shadow-[3px_3px_0_#450A0A]">
                       <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0" />
                       ❌ 不正解... MISS!!（後で倍返し！）
                     </span>
@@ -1050,8 +1048,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                   <span
                     className={`font-black text-xs sm:text-sm px-2 py-0.5 border -skew-x-6 ${
                       answerModal.isCorrect
-                        ? "bg-[#022C22]/80 text-[#FBFF12] border-[#6EE7B7]"
-                        : "bg-[#450A0A]/85 text-[#FBFF12] border-[#FCA5A5]"
+                        ? "bg-[#0B0D12]/85 text-[#FACC15] border-white"
+                        : "bg-[#0B0D12]/85 text-[#FACC15] border-white"
                     }`}
                   >
                     {answerModal.isCorrect
@@ -1064,8 +1062,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 <div
                   className={`p-3 space-y-2 border ${
                     answerModal.isCorrect
-                      ? "bg-[#022C22]/90 border-[#34D399]/60"
-                      : "bg-[#450A0A]/90 border-[#F87171]/60"
+                      ? "bg-[#0B0D12]/90 border-[#10B981]"
+                      : "bg-[#0B0D12]/90 border-[#EF4444]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -1075,17 +1073,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           {answerModal.word}
                         </span>
                         {answerModal.phonetic && (
-                          <span className="text-xs font-bold text-[#6EE7B7]">
+                          <span className="text-xs font-bold text-[#94A3B8]">
                             {answerModal.phonetic}
                           </span>
                         )}
                         {answerModal.partOfSpeech && (
-                          <span className="text-[11px] font-bold text-white/80 bg-white/10 px-1.5 py-0.5 rounded-sm">
+                          <span className="text-[11px] font-bold text-white/90 bg-[#131720] border border-[#262D3D] px-1.5 py-0.5 rounded-sm">
                             {answerModal.partOfSpeech}
                           </span>
                         )}
                       </div>
-                      <div className="text-sm font-black text-[#FBFF12] mt-1">
+                      <div className="text-sm font-black text-[#FACC15] mt-1">
                         ＝ {answerModal.meaning}
                       </div>
                     </div>
@@ -1100,8 +1098,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         }
                         className={`px-2.5 py-2 border text-xs font-black flex items-center gap-1 active:scale-95 transition ${
                           isSpeakingAudio
-                            ? "bg-[#FBFF12] text-[#0C0F0A] border-[#FBFF12] shadow-[0_0_12px_rgba(251,255,18,0.6)] animate-pulse"
-                            : "bg-[#FF206E] hover:brightness-110 border-white text-white"
+                            ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[0_0_12px_rgba(250,204,21,0.6)] animate-pulse"
+                            : "bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] border-[#FACC15] text-[#FACC15]"
                         }`}
                         title="発音を再生 (Rキー)"
                       >
@@ -1115,7 +1113,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                             0.7
                           )
                         }
-                        className="bg-[#0C0F0A] hover:border-white text-[#41EAD4] font-black text-xs px-2 py-2 border border-[#41EAD4] flex items-center gap-1 active:scale-95 transition"
+                        className="bg-[#131720] hover:border-white text-[#94A3B8] hover:text-white font-black text-xs px-2 py-2 border border-[#262D3D] flex items-center gap-1 active:scale-95 transition"
                         title="ゆっくり発音 (0.7倍速)"
                       >
                         <Turtle className="w-3.5 h-3.5" />
@@ -1140,12 +1138,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     );
                   })()}
 
-                  {/* 公式例文＆和訳（ターゲット単語をレモンイエローでハイライト＋例文音声再生） */}
+                  {/* 公式例文＆和訳（ターゲット単語をイエローでハイライト＋例文音声再生） */}
                   {answerModal.exampleSentenceEn && (
-                    <div className="bg-[#0C0F0A]/85 border border-white/20 p-2.5 space-y-1">
+                    <div className="bg-[#131720] border border-[#262D3D] p-2.5 space-y-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="text-xs font-bold text-white leading-snug">
-                          <BookOpen className="w-3.5 h-3.5 text-[#41EAD4] inline mr-1 -mt-0.5" />
+                          <BookOpen className="w-3.5 h-3.5 text-[#FACC15] inline mr-1 -mt-0.5" />
                           {renderHighlightedSentence(
                             answerModal.exampleSentenceEn,
                             answerModal.word
@@ -1158,13 +1156,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                               defaultSpeechRate
                             )
                           }
-                          className="text-[10px] font-black text-[#41EAD4] hover:text-[#FBFF12] border border-[#41EAD4] px-1.5 py-0.5 shrink-0 flex items-center gap-1"
+                          className="text-[10px] font-black text-[#FACC15] hover:bg-[#FACC15] hover:text-[#0B0D12] border border-[#FACC15] px-1.5 py-0.5 shrink-0 flex items-center gap-1 transition"
                         >
                           <Volume2 className="w-3 h-3" /> 例文
                         </button>
                       </div>
                       {answerModal.exampleSentenceJa && (
-                        <div className="text-[11px] text-[#C8D4C2]">
+                        <div className="text-[11px] text-[#94A3B8]">
                           {answerModal.exampleSentenceJa}
                         </div>
                       )}
@@ -1189,8 +1187,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                   }}
                   className={`w-full py-3.5 font-black text-base border-2 -skew-x-6 active:scale-95 transition flex items-center justify-center gap-2 ${
                     answerModal.isCorrect
-                      ? "bg-[#FBFF12] hover:brightness-105 text-[#022C22] border-white shadow-[4px_4px_0_#022C22]"
-                      : "bg-white hover:bg-[#FEF2F2] text-[#7F1D1D] border-[#FBFF12] shadow-[4px_4px_0_#450A0A]"
+                      ? "bg-[#FACC15] hover:brightness-105 text-[#0B0D12] border-white shadow-[4px_4px_0_#022C22]"
+                      : "bg-white hover:bg-[#FACC15] text-[#0B0D12] border-[#FACC15] shadow-[4px_4px_0_#450A0A]"
                   }`}
                 >
                   <span>
@@ -1210,7 +1208,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="text-center text-[11px] text-[#A3B19B] pt-2">
+      <div className="text-center text-[11px] text-[#94A3B8] pt-2">
         💡 ミスしても減点なし！最後まで走り切ると獲得EXP＆五角形ステータス全加算！
       </div>
     </div>
