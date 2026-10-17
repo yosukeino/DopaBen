@@ -17,11 +17,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html,
 body {
   background-color: #0C0F0A;
   color: #FFFFFF;
   font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, -apple-system, sans-serif;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Halftone comic dot background pattern using #FF206E and #41EAD4 */
@@ -60,25 +64,25 @@ body {
   clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
 }
 
-/* Hard comic offset drop shadows aligned with the 5-color palette */
+/* Hard comic offset shadows (using box-shadow to avoid mobile GPU filter layer scroll blocking) */
 .shadow-p5-white {
-  filter: drop-shadow(4px 4px 0px #FFFFFF);
+  box-shadow: 4px 4px 0px #FFFFFF;
 }
 
 .shadow-p5-pink {
-  filter: drop-shadow(5px 5px 0px #FF206E);
+  box-shadow: 5px 5px 0px #FF206E;
 }
 
 .shadow-p5-cyan {
-  filter: drop-shadow(5px 5px 0px #41EAD4);
+  box-shadow: 5px 5px 0px #41EAD4;
 }
 
 .shadow-p5-black {
-  filter: drop-shadow(5px 5px 0px #0C0F0A);
+  box-shadow: 5px 5px 0px #0C0F0A;
 }
 
 .shadow-p5-yellow {
-  filter: drop-shadow(4px 4px 0px #FBFF12);
+  box-shadow: 4px 4px 0px #FBFF12;
 }
 
 /* ==========================================================================

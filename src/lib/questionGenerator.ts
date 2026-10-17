@@ -311,20 +311,31 @@ export function generateBattleDeck(
   includeHardcoreHack: boolean,
   eiken1Track: number = 0,
   wordMastery?: Record<string, WordMasteryRecord>,
-  onlyWeakWords: boolean = false
+  onlyWeakWords: boolean = false,
+  includeListening: boolean = true
 ): GeneratedQuestion[] {
   const pool = getActiveVocabPool();
 
   // 4種類の4択問題（①英→日 ②日→英 ③リスニング ④公式例文穴埋め）を全ステージでバランスよくシャッフル配置
+  // ※音を出せない環境向けにリスニング「ナシ」選択時は、①英→日 ②日→英 ④例文穴埋めの3形式で均等構成
   const defaultFormats: Exclude<QuestionFormat, "sentence_order">[] =
-    shuffleArray([
-      "en_to_ja",
-      "ja_to_en",
-      "listening",
-      "sentence_fill",
-      "en_to_ja",
-      "sentence_fill",
-    ]);
+    includeListening
+      ? shuffleArray([
+          "en_to_ja",
+          "ja_to_en",
+          "listening",
+          "sentence_fill",
+          "en_to_ja",
+          "sentence_fill",
+        ])
+      : shuffleArray([
+          "en_to_ja",
+          "ja_to_en",
+          "sentence_fill",
+          "en_to_ja",
+          "ja_to_en",
+          "sentence_fill",
+        ]);
 
   // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
   if (grade === "英検1級") {

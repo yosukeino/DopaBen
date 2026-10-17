@@ -296,7 +296,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
 
   return (
     <div
-      className="relative flex items-center justify-center select-none"
+      className="relative flex items-center justify-center select-none pointer-events-none touch-pan-y"
       style={{ width: size, height: size }}
     >
       {/* 進化段階に応じた背景オーラ */}
@@ -344,7 +344,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
         viewBox="0 0 16 16"
         width={size}
         height={size}
-        className="pixelated relative z-10 drop-shadow-[0_6px_0_rgba(0,0,0,0.85)]"
+        className="pixelated relative z-10 drop-shadow-[0_6px_0_rgba(0,0,0,0.85)] pointer-events-none touch-pan-y"
         animate={
           mood === "happy"
             ? { y: [0, -14, 0, -10, 0], scale: [1, 1.08, 1] }
