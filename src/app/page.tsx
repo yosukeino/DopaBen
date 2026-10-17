@@ -319,6 +319,7 @@ export default function DopaBenApp() {
   const [dbTotalWords, setDbTotalWords] = useState<number>(117);
   const [isSyncingDb, setIsSyncingDb] = useState<boolean>(false);
   const [dbSyncNotice, setDbSyncNotice] = useState<string | null>(null);
+  const [radarBounceKey, setRadarBounceKey] = useState<number>(0);
 
   // ローカルストレージから復元 ＆ Supabaseから問題プールを取得 ＆ 過去のService Workerキャッシュを自動解除
   useEffect(() => {
@@ -993,8 +994,21 @@ export default function DopaBenApp() {
 
           {/* 五角形ステータス＆戦績サマリー（スワイプ操作を邪魔しない touch-pan-y 対応） */}
           <section className="grid grid-cols-12 gap-2 sm:gap-2.5 items-center bg-[#141911] border-2 border-[#2C3527] p-2 sm:p-2.5 touch-pan-y select-none relative">
-            <div className="col-span-7 flex justify-center touch-pan-y">
-              <StarRadarChart stats={profile.stats} />
+            <div className="col-span-7 flex flex-col items-center justify-center touch-pan-y">
+              <StarRadarChart
+                stats={profile.stats}
+                triggerKey={radarBounceKey}
+              />
+              <button
+                onClick={() => {
+                  soundEngine.playTap();
+                  setRadarBounceKey((k) => k + 1);
+                }}
+                className="mt-0.5 text-[9px] font-black text-[#FBFF12] hover:text-white bg-[#0C0F0A] border border-[#2C3527] hover:border-[#FBFF12] px-2 py-0.5 -skew-x-6 flex items-center gap-1 active:scale-95 transition"
+                title="もう一度ボヨヨ〜ンと跳ねさせる"
+              >
+                <span>⚡ ボヨヨ〜ン再跳ね</span>
+              </button>
             </div>
             <div className="col-span-5 space-y-1.5 sm:space-y-2 pr-1 touch-pan-y">
               <div className="bg-[#0C0F0A] border-l-4 border-[#FF206E] p-1.5 sm:p-2">

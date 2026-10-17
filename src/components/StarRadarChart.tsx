@@ -6,6 +6,7 @@ import { FiveStats } from "@/lib/types";
 interface StarRadarChartProps {
   stats: FiveStats;
   recentGains?: Partial<FiveStats>;
+  triggerKey?: number;
 }
 
 const AXES: { key: keyof FiveStats; label: string; sub: string }[] = [
@@ -19,18 +20,19 @@ const AXES: { key: keyof FiveStats; label: string; sub: string }[] = [
 export const StarRadarChart: React.FC<StarRadarChartProps> = ({
   stats,
   recentGains,
+  triggerKey = 0,
 }) => {
   const cx = 110;
   const cy = 110;
   const maxR = 66;
   const maxStat = 100;
 
-  // 中心からグインと伸びるアニメーション比率 (0 -> 1, duration: 0.2秒 = 200ms)
+  // 中心から「ボヨヨ～ン」と跳ねるアニメーション比率 (0 -> 1.31 -> 0.90 -> 1.03 -> 1.00, duration: 0.3秒 = 300ms)
   const [animRatio, setAnimRatio] = useState(0);
 
   useEffect(() => {
     let start: number | null = null;
-    const duration = 200; // 0.2秒
+    const duration = 300; // 0.3秒
     let rafId: number;
 
     const step = (timestamp: number) => {
@@ -38,12 +40,14 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
       const elapsed = timestamp - start;
       const progress = Math.min(1, elapsed / duration);
 
-      // easeOutBack イージング（中心からグインと勢いよく伸びてピタッと着地）
-      const c1 = 1.35;
-      const c3 = c1 + 1;
-      const eased =
-        1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2);
-      setAnimRatio(Math.max(0, eased));
+      // 「ボヨヨ～ン」と3段階に跳ねる弾性スプリング減衰振動
+      // 0ms(0%) -> 66ms(131%特大オーバーシュート) -> 133ms(90%内側リバウンド) -> 200ms(103%微振動) -> 300ms(100%着地)
+      const decay = 5.2;
+      const omega = 14.2;
+      const spring =
+        1 - Math.exp(-decay * progress) * Math.cos(omega * progress);
+
+      setAnimRatio(progress >= 1 ? 1 : Math.max(0, spring));
 
       if (progress < 1) {
         rafId = requestAnimationFrame(step);
@@ -55,7 +59,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
     setAnimRatio(0);
     rafId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafId);
-  }, [stats]);
+  }, [stats, triggerKey]);
 
   const getPoint = (index: number, ratio: number) => {
     const angle = (Math.PI * 2 * index) / 5 - Math.PI / 2;
@@ -146,7 +150,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
               <circle
                 cx={dot.x}
                 cy={dot.y}
-                r="4.5"
+                r={Math.max(3.5, Math.min(6.2, 4.5 * (0.8 + 0.25 * animRatio)))}
                 fill="#FBFF12"
                 stroke="#0C0F0A"
                 strokeWidth="1.5"
