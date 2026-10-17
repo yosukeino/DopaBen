@@ -38247,7 +38247,7 @@ export const TARGET1800_WORDS: (WordItem & {
     english: entry.english,
     japanese: entry.japanese,
     phonetic: entry.phonetic,
-    partOfSpeech: `ターゲット1800 #${entry.num} (${entry.partOfSpeech})`,
+    partOfSpeech: `#${entry.num} ${entry.partOfSpeech}`,
     grade: "ターゲット1800",
     distractorsJa: [d1.japanese, d2.japanese, d3.japanese],
     distractorsEn: [d1.english, d2.english, d3.english],

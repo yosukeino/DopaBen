@@ -161,7 +161,7 @@ function mapExtendedRows(
       japanese: row.japanese,
       phonetic: row.phonetic,
       partOfSpeech: row.entry_number
-        ? `${gradeLabel} #${row.entry_number} (${row.part_of_speech})`
+        ? `#${row.entry_number} ${row.part_of_speech}`
         : row.part_of_speech,
       grade: gradeLabel,
       distractorsJa,

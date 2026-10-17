@@ -748,9 +748,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                             <React.Fragment key={i}>
                               {part}
                               {i < arr.length - 1 && (
-                                <span className="inline-block bg-[#0C0F0A] text-[#FBFF12] border-b-2 border-[#FBFF12] px-2.5 py-0.5 mx-1 font-black tracking-wider">
-                                  ______
-                                </span>
+                                <span
+                                  className="inline-block align-middle bg-[#0C0F0A] border-2 border-[#FBFF12] w-20 sm:w-24 h-7 sm:h-8 mx-1.5 rounded-[2px] shadow-[0_0_8px_rgba(251,255,18,0.25)]"
+                                  aria-label="空欄"
+                                />
                               )}
                             </React.Fragment>
                           ))}

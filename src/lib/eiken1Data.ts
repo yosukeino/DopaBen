@@ -1180,7 +1180,7 @@ export const EIKEN1_WORDS: (WordItem & { track: number; num: string })[] =
       english: entry.english,
       japanese: entry.japanese,
       phonetic: entry.phonetic,
-      partOfSpeech: `英検1級 #${entry.num} (${entry.partOfSpeech})`,
+      partOfSpeech: `#${entry.num} ${entry.partOfSpeech}`,
       grade: "英検1級",
       distractorsJa: [d1.japanese, d2.japanese, d3.japanese],
       distractorsEn: [d1.english, d2.english, d3.english],
