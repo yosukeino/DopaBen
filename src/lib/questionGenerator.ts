@@ -301,8 +301,10 @@ function prioritizeWordsByMastery<T extends WordItem>(
 
 /**
  * 1プレイのバトルデッキを自動生成する
- * - 英検1級ステージ：並び替え問題なし！4形式（英→日 / 日→英 / リスニング / 例文穴埋め4択）で6問テンポよく出撃！
- * - 未出題＆苦手ワードを自動優先するため、12語トラックなら2戦（6問×2）で全12語を漏れなく制覇可能！
+ * - 全ステージ共通：4形式（①英→日 ②日→英 ③リスニング ④文脈穴埋め）がデフォルトで均等に出現！
+ * - テンポの良い4択 6問で出撃（英検1級も中学ステージも統一！）
+ * - 未出題＆苦手ワードを自動優先出題
+ * - 激ムズモード（HARDCORE CHALLENGE）ON時は、難関・激ムズ問題が乱入し全獲得EXPが2倍に跳ね上がる！
  */
 export function generateBattleDeck(
   grade: GradeLevel,
@@ -313,7 +315,18 @@ export function generateBattleDeck(
 ): GeneratedQuestion[] {
   const pool = getActiveVocabPool();
 
-  // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』（長文並び替えなし・4択6問に集中！） ===
+  // 4種類の4択問題（①英→日 ②日→英 ③リスニング ④公式例文穴埋め）を全ステージでバランスよくシャッフル配置
+  const defaultFormats: Exclude<QuestionFormat, "sentence_order">[] =
+    shuffleArray([
+      "en_to_ja",
+      "ja_to_en",
+      "listening",
+      "sentence_fill",
+      "en_to_ja",
+      "sentence_fill",
+    ]);
+
+  // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
   if (grade === "英検1級") {
     const trackWords =
       eiken1Track > 0
@@ -330,31 +343,12 @@ export function generateBattleDeck(
       onlyWeakWords
     );
 
-    // 4種類の4択問題（①英→日 ②日→英 ③リスニング ④公式例文穴埋め）をバランスよくシャッフル配置
-    const eikenFormats: Exclude<QuestionFormat, "sentence_order">[] =
-      shuffleArray([
-        "en_to_ja",
-        "ja_to_en",
-        "listening",
-        "sentence_fill",
-        "en_to_ja",
-        "sentence_fill",
-      ]);
-
     return selectedEikenWords.map((word, index) =>
-      buildWordQuestion(word, eikenFormats[index % eikenFormats.length])
+      buildWordQuestion(word, defaultFormats[index % defaultFormats.length])
     );
   }
 
   // === 通常ステージ（中1 / 中2 / 中3 / 全学年MIX） ===
-  const formats: Exclude<QuestionFormat, "sentence_order">[] = shuffleArray([
-    "en_to_ja",
-    "ja_to_en",
-    "listening",
-    "en_to_ja",
-    "ja_to_en",
-  ]);
-
   let poolWords =
     grade === "ALL"
       ? pool.standardWords.filter((w) => w.grade !== "激ムズ")
@@ -364,9 +358,11 @@ export function generateBattleDeck(
     poolWords = pool.standardWords.filter((w) => w.grade !== "激ムズ");
   }
 
+  // 通常4〜6問（激ムズON時は4問通常 + 2問激ムズ = 6問、激ムズOFF時は6問通常）
+  const normalWordCount = includeHardcoreHack ? 4 : 6;
   let selectedWords = prioritizeWordsByMastery(
     poolWords,
-    includeHardcoreHack ? 3 : 5,
+    normalWordCount,
     wordMastery,
     onlyWeakWords
   );
@@ -382,36 +378,9 @@ export function generateBattleDeck(
     selectedWords = [...selectedWords, ...hardcoreWords];
   }
 
-  // Stage 1: 5問の高速「WEAK! → 1 MORE!」パート
-  const stage1Questions = selectedWords.map((word, index) => {
-    const format = formats[index % formats.length];
+  // 全問4択（英→日、日→英、リスニング、文脈穴埋め）でテンポよく出題！
+  return selectedWords.map((word, index) => {
+    const format = defaultFormats[index % defaultFormats.length];
     return buildWordQuestion(word, format);
   });
-
-  // Stage 2: 総攻撃（例文ワードバンク並び替え）パート
-  let candidateSentences =
-    grade === "ALL"
-      ? pool.standardSentences.filter((s) => s.grade !== "激ムズ")
-      : pool.standardSentences.filter((s) => s.grade === grade);
-
-  if (includeHardcoreHack) {
-    const hcSentences = pool.standardSentences.filter(
-      (s) => s.grade === "激ムズ"
-    );
-    if (hcSentences.length > 0) {
-      candidateSentences = [...hcSentences, ...candidateSentences];
-    }
-  }
-
-  if (candidateSentences.length === 0) {
-    candidateSentences = pool.standardSentences;
-  }
-
-  const chosenSentence = includeHardcoreHack
-    ? candidateSentences[0]
-    : shuffleArray(candidateSentences)[0];
-
-  const stage2Question = buildSentenceQuestion(chosenSentence);
-
-  return [...stage1Questions, stage2Question];
 }

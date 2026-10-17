@@ -1059,7 +1059,7 @@ export default function DopaBenApp() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FBFF12]" />
-                出撃ステージ選択（4形式＋発音＋例文総攻撃）
+                出撃ステージ選択（全4形式：英日/日英/リスニング/文脈穴埋め）
               </span>
 
               {profile.level >= 5 ? (

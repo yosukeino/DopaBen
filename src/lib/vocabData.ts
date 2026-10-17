@@ -153,6 +153,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["約束する", "準備する", "参加する"],
     distractorsEn: ["promise", "prepare", "protect"],
     tip: "「プラクティス」＝スポーツや楽器を反復『練習する』！",
+    exampleSentenceEn: "I usually practice English speaking every day.",
+    exampleSentenceJa: "私はたいてい毎日英語のスピーキングを練習します。",
   },
   {
     id: "w_important",
@@ -164,6 +166,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["有名な", "興味深い", "不可能な"],
     distractorsEn: ["impossible", "interesting", "different"],
     tip: "im(中に) + port(運ぶ) ＝ 心の中に運ぶべき『重要な』こと！",
+    exampleSentenceEn: "It is important to review words regularly.",
+    exampleSentenceJa: "単語を定期的に復習することは大切です。",
   },
   {
     id: "w_favorite",
@@ -175,6 +179,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["有名な", "親切な", "退屈な"],
     distractorsEn: ["famous", "friendly", "foreign"],
     tip: "スマホの「お気に入り（ファボ）」の語源がこれ！",
+    exampleSentenceEn: "English is my favorite subject at school.",
+    exampleSentenceJa: "英語は学校で私の一番好きな教科です。",
   },
   {
     id: "w_usually",
@@ -186,6 +192,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["ときどき", "いつも", "めったに〜ない"],
     distractorsEn: ["sometimes", "always", "suddenly"],
     tip: "usual（いつもの）＋ ly ＝ 『たいてい・ふつうは』（頻度80%）！",
+    exampleSentenceEn: "I usually listen to English podcasts in the morning.",
+    exampleSentenceJa: "私はたいてい朝に英語のポッドキャストを聴きます。",
   },
   {
     id: "w_different",
@@ -197,6 +205,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["難しい", "危険な", "同じ"],
     distractorsEn: ["difficult", "dangerous", "delicious"],
     tip: "difficult（難しい）と混同注意！different は『違った・異なる』！",
+    exampleSentenceEn: "People have different ways of studying English.",
+    exampleSentenceJa: "人にはそれぞれ違った英語の勉強法があります。",
   },
   {
     id: "w_understand",
@@ -208,6 +218,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["思い出す", "信じる", "説明する"],
     distractorsEn: ["remember", "believe", "explain"],
     tip: "under(下に) + stand(立つ) ＝ 土台に立ってしっかり『理解する』！",
+    exampleSentenceEn: "I can understand native English speakers now.",
+    exampleSentenceJa: "私は今ではネイティブの話す英語を理解できます。",
   },
 
   // ===== 中2 (Grade 2) =====
@@ -221,6 +233,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["招待する", "発明する", "改善する"],
     distractorsEn: ["invite", "invent", "improve"],
     tip: "イントロ（導入）と同じ語源！中に導き入れて『紹介する』！",
+    exampleSentenceEn: "Let me introduce my favorite English study app.",
+    exampleSentenceJa: "私のお気に入りの英語学習アプリを紹介させてください。",
   },
   {
     id: "w_experience",
@@ -232,6 +246,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["実験", "説明", "表現"],
     distractorsEn: ["experiment", "example", "expression"],
     tip: "RPGの『EXP（経験値）』はまさにこの experience の頭文字！",
+    exampleSentenceEn: "Traveling abroad was an unforgettable experience.",
+    exampleSentenceJa: "海外旅行は忘れられない経験でした。",
   },
   {
     id: "w_necessary",
@@ -243,6 +259,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["自然な", "神経質な", "普通の"],
     distractorsEn: ["natural", "nervous", "national"],
     tip: "「ネセサリー」＝ なくてはならない『必要な』もの！",
+    exampleSentenceEn: "Daily vocabulary building is necessary for mastery.",
+    exampleSentenceJa: "完全習得のためには毎日の語彙増強が必要です。",
   },
   {
     id: "w_protect",
@@ -254,6 +272,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["生産する", "提供する", "防ぐ"],
     distractorsEn: ["produce", "provide", "prevent"],
     tip: "プロテクター（防具）の動詞形 ＝ 大切なものを『守る』！",
+    exampleSentenceEn: "We must protect our future together.",
+    exampleSentenceJa: "私たちは一緒に自分たちの未来を守らなければなりません。",
   },
   {
     id: "w_communicate",
@@ -265,6 +285,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["比較する", "競争する", "完成させる"],
     distractorsEn: ["compare", "compete", "complete"],
     tip: "コミュニケーションの動詞！communicate with ~ で『〜と意思疎通する』！",
+    exampleSentenceEn: "English helps you communicate with people worldwide.",
+    exampleSentenceJa: "英語は世界中の人々と意思疎通するのに役立ちます。",
   },
   {
     id: "w_future",
@@ -276,6 +298,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["自然", "文化", "歴史"],
     distractorsEn: ["nature", "culture", "feature"],
     tip: "in the future ＝『将来・未来に』で超頻出！",
+    exampleSentenceEn: "Mastering English will brighten your future career.",
+    exampleSentenceJa: "英語をマスターすればあなたの将来のキャリアが輝きます。",
   },
 
   // ===== 中3 (Grade 3) =====
@@ -289,6 +313,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["政府", "発展", "娯楽"],
     distractorsEn: ["government", "development", "entertainment"],
     tip: "長文テーマNo.1単語！地球や身の回りの『環境』！",
+    exampleSentenceEn: "We realize how important the environment is.",
+    exampleSentenceJa: "私たちは環境がどれほど重要か気づいています。",
   },
   {
     id: "w_technology",
@@ -300,6 +326,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["伝統", "知識", "温度"],
     distractorsEn: ["tradition", "knowledge", "temperature"],
     tip: "AIやスマホなどの最先端『科学技術』！",
+    exampleSentenceEn: "New technology helps us solve the problem.",
+    exampleSentenceJa: "新しい科学技術は私たちがその問題を解決するのを助けます。",
   },
   {
     id: "w_solve",
@@ -311,6 +339,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["保存する", "共有する", "生き残る"],
     distractorsEn: ["save", "share", "survive"],
     tip: "solve the problem（問題を『解決する』）はセットで丸暗記！",
+    exampleSentenceEn: "Consistent practice will solve any grammar confusion.",
+    exampleSentenceJa: "継続的な練習があらゆる文法の混乱を解決します。",
   },
   {
     id: "w_oportunity",
@@ -322,6 +352,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["意見", "人口", "可能性"],
     distractorsEn: ["opinion", "population", "possibility"],
     tip: "chance のカッコいい言い換え表現＝絶好の『機会』！",
+    exampleSentenceEn: "Taking this quiz is a wonderful opportunity to grow.",
+    exampleSentenceJa: "このクイズに挑戦することは成長するための素晴らしい機会です。",
   },
   {
     id: "w_realize",
@@ -333,6 +365,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["認識する", "思い出す", "減らす"],
     distractorsEn: ["recognize", "remember", "reduce"],
     tip: "頭の中で real（現実）になる＝ハッと『気づく』・夢を『実現する』！",
+    exampleSentenceEn: "You will soon realize how much your vocabulary improved.",
+    exampleSentenceJa: "語彙力がどれほど伸びたかあなたもすぐに気づくでしょう。",
   },
 
   // ===== 激ムズ (Lv.5 HARDCORE HACK 特権専用) =====
@@ -346,6 +380,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["目に見えない", "信じられない", "無敵の"],
     distractorsEn: ["invisible", "incredible", "invincible"],
     tip: "【激ムズ特権】in(否定) + evitable(避けられる) ＝ 絶対に『避けられない』！",
+    exampleSentenceEn: "We must acknowledge the inevitable consequence.",
+    exampleSentenceJa: "私たちはその避けられない結果を認めなければならない。",
   },
   {
     id: "w_consequence",
@@ -357,6 +393,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["良心", "自信", "偶然の一致"],
     distractorsEn: ["conscience", "confidence", "coincidence"],
     tip: "【激ムズ特権】行動のあとに連なって付いてくる『重大な結果』！",
+    exampleSentenceEn: "High confidence is the consequence of hard work.",
+    exampleSentenceJa: "高い自信は懸命な努力の結果です。",
   },
   {
     id: "w_simultaneously",
@@ -368,6 +406,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["自発的に", "一時的に", "継続的に"],
     distractorsEn: ["spontaneously", "temporarily", "continuously"],
     tip: "【激ムズ特権】at the same time の最高峰表現＝『同時に』！",
+    exampleSentenceEn: "You can train listening and reading simultaneously.",
+    exampleSentenceJa: "リスニングとリーディングを同時に鍛えることができます。",
   },
   {
     id: "w_acknowledge",
@@ -379,6 +419,8 @@ export const WORDS: WordItem[] = [
     distractorsJa: ["獲得する", "達成する", "伴う"],
     distractorsEn: ["acquire", "accomplish", "accompany"],
     tip: "【激ムズ特権】knowledge（知識）が入っている＝事実として『認める』！",
+    exampleSentenceEn: "Experts acknowledge the power of spaced repetition.",
+    exampleSentenceJa: "専門家は分散学習の絶大な効果を認めています。",
   },
 ];
 
