@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FiveStats } from "@/lib/types";
 
 interface StarRadarChartProps {
@@ -25,6 +25,38 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
   const maxR = 66;
   const maxStat = 100;
 
+  // 中心からグインと伸びるアニメーション比率 (0 -> 1, duration: 0.2秒 = 200ms)
+  const [animRatio, setAnimRatio] = useState(0);
+
+  useEffect(() => {
+    let start: number | null = null;
+    const duration = 200; // 0.2秒
+    let rafId: number;
+
+    const step = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const progress = Math.min(1, elapsed / duration);
+
+      // easeOutBack イージング（中心からグインと勢いよく伸びてピタッと着地）
+      const c1 = 1.35;
+      const c3 = c1 + 1;
+      const eased =
+        1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2);
+      setAnimRatio(Math.max(0, eased));
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(step);
+      } else {
+        setAnimRatio(1);
+      }
+    };
+
+    setAnimRatio(0);
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [stats]);
+
   const getPoint = (index: number, ratio: number) => {
     const angle = (Math.PI * 2 * index) / 5 - Math.PI / 2;
     return {
@@ -43,15 +75,19 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
     return `${p.x},${p.y}`;
   }).join(" ");
 
+  // animRatioを掛けることで、中心(cx, cy)からグインと外側へ伸びる
   const statPolygon = AXES.map((axis, i) => {
     const val = Math.min(maxStat, Math.max(14, stats[axis.key]));
-    const p = getPoint(i, val / maxStat);
+    const p = getPoint(i, (val / maxStat) * animRatio);
     return `${p.x},${p.y}`;
   }).join(" ");
 
   return (
-    <div className="relative flex items-center justify-center">
-      <svg viewBox="0 0 220 220" className="w-52 h-52 overflow-visible">
+    <div className="relative flex items-center justify-center pointer-events-none select-none touch-pan-y">
+      <svg
+        viewBox="0 0 220 220"
+        className="w-44 h-44 sm:w-52 sm:h-52 overflow-visible pointer-events-none select-none touch-pan-y"
+      >
         <defs>
           <radialGradient id="dopaRadarFill" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#FF206E" stopOpacity="0.88" />
@@ -101,7 +137,7 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
         {/* 各頂点のドットとラベル */}
         {AXES.map((axis, i) => {
           const val = Math.min(maxStat, Math.max(14, stats[axis.key]));
-          const dot = getPoint(i, val / maxStat);
+          const dot = getPoint(i, (val / maxStat) * animRatio);
           const labelPos = getPoint(i, 1.33);
           const gain = recentGains?.[axis.key] || 0;
 

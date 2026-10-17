@@ -839,10 +839,10 @@ export default function DopaBenApp() {
             </div>
 
             {/* 完全透過ロゴ ＋ 呼吸ネオンオーラ ＋ Twinkle Sparkle エフェクト */}
-            <div className="relative flex justify-center items-center py-2 my-0.5">
+            <div className="relative flex justify-center items-center py-1 my-0">
               {/* 1. 呼吸するネオンオーラ */}
               <div
-                className="pointer-events-none absolute inset-x-8 inset-y-1 rounded-full bg-gradient-to-r from-[#FF206E]/35 via-[#FBFF12]/25 to-[#41EAD4]/35 animate-dopa-aura"
+                className="pointer-events-none absolute inset-x-8 inset-y-0.5 rounded-full bg-gradient-to-r from-[#FF206E]/35 via-[#FBFF12]/25 to-[#41EAD4]/35 animate-dopa-aura"
               />
 
               {/* 2. パラパラと可愛く弾ける Twinkle Sparkles (✦ / ★ / ⚡ / 🍀) */}
@@ -867,20 +867,20 @@ export default function DopaBenApp() {
                 ))}
               </div>
 
-              {/* 3. 完全透過済みの『ドパベン』ロゴ本体 */}
+              {/* 3. 完全透過済みの『ドパベン』ロゴ本体（スマホのファーストビューに合わせて最適化） */}
               <img
                 src="/dopaben-logo.png"
                 alt="ドパベン"
-                className="w-full max-w-[310px] h-auto object-contain relative z-10 animate-logo-float drop-shadow-[0_0_2px_rgba(255,255,255,0.45)] drop-shadow-[0_6px_18px_rgba(255,32,110,0.5)] select-none"
+                className="w-full max-w-[240px] sm:max-w-[290px] h-auto object-contain relative z-10 animate-logo-float drop-shadow-[0_0_2px_rgba(255,255,255,0.45)] drop-shadow-[0_6px_18px_rgba(255,32,110,0.5)] select-none"
               />
             </div>
           </header>
 
           {/* メイン育成キャラクター・ステージカード */}
-          <section className="bg-[#141911] border-2 border-white p-3.5 shadow-p5-pink relative overflow-hidden">
+          <section className="bg-[#141911] border-2 border-white p-3 shadow-p5-pink relative overflow-hidden">
             <div className="absolute -top-6 -right-6 w-20 h-20 bg-[#FF206E]/15 rotate-12 pointer-events-none" />
 
-            <div className="flex items-center justify-between mb-2.5 relative z-10">
+            <div className="flex items-center justify-between mb-2 relative z-10">
               <span className="bg-[#FBFF12] text-[#0C0F0A] font-black text-[11px] px-2.5 py-0.5 -skew-x-12 border border-[#0C0F0A]">
                 {currentStageInfo.subtitle}
               </span>
@@ -895,44 +895,44 @@ export default function DopaBenApp() {
               </button>
             </div>
 
-            <div className="flex items-center gap-3.5 relative z-10">
+            <div className="flex items-center gap-3 relative z-10">
               <div
                 onClick={() => {
                   soundEngine.playTap();
                   setIsSkillModalOpen(true);
                 }}
-                className="cursor-pointer bg-[#0C0F0A] border-2 border-[#41EAD4] hover:border-[#FBFF12] p-1.5 transition shrink-0 shadow-[3px_3px_0_#FF206E]"
+                className="cursor-pointer bg-[#0C0F0A] border-2 border-[#41EAD4] hover:border-[#FBFF12] p-1 transition shrink-0 shadow-[3px_3px_0_#FF206E]"
               >
                 <PixelCharacter
                   gender={profile.gender}
                   stage={profile.level}
-                  size={108}
+                  size={88}
                   mood="idle"
                 />
               </div>
 
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-1.5">
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-black italic text-[#FBFF12] drop-shadow-[2px_2px_0_#FF206E]">
+                    <span className="text-xl sm:text-2xl font-black italic text-[#FBFF12] drop-shadow-[2px_2px_0_#FF206E]">
                       Lv.{profile.level}
                     </span>
                     <span className="text-xs font-bold text-[#41EAD4]">
                       / 10段階進化
                     </span>
                   </div>
-                  <h2 className="font-black text-base text-white leading-snug mt-0.5">
+                  <h2 className="font-black text-sm sm:text-base text-white leading-snug mt-0.5">
                     {profile.gender === "boy"
                       ? currentStageInfo.titleBoy
                       : currentStageInfo.titleGirl}
                   </h2>
                 </div>
 
-                <p className="text-[11px] text-[#C8D4C2] leading-relaxed">
+                <p className="text-[10px] sm:text-[11px] text-[#C8D4C2] leading-relaxed line-clamp-2">
                   {currentStageInfo.unlockMessage}
                 </p>
 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <div className="flex justify-between text-[10px] font-black">
                     <span className="text-[#41EAD4]">NEXT EVOLUTION</span>
                     <span className="text-[#FBFF12]">
@@ -941,7 +941,7 @@ export default function DopaBenApp() {
                         : `${profile.exp} / ${reqExp} EXP`}
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-[#0C0F0A] border border-white -skew-x-12 p-0.5">
+                  <div className="w-full h-2 bg-[#0C0F0A] border border-white -skew-x-12 p-0.5">
                     <motion.div
                       className="h-full bg-gradient-to-r from-[#FF206E] via-[#FBFF12] to-[#41EAD4]"
                       animate={{ width: `${expPercent}%` }}
@@ -951,7 +951,7 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-[#2C3527] flex items-center justify-between gap-2 relative z-10">
+            <div className="mt-2.5 pt-2 border-t border-[#2C3527] flex items-center justify-between gap-2 relative z-10">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-black text-[#41EAD4] flex items-center gap-1">
                   <Terminal className="w-3 h-3 text-[#41EAD4]" /> 発動スキル:
@@ -991,41 +991,57 @@ export default function DopaBenApp() {
             </div>
           </section>
 
-          {/* 五角形ステータス＆戦績サマリー */}
-          <section className="grid grid-cols-12 gap-2.5 items-center bg-[#141911] border-2 border-[#2C3527] p-2.5">
-            <div className="col-span-7 flex justify-center">
+          {/* 五角形ステータス＆戦績サマリー（スワイプ操作を邪魔しない touch-pan-y 対応） */}
+          <section className="grid grid-cols-12 gap-2 sm:gap-2.5 items-center bg-[#141911] border-2 border-[#2C3527] p-2 sm:p-2.5 touch-pan-y select-none relative">
+            <div className="col-span-7 flex justify-center touch-pan-y">
               <StarRadarChart stats={profile.stats} />
             </div>
-            <div className="col-span-5 space-y-2 pr-1">
-              <div className="bg-[#0C0F0A] border-l-4 border-[#FF206E] p-2">
-                <div className="text-[10px] text-[#A3B19B] font-bold">
+            <div className="col-span-5 space-y-1.5 sm:space-y-2 pr-1 touch-pan-y">
+              <div className="bg-[#0C0F0A] border-l-4 border-[#FF206E] p-1.5 sm:p-2">
+                <div className="text-[9px] sm:text-[10px] text-[#A3B19B] font-bold">
                   総撃破単語数
                 </div>
-                <div className="text-base font-black text-white">
+                <div className="text-sm sm:text-base font-black text-white">
                   {profile.totalWordsCleared} WORDS
                 </div>
               </div>
-              <div className="bg-[#0C0F0A] border-l-4 border-[#FBFF12] p-2">
-                <div className="text-[10px] text-[#A3B19B] font-bold">
+              <div className="bg-[#0C0F0A] border-l-4 border-[#FBFF12] p-1.5 sm:p-2">
+                <div className="text-[9px] sm:text-[10px] text-[#A3B19B] font-bold">
                   倍返し(REVENGE)成功
                 </div>
-                <div className="text-base font-black text-[#FBFF12]">
+                <div className="text-sm sm:text-base font-black text-[#FBFF12]">
                   {profile.totalRevengeJackpots} JACKPOTS
                 </div>
               </div>
-              <div className="bg-[#0C0F0A] border-l-4 border-[#41EAD4] p-2">
-                <div className="text-[10px] text-[#A3B19B] font-bold">
+              <div className="bg-[#0C0F0A] border-l-4 border-[#41EAD4] p-1.5 sm:p-2">
+                <div className="text-[9px] sm:text-[10px] text-[#A3B19B] font-bold">
                   最高コンボ記録
                 </div>
-                <div className="text-base font-black text-[#41EAD4]">
+                <div className="text-sm sm:text-base font-black text-[#41EAD4]">
                   {profile.maxCombo} CHAIN
                 </div>
               </div>
             </div>
           </section>
 
+          {/* スムーズスクロール誘導ボタン */}
+          <div className="flex justify-center -my-1">
+            <button
+              onClick={() => {
+                soundEngine.playTap();
+                const el = document.getElementById("stage-select-section");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+              className="bg-[#0C0F0A] hover:bg-[#FF206E] border border-[#FBFF12] text-[#FBFF12] hover:text-white px-3.5 py-1 text-[11px] font-black -skew-x-6 shadow-[2px_2px_0_#FF206E] flex items-center gap-1.5 transition active:scale-95"
+            >
+              <span>▼ 出撃ステージ選択・BATTLE START へ</span>
+            </button>
+          </div>
+
           {/* 出撃ステージセレクト（英検1級専用ステージ ＋ トラック選択 ＆ 中学ステージ） */}
-          <section className="space-y-2.5 pt-1 pb-2">
+          <section id="stage-select-section" className="space-y-2.5 pt-1 pb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FBFF12]" />
