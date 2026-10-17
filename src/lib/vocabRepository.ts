@@ -1,6 +1,12 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import { SentenceItem, WordItem } from "./types";
 import { EIKEN1_SENTENCES, EIKEN1_UNIT1_ENTRIES, EIKEN1_WORDS } from "./eiken1Data";
+import {
+  TARGET1800_ENTRIES,
+  TARGET1800_SENTENCES,
+  TARGET1800_STAGES,
+  TARGET1800_WORDS,
+} from "./target1800Data";
 import { SENTENCES, WORDS } from "./vocabData";
 
 export interface DbStageRow {
@@ -16,7 +22,7 @@ export interface DbStageRow {
 export interface DbVocabEntryRow {
   id: string;
   stage_slug: string;
-  category: "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
+  category: "ターゲット1800" | "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
   unit_number: number;
   track_number: number;
   entry_number: string;
@@ -50,6 +56,8 @@ export interface ExtendedSentenceItem extends SentenceItem {
 export interface VocabDataPool {
   source: "supabase" | "local";
   totalCount: number;
+  target1800Words: ExtendedWordItem[];
+  target1800Sentences: ExtendedSentenceItem[];
   eiken1Words: ExtendedWordItem[];
   eiken1Sentences: ExtendedSentenceItem[];
   standardWords: WordItem[];
@@ -63,6 +71,21 @@ let cachedPool: VocabDataPool | null = null;
  * ローカル定義データから初期フォールバックプールを生成
  */
 export function getLocalFallbackPool(): VocabDataPool {
+  const target1800Words: ExtendedWordItem[] = TARGET1800_WORDS.map((w) => ({
+    ...w,
+    track: w.level,
+    stageSlug: w.stageSlug,
+    unitNumber: w.level,
+  }));
+  const target1800Sentences: ExtendedSentenceItem[] = TARGET1800_SENTENCES.map(
+    (s) => ({
+      ...s,
+      track: s.level,
+      stageSlug: s.stageSlug,
+      unitNumber: s.level,
+    })
+  );
+
   const eiken1Words: ExtendedWordItem[] = EIKEN1_WORDS.map((w) => ({
     ...w,
     stageSlug: "eiken1_unit01",
@@ -76,7 +99,9 @@ export function getLocalFallbackPool(): VocabDataPool {
 
   return {
     source: "local",
-    totalCount: eiken1Words.length + WORDS.length,
+    totalCount: target1800Words.length + eiken1Words.length + WORDS.length,
+    target1800Words,
+    target1800Sentences,
     eiken1Words,
     eiken1Sentences,
     standardWords: WORDS,
@@ -91,9 +116,106 @@ export function getActiveVocabPool(): VocabDataPool {
   return cachedPool ?? getLocalFallbackPool();
 }
 
+function mapExtendedRows(
+  rows: DbVocabEntryRow[],
+  gradeLabel: "ターゲット1800" | "英検1級",
+  defaultStageSlug: string
+): { words: ExtendedWordItem[]; sentences: ExtendedSentenceItem[] } {
+  const words: ExtendedWordItem[] = rows.map((row, idx) => {
+    const samePos = rows.filter(
+      (other) =>
+        other.id !== row.id &&
+        other.unit_number === row.unit_number &&
+        other.part_of_speech === row.part_of_speech
+    );
+    const pool =
+      samePos.length >= 3
+        ? samePos
+        : rows.filter((other) => other.id !== row.id);
+
+    const d1 = pool[(idx * 3 + 1) % Math.max(1, pool.length)];
+    const d2 = pool[(idx * 3 + 5) % Math.max(1, pool.length)];
+    const d3 = pool[(idx * 3 + 9) % Math.max(1, pool.length)];
+
+    const distractorsJa =
+      Array.isArray(row.distractors_ja) && row.distractors_ja.length >= 3
+        ? row.distractors_ja
+        : [d1?.japanese || "", d2?.japanese || "", d3?.japanese || ""].filter(
+            Boolean
+          );
+
+    const distractorsEn =
+      Array.isArray(row.distractors_en) && row.distractors_en.length >= 3
+        ? row.distractors_en
+        : [d1?.english || "", d2?.english || "", d3?.english || ""].filter(
+            Boolean
+          );
+
+    return {
+      id: row.id,
+      num: row.entry_number || String(idx + 1).padStart(4, "0"),
+      track: row.track_number || row.unit_number || 1,
+      stageSlug: row.stage_slug || defaultStageSlug,
+      unitNumber: row.unit_number || 1,
+      english: row.english,
+      japanese: row.japanese,
+      phonetic: row.phonetic,
+      partOfSpeech: row.entry_number
+        ? `${gradeLabel} #${row.entry_number} (${row.part_of_speech})`
+        : row.part_of_speech,
+      grade: gradeLabel,
+      distractorsJa,
+      distractorsEn,
+      tip: row.tip,
+      exampleSentenceEn:
+        Array.isArray(row.sentence_en_tokens) &&
+        row.sentence_en_tokens.length > 0
+          ? row.sentence_en_tokens.join(" ")
+          : undefined,
+      exampleSentenceJa: row.sentence_ja || undefined,
+    };
+  });
+
+  const sentences: ExtendedSentenceItem[] = rows
+    .filter(
+      (row) =>
+        Array.isArray(row.sentence_en_tokens) &&
+        row.sentence_en_tokens.length > 0
+    )
+    .map((row, idx) => {
+      const other1 =
+        rows[(idx + 4) % Math.max(1, rows.length)]?.english || "however";
+      const other2 =
+        rows[(idx + 11) % Math.max(1, rows.length)]?.english || "moreover";
+
+      const distractorTokens =
+        Array.isArray(row.sentence_distractor_tokens) &&
+        row.sentence_distractor_tokens.length > 0
+          ? row.sentence_distractor_tokens
+          : [other1, other2];
+
+      return {
+        id: `s_${row.id}`,
+        num: row.entry_number || String(idx + 1).padStart(4, "0"),
+        track: row.track_number || row.unit_number || 1,
+        stageSlug: row.stage_slug || defaultStageSlug,
+        unitNumber: row.unit_number || 1,
+        englishTokens: row.sentence_en_tokens,
+        distractorTokens,
+        japanese: row.sentence_ja,
+        targetWordIds: [row.id],
+        grade: gradeLabel,
+        grammarPoint:
+          row.grammar_point ||
+          `【${gradeLabel} #${row.entry_number}】${row.english} ＝ ${row.japanese}`,
+      };
+    });
+
+  return { words, sentences };
+}
+
 /**
- * Supabase の `dopaben_vocab_entries` から全問題データを取得し、
- * ダミー選択肢が空のレコードには同一カテゴリ・同一品詞から自動で4択ダミーを生成する
+ * Supabase の `dopaben_vocab_entries` から全問題データを取得（1000件制限を超えるためページング取得）
  */
 export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
   if (!isSupabaseConfigured || !supabase) {
@@ -102,114 +224,49 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
   }
 
   try {
-    const { data, error } = await supabase
-      .from("dopaben_vocab_entries")
-      .select("*")
-      .order("entry_number", { ascending: true });
+    const allRows: DbVocabEntryRow[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("dopaben_vocab_entries")
+        .select("*")
+        .order("entry_number", { ascending: true })
+        .range(from, from + pageSize - 1);
 
-    if (error || !data || data.length === 0) {
+      if (error || !data || data.length === 0) {
+        break;
+      }
+      allRows.push(...(data as DbVocabEntryRow[]));
+      if (data.length < pageSize) {
+        break;
+      }
+      from += pageSize;
+    }
+
+    if (allRows.length === 0) {
       cachedPool = getLocalFallbackPool();
       return cachedPool;
     }
 
-    const rows = data as DbVocabEntryRow[];
+    const fallback = getLocalFallbackPool();
+    const targetRows = allRows.filter((r) => r.category === "ターゲット1800");
+    const eikenRows = allRows.filter((r) => r.category === "英検1級");
+    const standardRows = allRows.filter(
+      (r) => r.category !== "英検1級" && r.category !== "ターゲット1800"
+    );
 
-    const eikenRows = rows.filter((r) => r.category === "英検1級");
-    const standardRows = rows.filter((r) => r.category !== "英検1級");
+    const targetMapped = mapExtendedRows(
+      targetRows,
+      "ターゲット1800",
+      "target1800_lv01"
+    );
+    const eikenMapped = mapExtendedRows(
+      eikenRows,
+      "英検1級",
+      "eiken1_unit01"
+    );
 
-    // 1. 英検1級（または今後追加されるUnit 02以降のステージ）の変換
-    const eiken1Words: ExtendedWordItem[] = eikenRows.map((row, idx) => {
-      // ダミー選択肢がDB側で未指定なら、同じ品詞から自動選出する汎用ロジック
-      const samePos = eikenRows.filter(
-        (other) =>
-          other.id !== row.id && other.part_of_speech === row.part_of_speech
-      );
-      const pool =
-        samePos.length >= 3
-          ? samePos
-          : eikenRows.filter((other) => other.id !== row.id);
-
-      const d1 = pool[(idx * 3 + 1) % Math.max(1, pool.length)];
-      const d2 = pool[(idx * 3 + 5) % Math.max(1, pool.length)];
-      const d3 = pool[(idx * 3 + 9) % Math.max(1, pool.length)];
-
-      const distractorsJa =
-        Array.isArray(row.distractors_ja) && row.distractors_ja.length >= 3
-          ? row.distractors_ja
-          : [d1?.japanese || "", d2?.japanese || "", d3?.japanese || ""].filter(
-              Boolean
-            );
-
-      const distractorsEn =
-        Array.isArray(row.distractors_en) && row.distractors_en.length >= 3
-          ? row.distractors_en
-          : [d1?.english || "", d2?.english || "", d3?.english || ""].filter(
-              Boolean
-            );
-
-      return {
-        id: row.id,
-        num: row.entry_number || String(idx + 1).padStart(4, "0"),
-        track: row.track_number || 1,
-        stageSlug: row.stage_slug || "eiken1_unit01",
-        unitNumber: row.unit_number || 1,
-        english: row.english,
-        japanese: row.japanese,
-        phonetic: row.phonetic,
-        partOfSpeech: row.entry_number
-          ? `英検1級 #${row.entry_number} (${row.part_of_speech})`
-          : row.part_of_speech,
-        grade: "英検1級",
-        distractorsJa,
-        distractorsEn,
-        tip: row.tip,
-        exampleSentenceEn:
-          Array.isArray(row.sentence_en_tokens) &&
-          row.sentence_en_tokens.length > 0
-            ? row.sentence_en_tokens.join(" ")
-            : undefined,
-        exampleSentenceJa: row.sentence_ja || undefined,
-      };
-    });
-
-    const eiken1Sentences: ExtendedSentenceItem[] = eikenRows
-      .filter(
-        (row) =>
-          Array.isArray(row.sentence_en_tokens) &&
-          row.sentence_en_tokens.length > 0
-      )
-      .map((row, idx) => {
-        const other1 =
-          eikenRows[(idx + 4) % Math.max(1, eikenRows.length)]?.english ||
-          "however";
-        const other2 =
-          eikenRows[(idx + 11) % Math.max(1, eikenRows.length)]?.english ||
-          "moreover";
-
-        const distractorTokens =
-          Array.isArray(row.sentence_distractor_tokens) &&
-          row.sentence_distractor_tokens.length > 0
-            ? row.sentence_distractor_tokens
-            : [other1, other2];
-
-        return {
-          id: `s_${row.id}`,
-          num: row.entry_number || String(idx + 1).padStart(4, "0"),
-          track: row.track_number || 1,
-          stageSlug: row.stage_slug || "eiken1_unit01",
-          unitNumber: row.unit_number || 1,
-          englishTokens: row.sentence_en_tokens,
-          distractorTokens,
-          japanese: row.sentence_ja,
-          targetWordIds: [row.id],
-          grade: "英検1級",
-          grammarPoint:
-            row.grammar_point ||
-            `【英検1級 #${row.entry_number}】${row.english} ＝ ${row.japanese}`,
-        };
-      });
-
-    // 2. 通常ステージ（中1・中2・中3・激ムズ）の変換
     const standardWords: WordItem[] =
       standardRows.length > 0
         ? standardRows.map((row) => ({
@@ -249,12 +306,21 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
 
     cachedPool = {
       source: "supabase",
-      totalCount: rows.length,
-      eiken1Words: eiken1Words.length > 0 ? eiken1Words : getLocalFallbackPool().eiken1Words,
+      totalCount: allRows.length,
+      target1800Words:
+        targetMapped.words.length > 0
+          ? targetMapped.words
+          : fallback.target1800Words,
+      target1800Sentences:
+        targetMapped.sentences.length > 0
+          ? targetMapped.sentences
+          : fallback.target1800Sentences,
+      eiken1Words:
+        eikenMapped.words.length > 0 ? eikenMapped.words : fallback.eiken1Words,
       eiken1Sentences:
-        eiken1Sentences.length > 0
-          ? eiken1Sentences
-          : getLocalFallbackPool().eiken1Sentences,
+        eikenMapped.sentences.length > 0
+          ? eikenMapped.sentences
+          : fallback.eiken1Sentences,
       standardWords,
       standardSentences:
         dbStandardSentences.length > 0 ? dbStandardSentences : SENTENCES,
@@ -268,7 +334,7 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
 }
 
 /**
- * 既存の全ステージ＆全問題データ（英検1級 96語＋例文96文 ＆ 中1〜中3・激ムズ）を
+ * 全ステージ＆全問題データ（ターゲット1800 全18ステージ1800語 ＋ 英検1級 96語 ＋ 中1〜中3・激ムズ）を
  * Supabase の `dopaben_stages` と `dopaben_vocab_entries` に一括Upsert（同期）する関数
  */
 export async function syncAllLocalDataToSupabase(): Promise<{
@@ -285,8 +351,18 @@ export async function syncAllLocalDataToSupabase(): Promise<{
     };
   }
 
-  // 1. ステージマスターデータ
+  const targetStages: DbStageRow[] = TARGET1800_STAGES.map((s) => ({
+    slug: s.slug,
+    category: "ターゲット1800",
+    unit_number: s.unitNumber,
+    title: s.title,
+    subtitle: s.subtitle,
+    sort_order: s.sortOrder,
+    is_active: true,
+  }));
+
   const stages: DbStageRow[] = [
+    ...targetStages,
     {
       slug: "eiken1_unit01",
       category: "英検1級",
@@ -341,11 +417,36 @@ export async function syncAllLocalDataToSupabase(): Promise<{
   if (stageError) {
     return {
       ok: false,
-      message: `ステージテーブル同期エラー: ${stageError.message}（先に supabase/schema.sql をSQL Editorで実行してください）`,
+      message: `ステージテーブル同期エラー: ${stageError.message}`,
     };
   }
 
-  // 2. 英検1級 Unit 01 全96語＋公式例文96文レコード
+  const targetEntries: DbVocabEntryRow[] = TARGET1800_ENTRIES.map(
+    (entry, idx) => {
+      const generatedWord = TARGET1800_WORDS[idx];
+      const generatedSentence = TARGET1800_SENTENCES[idx];
+      return {
+        id: `target1800_${entry.num}`,
+        stage_slug: entry.stageSlug,
+        category: "ターゲット1800",
+        unit_number: entry.level,
+        track_number: entry.level,
+        entry_number: entry.num,
+        english: entry.english,
+        japanese: entry.japanese,
+        phonetic: entry.phonetic,
+        part_of_speech: entry.partOfSpeech,
+        tip: entry.tip,
+        distractors_ja: generatedWord.distractorsJa,
+        distractors_en: generatedWord.distractorsEn,
+        sentence_en_tokens: entry.sentenceEn,
+        sentence_ja: entry.sentenceJa,
+        sentence_distractor_tokens: generatedSentence.distractorTokens,
+        grammar_point: generatedSentence.grammarPoint,
+      };
+    }
+  );
+
   const eikenEntries: DbVocabEntryRow[] = EIKEN1_UNIT1_ENTRIES.map(
     (entry, idx) => {
       const generatedWord = EIKEN1_WORDS[idx];
@@ -372,7 +473,6 @@ export async function syncAllLocalDataToSupabase(): Promise<{
     }
   );
 
-  // 3. 中1〜中3・激ムズ単語レコード（対応する例文があれば紐付け）
   const standardEntries: DbVocabEntryRow[] = WORDS.map((w, idx) => {
     const matchedSentence = SENTENCES.find((s) =>
       s.targetWordIds.includes(w.id)
@@ -409,20 +509,23 @@ export async function syncAllLocalDataToSupabase(): Promise<{
     };
   });
 
-  const allEntries = [...eikenEntries, ...standardEntries];
+  const allEntries = [...targetEntries, ...eikenEntries, ...standardEntries];
 
-  const { error: vocabError } = await supabase
-    .from("dopaben_vocab_entries")
-    .upsert(allEntries, { onConflict: "id" });
+  const batchSize = 400;
+  for (let i = 0; i < allEntries.length; i += batchSize) {
+    const batch = allEntries.slice(i, i + batchSize);
+    const { error: vocabError } = await supabase
+      .from("dopaben_vocab_entries")
+      .upsert(batch, { onConflict: "id" });
 
-  if (vocabError) {
-    return {
-      ok: false,
-      message: `問題データ同期エラー: ${vocabError.message}`,
-    };
+    if (vocabError) {
+      return {
+        ok: false,
+        message: `問題データ同期エラー: ${vocabError.message}`,
+      };
+    }
   }
 
-  // キャッシュも最新DBでリフレッシュ
   await loadVocabPoolFromSupabase();
 
   return {

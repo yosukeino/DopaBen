@@ -10,6 +10,7 @@ export async function GET() {
     source: pool.source,
     totalCount: pool.totalCount,
     eiken1WordsCount: pool.eiken1Words.length,
+    target1800WordsCount: pool.target1800Words.length,
     standardWordsCount: pool.standardWords.length,
   });
 }

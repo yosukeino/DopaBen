@@ -7,6 +7,7 @@ import {
   WordMasteryRecord,
 } from "./types";
 import { getActiveVocabPool } from "./vocabRepository";
+import { TARGET1800_STAGES } from "./target1800Data";
 
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
@@ -25,6 +26,63 @@ const IRREGULAR_FORMS: Record<string, string[]> = {
   withstand: ["withstood", "withstanding", "withstands"],
   overcome: ["overcame", "overcoming", "overcomes"],
   forgo: ["forwent", "forgone", "forgoing", "forgoes"],
+  go: ["went", "gone", "going", "goes"],
+  run: ["ran", "running", "runs"],
+  come: ["came", "coming", "comes"],
+  see: ["saw", "seen", "seeing", "sees"],
+  take: ["took", "taken", "taking", "takes"],
+  give: ["gave", "given", "giving", "gives"],
+  eat: ["ate", "eaten", "eating", "eats"],
+  write: ["wrote", "written", "writing", "writes"],
+  speak: ["spoke", "spoken", "speaking", "speaks"],
+  break: ["broke", "broken", "breaking", "breaks"],
+  choose: ["chose", "chosen", "choosing", "chooses"],
+  drive: ["drove", "driven", "driving", "drives"],
+  fall: ["fell", "fallen", "falling", "falls"],
+  fly: ["flew", "flown", "flying", "flies"],
+  forget: ["forgot", "forgotten", "forgetting", "forgets"],
+  get: ["got", "gotten", "getting", "gets"],
+  grow: ["grew", "grown", "growing", "grows"],
+  know: ["knew", "known", "knowing", "knows"],
+  ride: ["rode", "ridden", "riding", "rides"],
+  ring: ["rang", "rung", "ringing", "rings"],
+  rise: ["rose", "risen", "rising", "rises"],
+  sing: ["sang", "sung", "singing", "sings"],
+  swim: ["swam", "swum", "swimming", "swims"],
+  throw: ["threw", "thrown", "throwing", "throws"],
+  wake: ["woke", "woken", "waking", "wakes"],
+  wear: ["wore", "worn", "wearing", "wears"],
+  begin: ["began", "begun", "beginning", "begins"],
+  drink: ["drank", "drunk", "drinking", "drinks"],
+  buy: ["bought", "buying", "buys"],
+  bring: ["brought", "bringing", "brings"],
+  think: ["thought", "thinking", "thinks"],
+  catch: ["caught", "catching", "catches"],
+  teach: ["taught", "teaching", "teaches"],
+  build: ["built", "building", "builds"],
+  feel: ["felt", "feeling", "feels"],
+  find: ["found", "finding", "finds"],
+  have: ["had", "having", "has"],
+  hear: ["heard", "hearing", "hears"],
+  hold: ["held", "holding", "holds"],
+  keep: ["kept", "keeping", "keeps"],
+  leave: ["left", "leaving", "leaves"],
+  lend: ["lent", "lending", "lends"],
+  lose: ["lost", "losing", "loses"],
+  make: ["made", "making", "makes"],
+  mean: ["meant", "meaning", "means"],
+  meet: ["met", "meeting", "meets"],
+  pay: ["paid", "paying", "pays"],
+  say: ["said", "saying", "says"],
+  sell: ["sold", "selling", "sells"],
+  send: ["sent", "sending", "sends"],
+  sit: ["sat", "sitting", "sits"],
+  sleep: ["slept", "sleeping", "sleeps"],
+  spend: ["spent", "spending", "spends"],
+  stand: ["stood", "standing", "stands"],
+  tell: ["told", "telling", "tells"],
+  understand: ["understood", "understanding", "understands"],
+  win: ["won", "winning", "wins"],
 };
 
 /**
@@ -336,6 +394,31 @@ export function generateBattleDeck(
           "ja_to_en",
           "sentence_fill",
         ]);
+
+  // === 新規ステージ：『ターゲット1800 全18ステージ（Lv.01〜10 / 2レベルまとめ / 5レベルまとめ / 総合FINAL）』 ===
+  if (grade === "ターゲット1800") {
+    const stageDef = TARGET1800_STAGES.find(
+      (s) => s.unitNumber === eiken1Track
+    );
+    const activeLevels = stageDef ? stageDef.levels : [1];
+    const stageWords = pool.target1800Words.filter((w) =>
+      activeLevels.includes(w.unitNumber)
+    );
+
+    const candidatePool =
+      stageWords.length >= 6 ? stageWords : pool.target1800Words;
+
+    const selectedTargetWords = prioritizeWordsByMastery(
+      candidatePool,
+      6,
+      wordMastery,
+      onlyWeakWords
+    );
+
+    return selectedTargetWords.map((word, index) =>
+      buildWordQuestion(word, defaultFormats[index % defaultFormats.length])
+    );
+  }
 
   // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
   if (grade === "英検1級") {

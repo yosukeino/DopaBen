@@ -1,4 +1,4 @@
-export type GradeLevel = "英検1級" | "中1" | "中2" | "中3" | "ALL";
+export type GradeLevel = "ターゲット1800" | "英検1級" | "中1" | "中2" | "中3" | "ALL";
 
 export type QuestionFormat =
   | "en_to_ja"       // ① 英単語(＋発音) → 日本語4択
@@ -13,7 +13,7 @@ export interface WordItem {
   japanese: string;
   phonetic: string;
   partOfSpeech: string;
-  grade: "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
+  grade: "ターゲット1800" | "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
   distractorsJa: string[];
   distractorsEn: string[];
   tip: string; // ミスした時・正解後の解説モーダルで出る記憶フック
@@ -27,7 +27,7 @@ export interface SentenceItem {
   distractorTokens: string[];
   japanese: string;
   targetWordIds: string[];
-  grade: "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
+  grade: "ターゲット1800" | "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
   grammarPoint: string;
 }
 
