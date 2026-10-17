@@ -512,6 +512,11 @@ export default function DopaBenApp() {
 
     triggerSlashTransition(() => {
       setScreen("result");
+      setRadarBounceKey((k) => k + 1);
+      // スラッシュ演出が開けた瞬間にもう一度0.5秒ド派手バーストを発火させて確実に見せる
+      setTimeout(() => {
+        setRadarBounceKey((k) => k + 1);
+      }, 260);
       soundEngine.playEvolutionFanfare();
       try {
         confetti({
@@ -690,7 +695,19 @@ export default function DopaBenApp() {
               <StarRadarChart
                 stats={profile.stats}
                 recentGains={lastResult.summary.statGains}
+                triggerKey={radarBounceKey}
+                variant="result"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playTap();
+                  setRadarBounceKey((k) => k + 1);
+                }}
+                className="mt-1 text-[10px] font-black text-[#FBFF12] hover:text-white bg-[#0C0F0A] border border-[#41EAD4] hover:border-[#FBFF12] px-3 py-1 -skew-x-6 flex items-center gap-1 active:scale-95 transition"
+              >
+                <span>✨ 0.5秒ド派手成長バーストをもう一度再生</span>
+              </button>
               <div className="grid grid-cols-3 gap-2 w-full mt-2 text-center">
                 <div className="bg-[#0C0F0A] border border-[#2C3527] p-2">
                   <div className="text-[10px] text-[#A3B19B] font-bold">

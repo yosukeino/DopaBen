@@ -1001,63 +1001,73 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* 正解・不正解共通『解説＆発音確認モーダル』（もう1タップで次の問題へ進む） */}
+      {/* 正解・不正解共通『解説＆発音確認モーダル』（正解＝エメラルドグリーン / 不正解＝レッド で直感的に判別可能） */}
       <AnimatePresence>
         {answerModal && (
           <>
-            {/* 背景の半透明暗幕（下層の選択肢と文字が重なって読みづらくなるのを防ぐ） */}
+            {/* 背景の半透明カラーフラッシュ暗幕（正解＝エメラルド、不正解＝レッド） */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-[#0C0F0A]/75 backdrop-blur-[2px] z-40"
+              className={`fixed inset-0 backdrop-blur-[2px] z-40 transition-colors ${
+                answerModal.isCorrect
+                  ? "bg-[#022C22]/80"
+                  : "bg-[#450A0A]/85"
+              }`}
             />
 
             <motion.div
-              initial={{ opacity: 0, y: 60 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 60 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 60, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 420, damping: 28 }}
               className="fixed inset-x-0 bottom-0 z-50 p-3.5 max-w-md mx-auto"
             >
               <div
-                className={`bg-[#141911] border-2 p-4 space-y-3 ${
+                className={`border-2 p-4 space-y-3 ${
                   answerModal.isCorrect
-                    ? "border-[#41EAD4] shadow-[0_-8px_32px_rgba(65,234,212,0.35)]"
-                    : "border-[#FBFF12] shadow-[0_-8px_32px_rgba(255,32,110,0.4)]"
+                    ? "bg-gradient-to-b from-[#059669] via-[#047857] to-[#064E3B] border-[#6EE7B7] shadow-[0_-10px_40px_rgba(16,185,129,0.65)]"
+                    : "bg-gradient-to-b from-[#DC2626] via-[#B91C1C] to-[#7F1D1D] border-[#FCA5A5] shadow-[0_-10px_40px_rgba(239,68,68,0.75)]"
                 }`}
               >
-                {/* 1. 判定ヘッダー */}
+                {/* 1. 判定ヘッダー（正解：エメラルド×白 / 不正解：レッド×黄色） */}
                 <div className="flex items-center justify-between gap-2">
                   {answerModal.isCorrect ? (
-                    <span className="bg-[#41EAD4] text-[#0C0F0A] font-black text-xs px-2.5 py-0.5 -skew-x-12 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="bg-white text-[#064E3B] font-black text-xs sm:text-sm px-3 py-1 -skew-x-12 flex items-center gap-1.5 shadow-[3px_3px_0_#022C22]">
+                      <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
                       {answerModal.isRevenge
-                        ? `REVENGE JACKPOT!! ×${answerModal.bountyMultiplier}倍返し撃破！`
-                        : `WEAK!! 正解！ (${answerModal.comboCount} CHAIN)`}
+                        ? `⭕ REVENGE!! ×${answerModal.bountyMultiplier}倍返し正解！`
+                        : `⭕ 正解！！ GREAT!! (${answerModal.comboCount} CHAIN)`}
                     </span>
                   ) : (
-                    <span className="bg-[#FBFF12] text-[#0C0F0A] font-black text-xs px-2.5 py-0.5 -skew-x-12 flex items-center gap-1">
-                      <ShieldAlert className="w-3.5 h-3.5" />
-                      ペナルティなし！倍返し懸賞金ロックオン！
+                    <span className="bg-[#FBFF12] text-[#7F1D1D] font-black text-xs sm:text-sm px-3 py-1 -skew-x-12 flex items-center gap-1.5 shadow-[3px_3px_0_#450A0A]">
+                      <ShieldAlert className="w-4 h-4 text-[#DC2626] shrink-0" />
+                      ❌ 不正解... MISS!!（後で倍返し！）
                     </span>
                   )}
 
                   <span
-                    className={`font-black text-xs ${
+                    className={`font-black text-xs sm:text-sm px-2 py-0.5 border -skew-x-6 ${
                       answerModal.isCorrect
-                        ? "text-[#FBFF12]"
-                        : "text-[#41EAD4]"
+                        ? "bg-[#022C22]/80 text-[#FBFF12] border-[#6EE7B7]"
+                        : "bg-[#450A0A]/85 text-[#FBFF12] border-[#FCA5A5]"
                     }`}
                   >
                     {answerModal.isCorrect
                       ? `+${answerModal.gainedExp} EXP GET!!`
-                      : `次回撃破で EXP ×${answerModal.bountyMultiplier}倍！`}
+                      : `次回撃破 EXP ×${answerModal.bountyMultiplier}倍`}
                   </span>
                 </div>
 
                 {/* 2. 見出し語・発音・意味・解説フック */}
-                <div className="bg-[#0C0F0A] border border-[#2C3527] p-3 space-y-2">
+                <div
+                  className={`p-3 space-y-2 border ${
+                    answerModal.isCorrect
+                      ? "bg-[#022C22]/90 border-[#34D399]/60"
+                      : "bg-[#450A0A]/90 border-[#F87171]/60"
+                  }`}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-baseline gap-2 flex-wrap">
@@ -1065,17 +1075,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           {answerModal.word}
                         </span>
                         {answerModal.phonetic && (
-                          <span className="text-xs font-bold text-[#41EAD4]">
+                          <span className="text-xs font-bold text-[#6EE7B7]">
                             {answerModal.phonetic}
                           </span>
                         )}
                         {answerModal.partOfSpeech && (
-                          <span className="text-[10px] font-bold text-[#A3B19B]">
+                          <span className="text-[11px] font-bold text-white/80 bg-white/10 px-1.5 py-0.5 rounded-sm">
                             {answerModal.partOfSpeech}
                           </span>
                         )}
                       </div>
-                      <div className="text-sm font-black text-[#FBFF12] mt-0.5">
+                      <div className="text-sm font-black text-[#FBFF12] mt-1">
                         ＝ {answerModal.meaning}
                       </div>
                     </div>
@@ -1114,15 +1124,25 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     </div>
                   </div>
 
-                  {answerModal.tip && (
-                    <div className="text-xs text-[#C8D4C2] border-t border-[#2C3527] pt-2 leading-relaxed">
-                      💡 <span className="font-bold">{answerModal.tip}</span>
-                    </div>
-                  )}
+                  {(() => {
+                    if (!answerModal.tip) return null;
+                    const cleanedTip = answerModal.exampleSentenceEn
+                      ? answerModal.tip
+                          .replace(answerModal.exampleSentenceEn, "")
+                          .replace(/^\s*\/\s*/, "")
+                          .trim()
+                      : answerModal.tip.trim();
+                    if (!cleanedTip) return null;
+                    return (
+                      <div className="text-xs text-white/90 border-t border-white/15 pt-2 leading-relaxed">
+                        💡 <span className="font-bold">{cleanedTip}</span>
+                      </div>
+                    );
+                  })()}
 
                   {/* 公式例文＆和訳（ターゲット単語をレモンイエローでハイライト＋例文音声再生） */}
                   {answerModal.exampleSentenceEn && (
-                    <div className="bg-[#141911] border border-[#2C3527] p-2.5 space-y-1">
+                    <div className="bg-[#0C0F0A]/85 border border-white/20 p-2.5 space-y-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="text-xs font-bold text-white leading-snug">
                           <BookOpen className="w-3.5 h-3.5 text-[#41EAD4] inline mr-1 -mt-0.5" />
@@ -1144,7 +1164,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         </button>
                       </div>
                       {answerModal.exampleSentenceJa && (
-                        <div className="text-[11px] text-[#A3B19B]">
+                        <div className="text-[11px] text-[#C8D4C2]">
                           {answerModal.exampleSentenceJa}
                         </div>
                       )}
@@ -1167,18 +1187,18 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       snap.masteryDeltas
                     );
                   }}
-                  className={`w-full py-3.5 font-black text-base border-2 border-white -skew-x-6 active:scale-95 transition flex items-center justify-center gap-2 ${
+                  className={`w-full py-3.5 font-black text-base border-2 -skew-x-6 active:scale-95 transition flex items-center justify-center gap-2 ${
                     answerModal.isCorrect
-                      ? "bg-[#FF206E] text-white shadow-[4px_4px_0_#41EAD4]"
-                      : "bg-[#FBFF12] text-[#0C0F0A] shadow-[4px_4px_0_#FF206E]"
+                      ? "bg-[#FBFF12] hover:brightness-105 text-[#022C22] border-white shadow-[4px_4px_0_#022C22]"
+                      : "bg-white hover:bg-[#FEF2F2] text-[#7F1D1D] border-[#FBFF12] shadow-[4px_4px_0_#450A0A]"
                   }`}
                 >
                   <span>
                     {isLastQuestion
                       ? "バトル完了！リザルト画面へ進む ▶"
                       : answerModal.isCorrect
-                      ? "次の問題へ進む（1 MORE!） ▶"
-                      : "覚えた！次の問題へ進む（後で倍返し！） ▶"}
+                      ? "⭕ 次の問題へ進む（1 MORE!） ▶"
+                      : "🔥 覚えた！次の問題へ進む（後で倍返し！） ▶"}
                   </span>
                   <span className="text-[10px] opacity-75 font-mono px-1.5 py-0.5 border border-current rounded hidden sm:inline">
                     [Space / Enter]

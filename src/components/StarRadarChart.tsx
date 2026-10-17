@@ -7,6 +7,7 @@ interface StarRadarChartProps {
   stats: FiveStats;
   recentGains?: Partial<FiveStats>;
   triggerKey?: number;
+  variant?: "home" | "result";
 }
 
 const AXES: { key: keyof FiveStats; label: string; sub: string }[] = [
@@ -21,48 +22,75 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
   stats,
   recentGains,
   triggerKey = 0,
+  variant = "home",
 }) => {
   const cx = 110;
   const cy = 110;
   const maxR = 66;
   const maxStat = 100;
 
-  // 中心から「ボヨヨ～ン」と跳ねるアニメーション比率 (0 -> 1.31 -> 0.90 -> 1.03 -> 1.00, duration: 0.3秒 = 300ms)
+  const isResult = variant === "result";
+
+  // アニメーション進行状態
   const [animRatio, setAnimRatio] = useState(0);
+  const [animProgress, setAnimProgress] = useState(0);
+  const [angleOffset, setAngleOffset] = useState(0);
 
   useEffect(() => {
     let start: number | null = null;
-    const duration = 300; // 0.3秒
+    // トップページ: 0.3秒 (300ms) / リザルト画面: 0.5秒 (500ms) のド派手演出
+    const duration = isResult ? 500 : 300;
     let rafId: number;
 
     const step = (timestamp: number) => {
       if (!start) start = timestamp;
       const elapsed = timestamp - start;
       const progress = Math.min(1, elapsed / duration);
+      setAnimProgress(progress);
 
-      // 「ボヨヨ～ン」と3段階に跳ねる弾性スプリング減衰振動
-      // 0ms(0%) -> 66ms(131%特大オーバーシュート) -> 133ms(90%内側リバウンド) -> 200ms(103%微振動) -> 300ms(100%着地)
-      const decay = 5.2;
-      const omega = 14.2;
-      const spring =
-        1 - Math.exp(-decay * progress) * Math.cos(omega * progress);
+      if (isResult) {
+        // リザルト専用 0.5秒 (500ms) ド派手バースト：
+        // 特大オーバーシュート (最大146%) ＋ 4段階の弾性バウンス ＋ スパイラル回転ロックオン
+        const decay = 4.0;
+        const omega = 18.8;
+        const spring =
+          1 - Math.exp(-decay * progress) * Math.cos(omega * progress);
+        const twist =
+          progress >= 1
+            ? 0
+            : -0.65 * Math.exp(-5.2 * progress) * Math.cos(12.5 * progress);
 
-      setAnimRatio(progress >= 1 ? 1 : Math.max(0, spring));
+        setAnimRatio(progress >= 1 ? 1 : Math.max(0, spring));
+        setAngleOffset(twist);
+      } else {
+        // トップページ用 0.3秒 (300ms) 「ボヨヨ～ン」弾性バウンス
+        const decay = 5.2;
+        const omega = 14.2;
+        const spring =
+          1 - Math.exp(-decay * progress) * Math.cos(omega * progress);
+
+        setAnimRatio(progress >= 1 ? 1 : Math.max(0, spring));
+        setAngleOffset(0);
+      }
 
       if (progress < 1) {
         rafId = requestAnimationFrame(step);
       } else {
         setAnimRatio(1);
+        setAnimProgress(1);
+        setAngleOffset(0);
       }
     };
 
     setAnimRatio(0);
+    setAnimProgress(0);
+    setAngleOffset(isResult ? -0.65 : 0);
     rafId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafId);
-  }, [stats, triggerKey]);
+  }, [stats, triggerKey, isResult]);
 
-  const getPoint = (index: number, ratio: number) => {
-    const angle = (Math.PI * 2 * index) / 5 - Math.PI / 2;
+  const getPoint = (index: number, ratio: number, extraAngle: number = 0) => {
+    const angle = (Math.PI * 2 * index) / 5 - Math.PI / 2 + extraAngle;
     return {
       x: cx + Math.cos(angle) * maxR * ratio,
       y: cy + Math.sin(angle) * maxR * ratio,
@@ -79,10 +107,31 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
     return `${p.x},${p.y}`;
   }).join(" ");
 
-  // animRatioを掛けることで、中心(cx, cy)からグインと外側へ伸びる
+  // リザルト画面用の衝撃波五角形リング（0.5秒の間に中心から外枠の外まで突き抜ける！）
+  const shockwave1Ratio = isResult ? Math.min(1.48, animProgress * 1.65) : 0;
+  const shockwave1Opacity =
+    isResult && animProgress < 1 ? Math.max(0, (1 - animProgress) * 0.9) : 0;
+  const shockwave1Polygon = AXES.map((_, i) => {
+    const p = getPoint(i, shockwave1Ratio, -angleOffset * 0.5);
+    return `${p.x},${p.y}`;
+  }).join(" ");
+
+  const shockwave2Ratio = isResult
+    ? Math.min(1.35, Math.max(0, (animProgress - 0.12) * 1.55))
+    : 0;
+  const shockwave2Opacity =
+    isResult && animProgress > 0.12 && animProgress < 1
+      ? Math.max(0, (1 - animProgress) * 0.75)
+      : 0;
+  const shockwave2Polygon = AXES.map((_, i) => {
+    const p = getPoint(i, shockwave2Ratio);
+    return `${p.x},${p.y}`;
+  }).join(" ");
+
+  // メインの五角形ステータスポリゴン（リザルト時はスパイラル回転＋特大バウンス）
   const statPolygon = AXES.map((axis, i) => {
     const val = Math.min(maxStat, Math.max(14, stats[axis.key]));
-    const p = getPoint(i, (val / maxStat) * animRatio);
+    const p = getPoint(i, (val / maxStat) * animRatio, angleOffset);
     return `${p.x},${p.y}`;
   }).join(" ");
 
@@ -96,6 +145,11 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
           <radialGradient id="dopaRadarFill" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#FF206E" stopOpacity="0.88" />
             <stop offset="100%" stopColor="#FF206E" stopOpacity="0.45" />
+          </radialGradient>
+          <radialGradient id="dopaRadarResultFill" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FBFF12" stopOpacity="0.92" />
+            <stop offset="55%" stopColor="#FF206E" stopOpacity="0.78" />
+            <stop offset="100%" stopColor="#41EAD4" stopOpacity="0.55" />
           </radialGradient>
         </defs>
 
@@ -130,27 +184,66 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
           );
         })}
 
-        {/* プレイヤーの現在のステータス領域 (#FF206E 塗り × #FBFF12 エッジ) */}
+        {/* リザルト専用：中心から外側へ弾ける二重のネオン衝撃波リング */}
+        {isResult && shockwave1Opacity > 0.01 && (
+          <polygon
+            points={shockwave1Polygon}
+            fill="none"
+            stroke="#FBFF12"
+            strokeWidth="3"
+            strokeOpacity={shockwave1Opacity}
+          />
+        )}
+        {isResult && shockwave2Opacity > 0.01 && (
+          <polygon
+            points={shockwave2Polygon}
+            fill="none"
+            stroke="#41EAD4"
+            strokeWidth="2"
+            strokeDasharray="6 3"
+            strokeOpacity={shockwave2Opacity}
+          />
+        )}
+
+        {/* プレイヤーの現在のステータス領域 */}
         <polygon
           points={statPolygon}
-          fill="url(#dopaRadarFill)"
+          fill={isResult ? "url(#dopaRadarResultFill)" : "url(#dopaRadarFill)"}
           stroke="#FBFF12"
-          strokeWidth="2.5"
+          strokeWidth={isResult && animProgress < 1 ? "3.5" : "2.5"}
         />
 
         {/* 各頂点のドットとラベル */}
         {AXES.map((axis, i) => {
           const val = Math.min(maxStat, Math.max(14, stats[axis.key]));
-          const dot = getPoint(i, (val / maxStat) * animRatio);
+          const dot = getPoint(i, (val / maxStat) * animRatio, angleOffset);
           const labelPos = getPoint(i, 1.33);
           const gain = recentGains?.[axis.key] || 0;
 
           return (
             <g key={axis.key}>
+              {/* リザルト時：各頂点が光るハローリング */}
+              {isResult && animRatio > 1.02 && (
+                <circle
+                  cx={dot.x}
+                  cy={dot.y}
+                  r={Math.min(13, 6.5 * animRatio)}
+                  fill="none"
+                  stroke="#41EAD4"
+                  strokeWidth="1.8"
+                  strokeOpacity={Math.min(1, (animRatio - 1) * 2.5)}
+                />
+              )}
               <circle
                 cx={dot.x}
                 cy={dot.y}
-                r={Math.max(3.5, Math.min(6.2, 4.5 * (0.8 + 0.25 * animRatio)))}
+                r={Math.max(
+                  3.5,
+                  Math.min(
+                    isResult ? 7.8 : 6.2,
+                    4.5 * (0.8 + (isResult ? 0.45 : 0.25) * animRatio)
+                  )
+                )}
                 fill="#FBFF12"
                 stroke="#0C0F0A"
                 strokeWidth="1.5"
@@ -174,7 +267,11 @@ export const StarRadarChart: React.FC<StarRadarChartProps> = ({
               {gain > 0 && (
                 <text
                   x={labelPos.x}
-                  y={labelPos.y - 15}
+                  y={
+                    labelPos.y -
+                    15 -
+                    (isResult && animRatio > 1 ? (animRatio - 1) * 14 : 0)
+                  }
                   textAnchor="middle"
                   className="fill-[#FBFF12] font-black text-[11px]"
                 >
