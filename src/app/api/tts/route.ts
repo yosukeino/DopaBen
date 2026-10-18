@@ -1,81 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const USER_AGENTS = [
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+];
 
 /**
- * オンデマンド Google TTS 音声取得プロキシ API
- * - サーバー容量（静的ファイル）を一切消費せず、要求された英単語・英文のMP3バイナリを返す
- * - Cache-Control (immutable) により Vercel Edge CDN にキャッシュされ、同じ単語の再取得時は即座に応答
+ * オンデマンド Google TTS 単一ナチュラル音声プロキシ API
+ * - 別エンジンの機械音声（Youdao等）へのフォールバックを廃止し、100% Google TTS の自然な単一ボイスに統一
+ * - リトライ機構付きで一時的な通信揺らぎを吸収
+ * - slow=1 指定時はピッチを変えずに Google TTS ネイティブのゆっくり発音 (ttsspeed=0.24) を取得
  */
 export async function GET(req: NextRequest) {
   const rawText = req.nextUrl.searchParams.get("q") || "";
+  const isSlow = req.nextUrl.searchParams.get("slow") === "1";
   const text = rawText.trim().slice(0, 240);
 
   if (!text) {
     return new NextResponse("Missing query parameter 'q'", { status: 400 });
   }
 
-  // 1. 第一候補: Google Translate TTS (tw-ob, en)
-  const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encodeURIComponent(
-    text
-  )}`;
+  const ttsSpeed = isSlow ? "0.24" : "1";
+  const clients = ["tw-ob", "gtx"];
 
-  try {
-    const res = await fetch(googleTtsUrl, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        Referer: "https://translate.google.com/",
-      },
-      next: { revalidate: 31536000 },
-    });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const client = clients[attempt % clients.length];
+    const ua = USER_AGENTS[attempt % USER_AGENTS.length];
+    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=${client}&tl=en&ttsspeed=${ttsSpeed}&q=${encodeURIComponent(
+      text
+    )}`;
 
-    if (res.ok) {
-      const arrayBuffer = await res.arrayBuffer();
-      if (arrayBuffer.byteLength > 100) {
-        return new NextResponse(arrayBuffer, {
-          status: 200,
-          headers: {
-            "Content-Type": "audio/mpeg",
-            "Cache-Control":
-              "public, max-age=31536000, s-maxage=31536000, immutable",
-          },
-        });
+    try {
+      const res = await fetch(googleTtsUrl, {
+        headers: {
+          "User-Agent": ua,
+          Referer: "https://translate.google.com/",
+        },
+        next: { revalidate: 31536000 },
+      });
+
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        if (arrayBuffer.byteLength > 100) {
+          return new NextResponse(arrayBuffer, {
+            status: 200,
+            headers: {
+              "Content-Type": "audio/mpeg",
+              "Cache-Control":
+                "public, max-age=31536000, s-maxage=31536000, immutable",
+            },
+          });
+        }
       }
+    } catch {
+      // 次の試行へ
     }
-  } catch {
-    // Google TTS 失敗時はフォールバックへ進む
+
+    // わずかなウェイトを入れてリトライ
+    await new Promise((r) => setTimeout(r, 80 * (attempt + 1)));
   }
 
-  // 2. 第二候補フォールバック: Youdao Dictionary US Native Audio (type=2: 米音)
-  const fallbackUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(
-    text
-  )}&type=2`;
-
-  try {
-    const fallbackRes = await fetch(fallbackUrl, {
-      headers: {
-        "User-Agent": USER_AGENT,
-      },
-      next: { revalidate: 31536000 },
-    });
-
-    if (fallbackRes.ok) {
-      const arrayBuffer = await fallbackRes.arrayBuffer();
-      if (arrayBuffer.byteLength > 100) {
-        return new NextResponse(arrayBuffer, {
-          status: 200,
-          headers: {
-            "Content-Type": "audio/mpeg",
-            "Cache-Control":
-              "public, max-age=31536000, s-maxage=31536000, immutable",
-          },
-        });
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  return new NextResponse("TTS audio unavailable", { status: 502 });
+  return new NextResponse("Google TTS audio unavailable", { status: 502 });
 }

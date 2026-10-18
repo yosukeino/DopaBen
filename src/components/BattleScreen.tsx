@@ -150,9 +150,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       if (q.audioText) preloadList.push(q.audioText);
       if (q.word?.english) preloadList.push(q.word.english);
     });
-    initialDeck.forEach((q) => {
-      if (q.word?.exampleSentenceEn) preloadList.push(q.word.exampleSentenceEn);
-    });
     soundEngine.preloadTexts(preloadList);
   }, [initialDeck]);
 
