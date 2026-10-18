@@ -143,7 +143,20 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
   const isAdvancingRef = React.useRef(false);
 
-  // 新しい問題に切り替わった時：前の音声を確実にリセットし、画面描画の完了(200ms)を待ってから発話を開始
+  // バトル画面マウント時にも念のためデッキ全単語のGoogle TTS音声をプリロード
+  useEffect(() => {
+    const preloadList: string[] = [];
+    initialDeck.forEach((q) => {
+      if (q.audioText) preloadList.push(q.audioText);
+      if (q.word?.english) preloadList.push(q.word.english);
+    });
+    initialDeck.forEach((q) => {
+      if (q.word?.exampleSentenceEn) preloadList.push(q.word.exampleSentenceEn);
+    });
+    soundEngine.preloadTexts(preloadList);
+  }, [initialDeck]);
+
+  // 新しい問題に切り替わった時：前の音声をリセットし、プリロード済みのGoogle TTS音声を再生
   useEffect(() => {
     isAdvancingRef.current = false;
     if (!currentQuestion) return;
@@ -161,18 +174,19 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       timer = setTimeout(() => {
         setBannerText(null);
         soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
-      }, 750);
+      }, 650);
     } else if (!currentQuestion.hideAudioBeforeAnswer) {
-      // 画面切り替えのトランジションが落ち着いた200ms後に音声を再生
+      // プリロード済みの Web Audio API バッファから即座に発音
       timer = setTimeout(() => {
         soundEngine.speakEnglish(currentQuestion.audioText, defaultSpeechRate);
-      }, 200);
+      }, 60);
     }
 
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [currentIndex, currentQuestion, defaultSpeechRate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, currentQuestion?.uid, defaultSpeechRate]);
 
   const getGlobalMultiplier = useCallback(() => {
     let mult = 1.0;
@@ -314,10 +328,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setStatGains(nextGains);
 
         soundEngine.playWeakHit(newCombo, isRevenge);
-        // 正解SEの減衰(140ms)を待ってからネイティブ発音を再生（音声被り・OSオーディオドライバの競合・途中切断を完全解消）
-        setTimeout(() => {
-          soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
-        }, 140);
+        // プリロード済みの Google TTS (Web Audio API) で即座に発音再生
+        soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
 
         setBannerType(isRevenge ? "revenge" : "weak");
         setBannerText(
@@ -356,10 +368,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         const nextCombo = Math.max(1, Math.floor(combo / 2));
         setCombo(nextCombo);
 
-        // 不正解ロック音の後に正解英単語の発音をしっかり聴かせる
-        setTimeout(() => {
-          soundEngine.speakEnglish(targetAudio, 0.9);
-        }, 180);
+        // 不正解時もプリロード済みの Google TTS (Web Audio API) で正解英単語の発音を即座に再生
+        soundEngine.speakEnglish(targetAudio, 0.95);
 
         let updatedDeck = [...deck];
         if (targetWord) {

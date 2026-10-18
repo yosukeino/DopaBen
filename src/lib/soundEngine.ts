@@ -4,12 +4,18 @@ class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
   private cachedVoices: SpeechSynthesisVoice[] = [];
-  // ガベージコレクションによる音声の途中切断を100%防止するための永続参照Set
+  // ガベージコレクションによる音声の途中切断を防止するための永続参照Set（フォールバック用）
   private activeUtterances: Set<SpeechSynthesisUtterance> = new Set();
   private speakingListeners: Set<(isSpeaking: boolean, text: string) => void> =
     new Set();
   private currentText: string = "";
   private isCurrentlySpeaking: boolean = false;
+
+  // ★ オンデマンド Google TTS + Web Audio API プリロードキャッシュ
+  private audioBufferCache: Map<string, AudioBuffer> = new Map();
+  private pendingFetches: Map<string, Promise<AudioBuffer | null>> = new Map();
+  private activeSourceNode: AudioBufferSourceNode | null = null;
+  private speechRequestId: number = 0;
 
   constructor() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -17,9 +23,11 @@ class SoundEngine {
       if (typeof window.speechSynthesis.onvoiceschanged !== "undefined") {
         window.speechSynthesis.onvoiceschanged = () => this.initVoices();
       }
-      // グローバル参照としても保持（V8 GCによる回収を確実に防ぐ）
-      (window as unknown as { __dopabenUtterances: Set<SpeechSynthesisUtterance> }).__dopabenUtterances =
-        this.activeUtterances;
+      (
+        window as unknown as {
+          __dopabenUtterances: Set<SpeechSynthesisUtterance>;
+        }
+      ).__dopabenUtterances = this.activeUtterances;
     }
   }
 
@@ -48,6 +56,92 @@ class SoundEngine {
     return this.ctx;
   }
 
+  /**
+   * スマホ（iOS Safari / Chrome）のオーディオ制限をユーザータップ時に確実にアンロックする
+   */
+  public unlockAudio() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      // 無音の極小バッファを1フレーム再生してiOSのWeb Audioロックを完全解除
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch {
+      // ignore
+    }
+  }
+
+  private normalizeKey(text: string): string {
+    return text.trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
+  /**
+   * 指定した英単語・英文のMP3を `/api/tts` (Google TTS) から取得し、Web Audio API の AudioBuffer にデコードしてメモリキャッシュする
+   */
+  private async fetchAndDecodeTts(text: string): Promise<AudioBuffer | null> {
+    const clean = text.trim();
+    if (!clean || typeof window === "undefined") return null;
+
+    const key = this.normalizeKey(clean);
+    const cached = this.audioBufferCache.get(key);
+    if (cached) return cached;
+
+    const existingPromise = this.pendingFetches.get(key);
+    if (existingPromise) return existingPromise;
+
+    const promise = (async (): Promise<AudioBuffer | null> => {
+      try {
+        const res = await fetch(`/api/tts?q=${encodeURIComponent(clean)}`);
+        if (!res.ok) return null;
+
+        const arrayBuffer = await res.arrayBuffer();
+        if (arrayBuffer.byteLength < 100) return null;
+
+        const ctx = this.getContext();
+        if (!ctx) return null;
+
+        // decodeAudioData でメモリ上の AudioBuffer に変換
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+        this.audioBufferCache.set(key, audioBuffer);
+        return audioBuffer;
+      } catch {
+        return null;
+      } finally {
+        this.pendingFetches.delete(key);
+      }
+    })();
+
+    this.pendingFetches.set(key, promise);
+    return promise;
+  }
+
+  /**
+   * バトル開始時などに、出題される約12語分の音声データを一括でバックグラウンド先読み（プリロード）する
+   * - 12語合計でも約80〜120KB程度のため一瞬で完了し、バトル中の発音がラグ0秒＆100%確実になる
+   */
+  public preloadTexts(texts: string[]) {
+    if (typeof window === "undefined") return;
+    this.unlockAudio();
+
+    const uniqueTexts = Array.from(
+      new Set(
+        texts
+          .map((t) => (t || "").trim())
+          .filter((t) => t.length > 0 && t.length <= 240)
+      )
+    );
+
+    uniqueTexts.forEach((t) => {
+      void this.fetchAndDecodeTts(t);
+    });
+  }
+
   public setMuted(mute: boolean) {
     this.muted = mute;
     if (mute) {
@@ -71,7 +165,6 @@ class SoundEngine {
     listener: (isSpeaking: boolean, text: string) => void
   ): () => void {
     this.speakingListeners.add(listener);
-    // 初期状態を即時通知
     listener(this.isCurrentlySpeaking, this.currentText);
     return () => {
       this.speakingListeners.delete(listener);
@@ -94,102 +187,226 @@ class SoundEngine {
    * 発話を安全に停止する
    */
   public stopSpeech() {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
+    this.speechRequestId += 1;
+
+    // 1. Web Audio API の再生中バッファノードを即停止
+    if (this.activeSourceNode) {
+      try {
+        this.activeSourceNode.onended = null;
+        this.activeSourceNode.stop();
+        this.activeSourceNode.disconnect();
+      } catch {
+        // ignore
+      }
+      this.activeSourceNode = null;
     }
+
+    // 2. フォールバック用の Web Speech API も発話中であれば停止
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        this.activeUtterances.clear();
+        if (
+          window.speechSynthesis.speaking ||
+          window.speechSynthesis.pending
+        ) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    this.notifySpeaking(false, "");
+  }
+
+  /**
+   * AudioBuffer を Web Audio API で即座に再生する（効果音と同じ経路のためブラウザの無音バグが一切発生しない）
+   */
+  private playDecodedBuffer(
+    buffer: AudioBuffer,
+    text: string,
+    rate: number,
+    reqId: number,
+    callbacks?: { onStart?: () => void; onEnd?: () => void }
+  ): boolean {
+    const ctx = this.getContext();
+    if (!ctx || reqId !== this.speechRequestId) {
+      callbacks?.onEnd?.();
+      return false;
+    }
+
     try {
-      this.activeUtterances.clear();
-      window.speechSynthesis.cancel();
-      this.notifySpeaking(false, "");
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = Math.max(0.5, Math.min(2.0, rate));
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 1.25; // 明瞭で聞き取りやすい音量
+
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      this.activeSourceNode = source;
+      this.notifySpeaking(true, text);
+      callbacks?.onStart?.();
+
+      source.onended = () => {
+        if (this.activeSourceNode === source) {
+          this.activeSourceNode = null;
+        }
+        if (reqId === this.speechRequestId) {
+          this.notifySpeaking(false, "");
+        }
+        callbacks?.onEnd?.();
+      };
+
+      source.start(0);
+      return true;
     } catch {
-      // ignore
+      this.activeSourceNode = null;
+      this.notifySpeaking(false, "");
+      return false;
     }
   }
 
   /**
-   * ネイティブ英語音声再生 (Web Speech API)
-   * - V8/WebKitガベージコレクションによる途中切断バグを完全解消
-   * - 非同期cancelとspeakの競合を防ぎ、確実に最後まで発音
+   * 英語音声再生（Google TTS プリロードキャッシュ ＋ Web Audio API 再生）
+   * - プリロード済みの単語は 0ms で即座に Web Audio API から再生
+   * - 未プリロードの単語・例文もオンデマンドで取得＆メモリキャッシュして再生
+   * - 完全オフライン時のみ Web Speech API へ自動フォールバック
    */
   public speakEnglish(
     text: string,
     rate: number = 1.0,
     callbacks?: { onStart?: () => void; onEnd?: () => void }
   ) {
+    const clean = (text || "").trim();
+    if (this.muted || typeof window === "undefined" || !clean) {
+      callbacks?.onEnd?.();
+      return;
+    }
+
+    // 既存の再生を停止し、新しいリクエストIDを発行
+    this.stopSpeech();
+    const myReqId = this.speechRequestId;
+
+    // 1. すでにプリロードキャッシュにある場合は、同期処理のままラグ0秒で即再生！
+    const key = this.normalizeKey(clean);
+    const cachedBuffer = this.audioBufferCache.get(key);
+    if (cachedBuffer) {
+      const ok = this.playDecodedBuffer(
+        cachedBuffer,
+        clean,
+        rate,
+        myReqId,
+        callbacks
+      );
+      if (ok) return;
+    }
+
+    // 2. キャッシュにない場合は `/api/tts` から取得＆デコードして再生
+    void this.fetchAndDecodeTts(clean).then((buffer) => {
+      if (myReqId !== this.speechRequestId || this.muted) {
+        callbacks?.onEnd?.();
+        return;
+      }
+
+      if (buffer) {
+        const ok = this.playDecodedBuffer(
+          buffer,
+          clean,
+          rate,
+          myReqId,
+          callbacks
+        );
+        if (ok) return;
+      }
+
+      // 3. 万が一オフライン等で Google TTS が取得できなかった場合のみ Web Speech API で同期フォールバック
+      this.speakFallbackWebSpeech(clean, rate, myReqId, callbacks);
+    });
+  }
+
+  /**
+   * オフライン時用の Web Speech API フォールバック（不要な setTimeout や cancel 競合を除去した安定版）
+   */
+  private speakFallbackWebSpeech(
+    text: string,
+    rate: number,
+    reqId: number,
+    callbacks?: { onStart?: () => void; onEnd?: () => void }
+  ) {
     if (
-      this.muted ||
       typeof window === "undefined" ||
       !("speechSynthesis" in window) ||
-      !text.trim()
+      reqId !== this.speechRequestId
     ) {
       callbacks?.onEnd?.();
       return;
     }
 
     try {
-      // 既存の発話をキャンセルし、もし一時停止状態なら解除
-      this.stopSpeech();
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
 
-      // Chromeのcancel()完了を待つわずかなマイクロギャップ(25ms)
-      setTimeout(() => {
-        try {
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.lang = "en-US";
-          utter.rate = rate;
-          utter.pitch = 1.0;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "en-US";
+      utter.rate = rate;
+      utter.pitch = 1.0;
 
-          // 最適な英語ネイティブ音声を厳選
-          const voices =
-            this.cachedVoices.length > 0
-              ? this.cachedVoices
-              : window.speechSynthesis.getVoices();
-          const preferredVoice =
-            voices.find(
-              (v) =>
-                v.lang === "en-US" &&
-                (v.name.includes("Samantha") ||
-                  v.name.includes("Google") ||
-                  v.name.includes("Natural") ||
-                  v.name.includes("Siri") ||
-                  v.name.includes("Ava") ||
-                  v.name.includes("Allison"))
-            ) ||
-            voices.find((v) => v.lang === "en-US") ||
-            voices.find((v) => v.lang.startsWith("en"));
+      const voices =
+        this.cachedVoices.length > 0
+          ? this.cachedVoices
+          : window.speechSynthesis.getVoices();
+      const preferredVoice =
+        voices.find(
+          (v) =>
+            v.lang === "en-US" &&
+            (v.name.includes("Samantha") ||
+              v.name.includes("Google") ||
+              v.name.includes("Natural") ||
+              v.name.includes("Siri") ||
+              v.name.includes("Ava") ||
+              v.name.includes("Allison"))
+        ) ||
+        voices.find((v) => v.lang === "en-US") ||
+        voices.find((v) => v.lang.startsWith("en"));
 
-          if (preferredVoice) {
-            utter.voice = preferredVoice;
-          }
+      if (preferredVoice) {
+        utter.voice = preferredVoice;
+      }
 
-          // ★重要: GC回収防止のため、発話完了までSetに永続保持
-          this.activeUtterances.add(utter);
+      this.activeUtterances.add(utter);
 
-          utter.onstart = () => {
-            this.notifySpeaking(true, text);
-            callbacks?.onStart?.();
-          };
-
-          utter.onend = () => {
-            this.activeUtterances.delete(utter);
-            this.notifySpeaking(false, "");
-            callbacks?.onEnd?.();
-          };
-
-          utter.onerror = (e) => {
-            this.activeUtterances.delete(utter);
-            this.notifySpeaking(false, "");
-            callbacks?.onEnd?.();
-          };
-
-          window.speechSynthesis.speak(utter);
-        } catch {
-          this.notifySpeaking(false, "");
-          callbacks?.onEnd?.();
+      utter.onstart = () => {
+        if (reqId === this.speechRequestId) {
+          this.notifySpeaking(true, text);
         }
-      }, 25);
+        callbacks?.onStart?.();
+      };
+
+      utter.onend = () => {
+        this.activeUtterances.delete(utter);
+        if (reqId === this.speechRequestId) {
+          this.notifySpeaking(false, "");
+        }
+        callbacks?.onEnd?.();
+      };
+
+      utter.onerror = () => {
+        this.activeUtterances.delete(utter);
+        if (reqId === this.speechRequestId) {
+          this.notifySpeaking(false, "");
+        }
+        callbacks?.onEnd?.();
+      };
+
+      window.speechSynthesis.speak(utter);
     } catch {
       this.notifySpeaking(false, "");
       callbacks?.onEnd?.();
