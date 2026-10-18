@@ -73,13 +73,15 @@ export interface FiveStats {
 export type SkillHackId =
   | "bounty_overdrive"   // Lv.2解放: ミス後の倍返し懸賞金が×2.5 → ×3.5に強化
   | "phantom_eliminator" // Lv.3解放: 4択の誤答を2つ消去する「怪盗の眼」コマンド解禁
-  | "hardcore_challenge" // Lv.5解放: 『激ムズ問題に挑戦できる権』(EXP常時2倍＆難関単語乱入)
-  | "overclock_audio"    // Lv.7解放: 『倍速ネイティブリスニング権』(EXP1.5倍＆聴覚・瞬発爆伸び)
-  | "legend_aura";       // Lv.10解放: 『語彙神の覇気』(全獲得EXP＋100%＆黄金オーラ)
+  | "hardcore_challenge" // Lv.5解放: 『激ムズ問題に挑戦できる権』(LXP常時2倍＆難関単語乱入)
+  | "overclock_audio"    // Lv.7解放: 『倍速ネイティブリスニング権』(LXP1.5倍＆聴覚・瞬発爆伸び)
+  | "legend_aura";       // Lv.10解放: 『語彙神の覇気』(全獲得LXP＋100%＆黄金オーラ)
 
 export interface SkillHackDefinition {
   id: SkillHackId;
   unlockLevel: number;
+  requiredTotalLxp: number; // アンロックに必要な累積LXP
+  lxpCost: number;          // 習得に消費する所持LXP
   name: string;
   badge: string;
   description: string;
@@ -116,13 +118,15 @@ export interface BattleWordLog {
 export interface PlayerProfile {
   name: string;
   gender: CharacterGender;
-  level: number; // 1〜10 (進化段階と直結、10以降もオーバーレベル可能)
-  exp: number;
+  level: number; // 1〜10 (累積LXPによって昇格する進化段階)
+  exp: number;   // 所持LXP (五角形ステータス強化やスキル習得に任意消費できるLXPプール)
+  totalLxp: number; // 累積LXP (総学習経験値＝学習時間の指標、消費しても減らない)
   totalBattles: number;
   totalWordsCleared: number;
   totalRevengeJackpots: number;
   maxCombo: number;
   stats: FiveStats;
-  activeSkillHacks: SkillHackId[];
+  unlockedSkillHacks: SkillHackId[]; // 所持LXPを消費して習得済みのスキル一覧
+  activeSkillHacks: SkillHackId[];   // 現在ONにしているスキル一覧
   wordMastery?: Record<string, WordMasteryRecord>;
 }

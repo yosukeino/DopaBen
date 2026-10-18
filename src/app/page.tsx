@@ -26,7 +26,12 @@ import {
   SkillHackId,
   WordMasteryRecord,
 } from "@/lib/types";
-import { EVOLUTION_STAGES, SKILL_HACKS } from "@/lib/vocabData";
+import {
+  EVOLUTION_STAGES,
+  LEVEL_CUMULATIVE_LXP,
+  SKILL_HACKS,
+  getStatUpgradeLxpCost,
+} from "@/lib/vocabData";
 import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
 import { TARGET1800_STAGES } from "@/lib/target1800Data";
 import { generateBattleDeck } from "@/lib/questionGenerator";
@@ -265,6 +270,7 @@ const DEFAULT_PROFILE: PlayerProfile = {
   gender: "boy",
   level: 1,
   exp: 0,
+  totalLxp: 0,
   totalBattles: 0,
   totalWordsCleared: 0,
   totalRevengeJackpots: 0,
@@ -276,27 +282,17 @@ const DEFAULT_PROFILE: PlayerProfile = {
     listening: 15,
     guts: 20,
   },
+  unlockedSkillHacks: [],
   activeSkillHacks: [],
   wordMastery: {},
 };
 
 /**
- * 累計約20時間（約750バトル / 7,500問）で最高峰「語彙神」へ到達する本格育成EXP曲線
+ * 次のレベル（Lv.2〜Lv.10）への昇格に必要な【累積LXP】を取得
  */
-export const LEVEL_REQUIRED_EXP: Record<number, number> = {
-  1: 2000,    // Lv.1 -> Lv.2 (約5バトル / 約8分) 初回進化の達成感
-  2: 6000,    // Lv.2 -> Lv.3 (約15バトル / 約25分) BOUNTY OVERDRIVE (3.5倍) 解放
-  3: 13500,   // Lv.3 -> Lv.4 (約30バトル / 約50分) PHANTOM EYE (2択ハック) 解放
-  4: 25000,   // Lv.4 -> Lv.5 (約50バトル / 約1時間20分)
-  5: 65000,   // Lv.5 -> Lv.6 (約75バトル / 約2時間 ※HARDCORE 2倍EXP解放)
-  6: 100000,  // Lv.6 -> Lv.7 (約110バトル / 約3時間)
-  7: 160000,  // Lv.7 -> Lv.8 (約120バトル / 約3.5時間 ※OVERCLOCK 1.5倍×2倍=3倍EXP解放)
-  8: 210000,  // Lv.8 -> Lv.9 (約150バトル / 約4時間)
-  9: 270000,  // Lv.9 -> Lv.10 (約200バトル / 約5.5時間) 最終形態「語彙神」到達！
-};
-
-function getRequiredExpForLevel(level: number): number {
-  return LEVEL_REQUIRED_EXP[level] || 300000;
+function getRequiredCumulativeLxpForNextLevel(currentLevel: number): number {
+  const nextLv = Math.min(10, currentLevel + 1);
+  return LEVEL_CUMULATIVE_LXP[nextLv] ?? 851500;
 }
 
 export default function DopaBenApp() {
@@ -309,9 +305,10 @@ export default function DopaBenApp() {
   const [battleDeck, setBattleDeck] = useState<GeneratedQuestion[]>([]);
   const [lastResult, setLastResult] = useState<{
     summary: BattleResultSummary;
-    previousLevel: number;
-    newLevel: number;
-    newlyUnlockedSkills: string[];
+    previousLxp: number;
+    newLxp: number;
+    previousTotalLxp: number;
+    newTotalLxp: number;
   } | null>(null);
 
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
@@ -324,9 +321,13 @@ export default function DopaBenApp() {
   const [isSyncingDb, setIsSyncingDb] = useState<boolean>(false);
   const [dbSyncNotice, setDbSyncNotice] = useState<string | null>(null);
   const [radarBounceKey, setRadarBounceKey] = useState<number>(0);
+  const [recentInjectedGains, setRecentInjectedGains] = useState<
+    Partial<FiveStats> | undefined
+  >(undefined);
+  const [injectionNotice, setInjectionNotice] = useState<string | null>(null);
   const [includeListening, setIncludeListening] = useState<boolean>(true);
 
-  // ローカルストレージから復元 ＆ Supabaseから問題プールを取得 ＆ 過去のService Workerキャッシュを自動解除
+  // ローカルストレージから復元 ＆ 旧セーブデータのマイグレーション ＆ Supabaseから問題プールを取得
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -342,7 +343,22 @@ export default function DopaBenApp() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        setProfile({ ...DEFAULT_PROFILE, ...parsed });
+        const migratedTotalLxp =
+          typeof parsed.totalLxp === "number"
+            ? parsed.totalLxp
+            : (LEVEL_CUMULATIVE_LXP[parsed.level || 1] || 0) +
+              (parsed.exp || 0);
+        const migratedUnlockedSkills = Array.isArray(parsed.unlockedSkillHacks)
+          ? parsed.unlockedSkillHacks
+          : Array.isArray(parsed.activeSkillHacks)
+          ? parsed.activeSkillHacks
+          : [];
+        setProfile({
+          ...DEFAULT_PROFILE,
+          ...parsed,
+          totalLxp: migratedTotalLxp,
+          unlockedSkillHacks: migratedUnlockedSkills,
+        });
       }
     } catch {
       // ignore storage errors
@@ -430,45 +446,24 @@ export default function DopaBenApp() {
     );
 
     setIsCodexModalOpen(false);
+    setRecentInjectedGains(undefined);
+    setInjectionNotice(null);
     triggerSlashTransition(() => {
       setBattleDeck(deck);
       setScreen("battle");
     });
   };
 
+  /**
+   * バトル終了時：
+   * 即時自動レベルアップやステータス自動加算は行わず、
+   * 「所持LXP（消費可能ストック）」と「累積LXP（総学習経験値）」に目に見える形で貯める！
+   */
   const handleCompleteBattle = (summary: BattleResultSummary) => {
-    const prevLevel = profile.level;
-    let currentLv = profile.level;
-    let currentExp = profile.exp + summary.earnedExp;
-
-    while (currentLv < 10 && currentExp >= getRequiredExpForLevel(currentLv)) {
-      currentExp -= getRequiredExpForLevel(currentLv);
-      currentLv += 1;
-    }
-
-    const newlyUnlocked = SKILL_HACKS.filter(
-      (s) => s.unlockLevel > prevLevel && s.unlockLevel <= currentLv
-    );
-    const updatedActiveSkills = Array.from(
-      new Set([
-        ...profile.activeSkillHacks,
-        ...newlyUnlocked.map((s) => s.id),
-      ])
-    );
-
-    const updatedStats: FiveStats = {
-      vocab: Math.min(100, profile.stats.vocab + (summary.statGains.vocab || 0)),
-      speed: Math.min(100, profile.stats.speed + (summary.statGains.speed || 0)),
-      grammar: Math.min(
-        100,
-        profile.stats.grammar + (summary.statGains.grammar || 0)
-      ),
-      listening: Math.min(
-        100,
-        profile.stats.listening + (summary.statGains.listening || 0)
-      ),
-      guts: Math.min(100, profile.stats.guts + (summary.statGains.guts || 0)),
-    };
+    const prevLxp = profile.exp;
+    const prevTotalLxp = profile.totalLxp ?? profile.exp;
+    const nextLxp = prevLxp + summary.earnedExp;
+    const nextTotalLxp = prevTotalLxp + summary.earnedExp;
 
     // 今回のバトルで出題された各単語の習熟度（cleared / missed）を保存
     const updatedMastery: Record<string, WordMasteryRecord> = {
@@ -490,37 +485,31 @@ export default function DopaBenApp() {
 
     const nextProfile: PlayerProfile = {
       ...profile,
-      level: currentLv,
-      exp: currentExp,
+      exp: nextLxp,
+      totalLxp: nextTotalLxp,
       totalBattles: profile.totalBattles + 1,
       totalWordsCleared: profile.totalWordsCleared + summary.wordsCleared,
       totalRevengeJackpots:
         profile.totalRevengeJackpots + summary.revengeCount,
       maxCombo: Math.max(profile.maxCombo, summary.maxCombo),
-      stats: updatedStats,
-      activeSkillHacks: updatedActiveSkills,
       wordMastery: updatedMastery,
     };
 
     saveProfile(nextProfile);
     setLastResult({
       summary,
-      previousLevel: prevLevel,
-      newLevel: currentLv,
-      newlyUnlockedSkills: newlyUnlocked.map((s) => s.name),
+      previousLxp: prevLxp,
+      newLxp: nextLxp,
+      previousTotalLxp: prevTotalLxp,
+      newTotalLxp: nextTotalLxp,
     });
 
     triggerSlashTransition(() => {
       setScreen("result");
-      setRadarBounceKey((k) => k + 1);
-      // スラッシュ演出が開けた瞬間にもう一度0.5秒ド派手バーストを発火させて確実に見せる
-      setTimeout(() => {
-        setRadarBounceKey((k) => k + 1);
-      }, 260);
       soundEngine.playEvolutionFanfare();
       try {
         confetti({
-          particleCount: currentLv > prevLevel ? 110 : 55,
+          particleCount: 65,
           spread: 75,
           origin: { y: 0.6 },
           colors: ["#FACC15", "#10B981", "#EF4444", "#FFFFFF"],
@@ -536,7 +525,186 @@ export default function DopaBenApp() {
     saveProfile({ ...profile, gender });
   };
 
+  /**
+   * 累積LXPが次のレベル条件に達した時、拠点（トップページ）で進化を発動する
+   */
+  const handleTriggerLevelEvolution = () => {
+    const totalLxp = profile.totalLxp ?? profile.exp;
+    if (profile.level >= 10) return;
+    const reqTotal = getRequiredCumulativeLxpForNextLevel(profile.level);
+    if (totalLxp < reqTotal) return;
+
+    const nextLevel = profile.level + 1;
+    const stageInfo = EVOLUTION_STAGES[nextLevel - 1];
+    const newlyUnlockableSkill = SKILL_HACKS.find(
+      (s) => s.unlockLevel === nextLevel
+    );
+
+    saveProfile({
+      ...profile,
+      level: nextLevel,
+    });
+
+    soundEngine.playEvolutionFanfare();
+    setInjectionNotice(
+      newlyUnlockableSkill
+        ? `🎉 Lv.${nextLevel}『${
+            profile.gender === "boy" ? stageInfo.titleBoy : stageInfo.titleGirl
+          }』へ進化！新スキル『${newlyUnlockableSkill.name}』の習得権が解禁されました！`
+        : `🎉 Lv.${nextLevel}『${
+            profile.gender === "boy" ? stageInfo.titleBoy : stageInfo.titleGirl
+          }』へ進化しました！！`
+    );
+
+    try {
+      confetti({
+        particleCount: 110,
+        spread: 80,
+        origin: { y: 0.45 },
+        colors: ["#FACC15", "#10B981", "#EF4444", "#FFFFFF"],
+      });
+    } catch {
+      // ignore
+    }
+  };
+
+  /**
+   * 拠点（トップページ）で所持LXPを消費し、指定した五角形ステータスを +1 強化する
+   */
+  const handleInjectSingleStat = (statKey: keyof FiveStats) => {
+    const currentVal = profile.stats[statKey];
+    if (currentVal >= 100) return;
+    const cost = getStatUpgradeLxpCost(currentVal);
+    if (profile.exp < cost) return;
+
+    const nextStats: FiveStats = {
+      ...profile.stats,
+      [statKey]: Math.min(100, currentVal + 1),
+    };
+    const nextExp = profile.exp - cost;
+
+    saveProfile({
+      ...profile,
+      exp: nextExp,
+      stats: nextStats,
+    });
+
+    const statLabelMap: Record<keyof FiveStats, string> = {
+      vocab: "語彙",
+      speed: "瞬発",
+      grammar: "構築",
+      listening: "聴覚",
+      guts: "度胸",
+    };
+
+    setRecentInjectedGains((prev) => ({
+      ...prev,
+      [statKey]: (prev?.[statKey] || 0) + 1,
+    }));
+    setRadarBounceKey((k) => k + 1);
+    setInjectionNotice(
+      `⚡ ${cost.toLocaleString()} LXP を注入！【${statLabelMap[statKey]}】が ${
+        currentVal + 1
+      } に成長！`
+    );
+    soundEngine.playWeakHit(3, false);
+  };
+
+  /**
+   * 拠点（トップページ）で貯まった所持LXPを一括注入し、五角形ステータスをまとめて急成長させる
+   */
+  const handleBatchInjectLxp = () => {
+    let remainingLxp = profile.exp;
+    const tempStats: FiveStats = { ...profile.stats };
+    const gains: Partial<FiveStats> = {};
+    let totalPointsAdded = 0;
+    let totalSpent = 0;
+
+    const keys: (keyof FiveStats)[] = [
+      "vocab",
+      "speed",
+      "grammar",
+      "listening",
+      "guts",
+    ];
+
+    // 1回の注入で最大25ポイントまで、最も低いステータスから優先的にバランスよく引き上げる
+    while (totalPointsAdded < 25) {
+      const upgradeable = keys
+        .filter((k) => tempStats[k] < 100)
+        .map((k) => ({
+          key: k,
+          val: tempStats[k],
+          cost: getStatUpgradeLxpCost(tempStats[k]),
+        }))
+        .filter((item) => item.cost > 0 && remainingLxp >= item.cost)
+        .sort((a, b) => a.val - b.val || a.cost - b.cost);
+
+      if (upgradeable.length === 0) break;
+
+      const target = upgradeable[0];
+      remainingLxp -= target.cost;
+      totalSpent += target.cost;
+      tempStats[target.key] += 1;
+      gains[target.key] = (gains[target.key] || 0) + 1;
+      totalPointsAdded += 1;
+    }
+
+    if (totalPointsAdded === 0) return;
+
+    saveProfile({
+      ...profile,
+      exp: remainingLxp,
+      stats: tempStats,
+    });
+
+    setRecentInjectedGains(gains);
+    setRadarBounceKey((k) => k + 1);
+    setInjectionNotice(
+      `⚡ ${totalSpent.toLocaleString()} LXP を一括注入！！五角形ステータスが計 +${totalPointsAdded} PT 急成長！！`
+    );
+    soundEngine.playEvolutionFanfare();
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.55 },
+        colors: ["#FACC15", "#10B981", "#EF4444", "#FFFFFF"],
+      });
+    } catch {
+      // ignore
+    }
+  };
+
+  /**
+   * 所持LXPを消費して特権スキルを習得する
+   */
+  const handleUnlockSkill = (skillId: SkillHackId, cost: number) => {
+    if (profile.exp < cost) return;
+    const unlocked = profile.unlockedSkillHacks || [];
+    if (unlocked.includes(skillId)) return;
+
+    const nextUnlocked = [...unlocked, skillId];
+    const nextActive = Array.from(new Set([...profile.activeSkillHacks, skillId]));
+    const skillDef = SKILL_HACKS.find((s) => s.id === skillId);
+
+    saveProfile({
+      ...profile,
+      exp: profile.exp - cost,
+      unlockedSkillHacks: nextUnlocked,
+      activeSkillHacks: nextActive,
+    });
+
+    if (skillDef) {
+      setInjectionNotice(
+        `🔓 ${cost.toLocaleString()} LXP を消費して特権スキル『${skillDef.name}』を習得＆ONにしました！`
+      );
+    }
+  };
+
   const handleToggleSkill = (skillId: SkillHackId) => {
+    const unlocked = profile.unlockedSkillHacks || [];
+    if (!unlocked.includes(skillId)) return;
     const exists = profile.activeSkillHacks.includes(skillId);
     const nextSkills = exists
       ? profile.activeSkillHacks.filter((id) => id !== skillId)
@@ -546,26 +714,74 @@ export default function DopaBenApp() {
 
   const handleInstantLevelChange = (newLevel: number) => {
     const clamped = Math.max(1, Math.min(10, newLevel));
+    const minTotalLxp = LEVEL_CUMULATIVE_LXP[clamped] || 0;
     const autoUnlockedSkills = SKILL_HACKS.filter(
       (s) => s.unlockLevel <= clamped
     ).map((s) => s.id);
     saveProfile({
       ...profile,
       level: clamped,
-      exp: 0,
+      exp: clamped === 1 ? 0 : profile.exp,
+      totalLxp: clamped === 1 ? 0 : Math.max(profile.totalLxp || 0, minTotalLxp),
+      unlockedSkillHacks: autoUnlockedSkills,
       activeSkillHacks: autoUnlockedSkills,
+    });
+  };
+
+  const handleAddTestLxp = (amount: number) => {
+    saveProfile({
+      ...profile,
+      exp: profile.exp + amount,
+      totalLxp: (profile.totalLxp ?? profile.exp) + amount,
     });
   };
 
   const currentStageInfo =
     EVOLUTION_STAGES[Math.min(10, Math.max(1, profile.level)) - 1];
-  const reqExp = getRequiredExpForLevel(profile.level);
-  const expPercent =
+  const totalLxp = profile.totalLxp ?? profile.exp;
+  const currentLevelBaseLxp = LEVEL_CUMULATIVE_LXP[profile.level] || 0;
+  const nextLevelTargetLxp = getRequiredCumulativeLxpForNextLevel(profile.level);
+  const levelSpanLxp = Math.max(1, nextLevelTargetLxp - currentLevelBaseLxp);
+  const levelProgressLxp = Math.max(0, totalLxp - currentLevelBaseLxp);
+  const cumulativeLxpPercent =
     profile.level >= 10
       ? 100
-      : Math.min(100, Math.round((profile.exp / reqExp) * 100));
+      : Math.min(100, Math.round((levelProgressLxp / levelSpanLxp) * 100));
+  const canEvolveLevel =
+    profile.level < 10 && totalLxp >= nextLevelTargetLxp;
+
+  // 現在の所持LXPで五角形ステータスを何ポイント強化できるか試算
+  const affordableStatPoints = (() => {
+    let rem = profile.exp;
+    const temp = { ...profile.stats };
+    let pts = 0;
+    const keys: (keyof FiveStats)[] = [
+      "vocab",
+      "speed",
+      "grammar",
+      "listening",
+      "guts",
+    ];
+    while (pts < 25) {
+      const avail = keys
+        .filter((k) => temp[k] < 100)
+        .map((k) => ({ key: k, val: temp[k], cost: getStatUpgradeLxpCost(temp[k]) }))
+        .filter((x) => x.cost > 0 && rem >= x.cost)
+        .sort((a, b) => a.val - b.val || a.cost - b.cost);
+      if (avail.length === 0) break;
+      rem -= avail[0].cost;
+      temp[avail[0].key] += 1;
+      pts += 1;
+    }
+    return pts;
+  })();
+
+  const isHardcoreUnlocked = (profile.unlockedSkillHacks || []).includes(
+    "hardcore_challenge"
+  );
   const isHardcoreActive =
     profile.level >= 5 &&
+    isHardcoreUnlocked &&
     profile.activeSkillHacks.includes("hardcore_challenge");
 
   return (
@@ -601,7 +817,7 @@ export default function DopaBenApp() {
         />
       )}
 
-      {/* === 2. リザルト＆10段階進化画面 === */}
+      {/* === 2. リザルト画面（LXP獲得＆ストック演出） === */}
       {screen === "result" && lastResult && (
         <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0B0D12] bg-halftone p-4">
           <div className="space-y-4">
@@ -611,104 +827,84 @@ export default function DopaBenApp() {
               className="bg-[#10B981] border-2 border-white p-3.5 text-center shadow-p5-yellow clip-p5-banner"
             >
               <div className="text-xs font-black text-[#0B0D12] tracking-widest">
-                MISSION ACCOMPLISHED // 脳汁リザルト
+                LEARNING EXPERIENCE HARVEST // 学習経験値ストック完了
               </div>
               <h1 className="text-3xl font-black italic tracking-tight text-white drop-shadow-[2px_2px_0_#0B0D12]">
-                +{lastResult.summary.earnedExp} EXP GET!!
+                +{lastResult.summary.earnedExp.toLocaleString()} LXP GET!!
               </h1>
             </motion.div>
 
-            <div className="bg-[#131720] border-2 border-white p-4 shadow-p5-yellow relative">
-              {lastResult.newLevel > lastResult.previousLevel ? (
-                <div className="text-center space-y-2">
-                  <span className="inline-block bg-[#FACC15] text-[#0B0D12] font-black text-xs px-3 py-1 -skew-x-12 animate-bounce">
-                    🎉 EVOLUTION!! 第{lastResult.previousLevel}段階 ➔ 第
-                    {lastResult.newLevel}段階へ進化！！
-                  </span>
-                  <div className="flex justify-center py-1">
-                    <PixelCharacter
-                      gender={profile.gender}
-                      stage={profile.level}
-                      size={128}
-                      mood="evolve"
-                    />
-                  </div>
-                  <div className="font-black text-lg text-[#FACC15]">
-                    {profile.gender === "boy"
-                      ? currentStageInfo.titleBoy
-                      : currentStageInfo.titleGirl}
-                  </div>
-                  <p className="text-xs text-[#94A3B8]">
-                    {currentStageInfo.unlockMessage}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4">
+            {/* 所持LXP（消費可能ストック）＆ 累積LXP（総学習量）カード */}
+            <div className="bg-[#131720] border-2 border-white p-4 shadow-p5-yellow space-y-3">
+              <div className="flex items-center gap-3.5">
+                <div className="bg-[#0B0D12] border-2 border-[#FACC15] p-1 shrink-0">
                   <PixelCharacter
                     gender={profile.gender}
                     stage={profile.level}
-                    size={96}
+                    size={84}
                     mood="happy"
                   />
-                  <div className="flex-1 space-y-1.5">
-                    <div className="text-xs font-black text-[#FACC15]">
-                      Lv.{profile.level} //{" "}
-                      {profile.gender === "boy"
-                        ? currentStageInfo.titleBoy
-                        : currentStageInfo.titleGirl}
-                    </div>
-                    <div className="w-full h-3 bg-[#0B0D12] border border-white -skew-x-12 p-0.5">
-                      <div
-                        className="h-full bg-[#FACC15]"
-                        style={{ width: `${expPercent}%` }}
-                      />
-                    </div>
-                    <div className="text-[11px] text-[#94A3B8] font-bold">
-                      次のドット絵進化まで: あと{" "}
-                      <span className="text-white font-black">
-                        {Math.max(0, reqExp - profile.exp)} EXP
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  {/* 所持LXPストック */}
+                  <div className="bg-[#0B0D12] border border-[#FACC15] p-2">
+                    <div className="flex items-center justify-between text-[10px] font-black text-[#94A3B8]">
+                      <span>💰 所持LXP（ステータス・スキル注入用）</span>
+                      <span className="text-[#10B981]">
+                        +{lastResult.summary.earnedExp.toLocaleString()} LXP
                       </span>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {lastResult.newlyUnlockedSkills.length > 0 && (
-                <div className="mt-3 bg-[#0B0D12] border-2 border-[#10B981] p-3 space-y-1">
-                  <div className="text-xs font-black text-[#10B981] flex items-center gap-1">
-                    <Terminal className="w-4 h-4" />
-                    特権スキルハック解禁！！
-                  </div>
-                  {lastResult.newlyUnlockedSkills.map((name) => (
-                    <div key={name} className="text-sm font-black text-white">
-                      🔓 {name}
+                    <div className="text-xl font-black text-[#FACC15] tracking-tight mt-0.5">
+                      {profile.exp.toLocaleString()}{" "}
+                      <span className="text-xs text-white">LXP ストック中</span>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* 累積LXP＆次レベルへの進行度 */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-black">
+                      <span className="text-[#94A3B8]">
+                        📈 累積LXP: {totalLxp.toLocaleString()} LXP
+                      </span>
+                      <span className="text-[#10B981]">
+                        {profile.level >= 10
+                          ? "MAX Lv.10"
+                          : canEvolveLevel
+                          ? `🎉 Lv.${profile.level + 1} 進化可能！`
+                          : `次Lvまで あと${Math.max(
+                              0,
+                              nextLevelTargetLxp - totalLxp
+                            ).toLocaleString()} LXP`}
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 bg-[#0B0D12] border border-white -skew-x-12 p-0.5">
+                      <motion.div
+                        className="h-full bg-[#10B981]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${cumulativeLxpPercent}%` }}
+                        transition={{ duration: 0.45 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 拠点でのLXP注入・進化の案内バナー */}
+              {(canEvolveLevel || affordableStatPoints > 0) && (
+                <div className="bg-[#0B0D12] border-2 border-[#FACC15] p-2.5 flex items-center justify-between gap-2">
+                  <div className="text-xs font-black text-[#FACC15] leading-snug">
+                    {canEvolveLevel
+                      ? `🎉 累積LXP達成！拠点で Lv.${
+                          profile.level + 1
+                        } へ進化＆新スキル枠を解放できます！`
+                      : `⚡ 貯まった所持LXPで五角形ステータスを +${affordableStatPoints} PT 注入強化できます！`}
+                  </div>
                 </div>
               )}
-            </div>
 
-            <div className="bg-[#131720] border-2 border-[#262D3D] p-3 flex flex-col items-center">
-              <div className="text-xs font-black text-[#10B981] mb-1">
-                ♪♪ PARAMETER GROWTH // 五角形ステータス成長 ♪♪
-              </div>
-              <StarRadarChart
-                stats={profile.stats}
-                recentGains={lastResult.summary.statGains}
-                triggerKey={radarBounceKey}
-                variant="result"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playTap();
-                  setRadarBounceKey((k) => k + 1);
-                }}
-                className="mt-1 text-[10px] font-black text-[#FACC15] hover:text-white bg-[#0B0D12] border border-[#262D3D] hover:border-[#FACC15] px-3 py-1 -skew-x-6 flex items-center gap-1 active:scale-95 transition"
-              >
-                <span>✨ 0.5秒ド派手成長バーストをもう一度再生</span>
-              </button>
-              <div className="grid grid-cols-3 gap-2 w-full mt-2 text-center">
+              {/* バトル戦績ミニサマリー */}
+              <div className="grid grid-cols-3 gap-2 text-center pt-1">
                 <div className="bg-[#0B0D12] border border-[#262D3D] p-2">
                   <div className="text-[10px] text-[#94A3B8] font-bold">
                     最大チェイン
@@ -800,21 +996,22 @@ export default function DopaBenApp() {
 
           <div className="space-y-2.5 pt-3">
             <button
-              onClick={() => handleStartBattle()}
-              className="w-full py-4 bg-[#EF4444] hover:brightness-110 text-white font-black text-lg border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
-            >
-              <Flame className="w-5 h-5 fill-[#FACC15] text-[#FACC15]" />
-              もう1戦突入する！（1 MORE BATTLE）
-            </button>
-            <button
               onClick={() =>
                 triggerSlashTransition(() => {
                   setScreen("home");
                 })
               }
-              className="w-full py-3 bg-[#131720] hover:bg-[#1E2534] text-white font-black text-sm border border-[#262D3D]"
+              className="w-full py-3.5 bg-[#FACC15] hover:brightness-110 text-[#0B0D12] font-black text-base border-2 border-white -skew-x-6 shadow-[4px_4px_0_#10B981] flex items-center justify-center gap-2 active:scale-95 transition"
             >
-              アジト（拠点）へ戻る
+              <Zap className="w-5 h-5 fill-[#0B0D12]" />
+              拠点（トップページ）でLXPを注入・強化する
+            </button>
+            <button
+              onClick={() => handleStartBattle()}
+              className="w-full py-3.5 bg-[#EF4444] hover:brightness-110 text-white font-black text-base border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
+            >
+              <Flame className="w-5 h-5 fill-[#FACC15] text-[#FACC15]" />
+              このままもう1戦突入してLXPを貯める！
             </button>
           </div>
         </div>
@@ -917,7 +1114,7 @@ export default function DopaBenApp() {
             </div>
           </header>
 
-          {/* メイン育成キャラクター・ステージカード（「スキル設定」ボタン以外の全領域をスワイプ可に設定） */}
+          {/* メイン育成キャラクター・ステージカード（「スキル設定」「レベル進化」ボタン以外の全領域をスワイプ可に設定） */}
           <section className="bg-[#131720] border-2 border-white p-3 shadow-p5-yellow relative overflow-hidden touch-pan-y select-none">
             <div className="absolute -top-6 -right-6 w-20 h-20 bg-[#FACC15]/10 rotate-12 pointer-events-none" />
 
@@ -925,8 +1122,9 @@ export default function DopaBenApp() {
               <span className="bg-[#FACC15] text-[#0B0D12] font-black text-[11px] px-2.5 py-0.5 -skew-x-12 border border-[#0B0D12]">
                 {currentStageInfo.subtitle}
               </span>
-              <span className="text-[11px] font-black text-[#94A3B8] flex items-center gap-0.5">
-                10段階進化・育成ステータス
+              <span className="text-[10px] font-black text-[#94A3B8] flex items-center gap-1">
+                <span>📈 累積LXP:</span>
+                <span className="text-white">{totalLxp.toLocaleString()} LXP</span>
               </span>
             </div>
 
@@ -936,49 +1134,81 @@ export default function DopaBenApp() {
                   gender={profile.gender}
                   stage={profile.level}
                   size={88}
-                  mood="idle"
+                  mood={canEvolveLevel ? "happy" : "idle"}
                 />
               </div>
 
               <div className="flex-1 space-y-1.5">
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl sm:text-2xl font-black italic text-[#FACC15] drop-shadow-[2px_2px_0_#0B0D12]">
-                      Lv.{profile.level}
-                    </span>
-                    <span className="text-xs font-bold text-[#94A3B8]">
-                      / 10段階進化
-                    </span>
+                <div className="flex items-center justify-between gap-1">
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-xl sm:text-2xl font-black italic text-[#FACC15] drop-shadow-[2px_2px_0_#0B0D12]">
+                        Lv.{profile.level}
+                      </span>
+                      <span className="text-[11px] font-bold text-[#94A3B8]">
+                        / 10段階進化
+                      </span>
+                    </div>
+                    <h2 className="font-black text-sm sm:text-base text-white leading-snug mt-0.5">
+                      {profile.gender === "boy"
+                        ? currentStageInfo.titleBoy
+                        : currentStageInfo.titleGirl}
+                    </h2>
                   </div>
-                  <h2 className="font-black text-sm sm:text-base text-white leading-snug mt-0.5">
-                    {profile.gender === "boy"
-                      ? currentStageInfo.titleBoy
-                      : currentStageInfo.titleGirl}
-                  </h2>
+
+                  {/* 所持LXPストックバッジ */}
+                  <div className="bg-[#0B0D12] border border-[#FACC15] px-2 py-1 text-right shrink-0">
+                    <div className="text-[9px] font-black text-[#94A3B8]">
+                      💰 所持LXP
+                    </div>
+                    <div className="text-xs sm:text-sm font-black text-[#FACC15]">
+                      {profile.exp.toLocaleString()} <span className="text-[10px]">LXP</span>
+                    </div>
+                  </div>
                 </div>
 
-                <p className="text-[10px] sm:text-[11px] text-[#94A3B8] leading-relaxed line-clamp-2">
+                <p className="text-[10px] sm:text-[11px] text-[#94A3B8] leading-relaxed line-clamp-1">
                   {currentStageInfo.unlockMessage}
                 </p>
 
                 <div className="space-y-0.5">
                   <div className="flex justify-between text-[10px] font-black">
-                    <span className="text-[#94A3B8]">NEXT EVOLUTION</span>
-                    <span className="text-[#FACC15]">
+                    <span className="text-[#94A3B8]">NEXT EVOLUTION (累積LXP)</span>
+                    <span className={canEvolveLevel ? "text-[#10B981]" : "text-[#FACC15]"}>
                       {profile.level >= 10
                         ? "MAX LEVEL"
-                        : `${profile.exp} / ${reqExp} EXP`}
+                        : canEvolveLevel
+                        ? `🎉 Lv.${profile.level + 1} 進化可能！`
+                        : `${totalLxp.toLocaleString()} / ${nextLevelTargetLxp.toLocaleString()} LXP`}
                     </span>
                   </div>
                   <div className="w-full h-2 bg-[#0B0D12] border border-white -skew-x-12 p-0.5">
                     <motion.div
-                      className="h-full bg-[#FACC15]"
-                      animate={{ width: `${expPercent}%` }}
+                      className={`h-full ${
+                        canEvolveLevel ? "bg-[#10B981]" : "bg-[#FACC15]"
+                      }`}
+                      animate={{ width: `${cumulativeLxpPercent}%` }}
                     />
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* 累積LXPが次レベルに到達している時：任意進化トリガーボタン */}
+            {canEvolveLevel && (
+              <div className="mt-2.5 relative z-10">
+                <button
+                  type="button"
+                  onClick={handleTriggerLevelEvolution}
+                  className="pointer-events-auto touch-manipulation cursor-pointer w-full py-2 px-3 bg-[#FACC15] hover:brightness-110 text-[#0B0D12] font-black text-xs border-2 border-white -skew-x-6 shadow-[3px_3px_0_#10B981] flex items-center justify-center gap-1.5 animate-pulse active:scale-95 transition"
+                >
+                  <Sparkles className="w-4 h-4 fill-[#0B0D12]" />
+                  <span>
+                    🎉 累積LXP達成！タップして Lv.{profile.level + 1} へ進化する！
+                  </span>
+                </button>
+              </div>
+            )}
 
             <div className="mt-2.5 pt-2 border-t border-[#262D3D] flex items-center justify-between gap-2 relative z-10">
               <div className="flex items-center gap-1.5 flex-wrap pointer-events-none">
@@ -987,15 +1217,22 @@ export default function DopaBenApp() {
                 </span>
                 {profile.activeSkillHacks.filter((id) => {
                   const def = SKILL_HACKS.find((s) => s.id === id);
-                  return def && profile.level >= def.unlockLevel;
+                  return (
+                    def &&
+                    profile.level >= def.unlockLevel &&
+                    (profile.unlockedSkillHacks || []).includes(id)
+                  );
                 }).length === 0 ? (
                   <span className="text-[11px] text-[#94A3B8] font-bold">
-                    Lv.2で最初の特権スキル解禁！
+                    {profile.level >= 2
+                      ? "スキル設定からLXPで特権スキルを習得可能！"
+                      : "Lv.2進化で最初の特権スキル解禁！"}
                   </span>
                 ) : (
                   SKILL_HACKS.filter(
                     (s) =>
                       profile.level >= s.unlockLevel &&
+                      (profile.unlockedSkillHacks || []).includes(s.id) &&
                       profile.activeSkillHacks.includes(s.id)
                   ).map((s) => (
                     <span
@@ -1015,53 +1252,145 @@ export default function DopaBenApp() {
                 }}
                 className="pointer-events-auto touch-manipulation cursor-pointer bg-[#0B0D12] hover:bg-[#FACC15] hover:text-[#0B0D12] text-[#FACC15] border border-[#FACC15] px-2.5 py-1 text-[11px] font-black shrink-0 transition"
               >
-                スキル設定
+                スキル設定・習得
               </button>
             </div>
           </section>
 
-          {/* 五角形ステータス＆戦績サマリー（スワイプ操作を邪魔しない touch-pan-y 対応） */}
-          <section className="grid grid-cols-12 gap-2 sm:gap-2.5 items-center bg-[#131720] border-2 border-[#262D3D] p-2 sm:p-2.5 touch-pan-y select-none relative">
-            <div className="col-span-7 flex flex-col items-center justify-center touch-pan-y pointer-events-none">
-              <StarRadarChart
-                stats={profile.stats}
-                triggerKey={radarBounceKey}
-              />
-              <button
-                onClick={() => {
-                  soundEngine.playTap();
-                  setRadarBounceKey((k) => k + 1);
-                }}
-                className="pointer-events-auto touch-manipulation cursor-pointer mt-0.5 text-[9px] font-black text-[#FACC15] hover:text-white bg-[#0B0D12] border border-[#262D3D] hover:border-[#FACC15] px-2 py-0.5 -skew-x-6 flex items-center gap-1 active:scale-95 transition"
-                title="もう一度ボヨヨ〜ンと跳ねさせる"
-              >
-                <span>⚡ ボヨヨ〜ン再跳ね</span>
-              </button>
+          {/* 五角形ステータス＆LXP注入育成パネル（スワイプ操作を邪魔しない touch-pan-y 対応） */}
+          <section className="bg-[#131720] border-2 border-[#262D3D] p-2.5 space-y-2.5 touch-pan-y select-none relative">
+            {/* LXP注入・進化フィードバック通知 */}
+            <AnimatePresence>
+              {injectionNotice && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-[#0B0D12] border-2 border-[#10B981] px-2.5 py-1.5 text-[11px] font-black text-[#10B981] flex items-center justify-between gap-2 pointer-events-none"
+                >
+                  <span>{injectionNotice}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="grid grid-cols-12 gap-2 sm:gap-2.5 items-center touch-pan-y">
+              <div className="col-span-7 flex flex-col items-center justify-center touch-pan-y pointer-events-none">
+                <StarRadarChart
+                  stats={profile.stats}
+                  recentGains={recentInjectedGains || undefined}
+                  variant={recentInjectedGains ? "result" : "home"}
+                  triggerKey={radarBounceKey}
+                />
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    setRadarBounceKey((k) => k + 1);
+                  }}
+                  className="pointer-events-auto touch-manipulation cursor-pointer mt-0.5 text-[9px] font-black text-[#FACC15] hover:text-white bg-[#0B0D12] border border-[#262D3D] hover:border-[#FACC15] px-2 py-0.5 -skew-x-6 flex items-center gap-1 active:scale-95 transition"
+                  title="もう一度ボヨヨ〜ンと跳ねさせる"
+                >
+                  <span>⚡ チャート再アニメーション</span>
+                </button>
+              </div>
+              <div className="col-span-5 space-y-1.5 sm:space-y-2 pr-1 touch-pan-y pointer-events-none">
+                <div className="bg-[#0B0D12] border-l-4 border-[#10B981] p-1.5 sm:p-2">
+                  <div className="text-[9px] sm:text-[10px] text-[#94A3B8] font-bold">
+                    総撃破単語数
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-[#10B981]">
+                    {profile.totalWordsCleared} WORDS
+                  </div>
+                </div>
+                <div className="bg-[#0B0D12] border-l-4 border-[#FACC15] p-1.5 sm:p-2">
+                  <div className="text-[9px] sm:text-[10px] text-[#94A3B8] font-bold">
+                    倍返し(REVENGE)成功
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-[#FACC15]">
+                    {profile.totalRevengeJackpots} JACKPOTS
+                  </div>
+                </div>
+                <div className="bg-[#0B0D12] border-l-4 border-white p-1.5 sm:p-2">
+                  <div className="text-[9px] sm:text-[10px] text-[#94A3B8] font-bold">
+                    最高コンボ記録
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-white">
+                    {profile.maxCombo} CHAIN
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="col-span-5 space-y-1.5 sm:space-y-2 pr-1 touch-pan-y pointer-events-none">
-              <div className="bg-[#0B0D12] border-l-4 border-[#10B981] p-1.5 sm:p-2">
-                <div className="text-[9px] sm:text-[10px] text-[#94A3B8] font-bold">
-                  総撃破単語数
+
+            {/* ⚡ 所持LXP 任意注入パネル（五角形ステータス強化） */}
+            <div className="bg-[#0B0D12] border border-[#262D3D] p-2 space-y-2 touch-pan-y">
+              <div className="flex items-center justify-between gap-2 pointer-events-none">
+                <div className="text-[11px] font-black text-white flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-[#FACC15] fill-[#FACC15]" />
+                  <span>五角形ステータス LXP注入強化</span>
                 </div>
-                <div className="text-sm sm:text-base font-black text-[#10B981]">
-                  {profile.totalWordsCleared} WORDS
-                </div>
+                <span className="text-[10px] font-black text-[#FACC15]">
+                  所持: {profile.exp.toLocaleString()} LXP
+                </span>
               </div>
-              <div className="bg-[#0B0D12] border-l-4 border-[#FACC15] p-1.5 sm:p-2">
-                <div className="text-[9px] sm:text-[10px] text-[#94A3B8] font-bold">
-                  倍返し(REVENGE)成功
-                </div>
-                <div className="text-sm sm:text-base font-black text-[#FACC15]">
-                  {profile.totalRevengeJackpots} JACKPOTS
-                </div>
-              </div>
-              <div className="bg-[#0B0D12] border-l-4 border-white p-1.5 sm:p-2">
-                <div className="text-[9px] sm:text-[10px] text-[#94A3B8] font-bold">
-                  最高コンボ記録
-                </div>
-                <div className="text-sm sm:text-base font-black text-white">
-                  {profile.maxCombo} CHAIN
-                </div>
+
+              {/* 1タップ一括注入ボタン（貯まったLXPでバランスよく一気に成長＆0.5秒派手バースト演出） */}
+              <button
+                type="button"
+                disabled={affordableStatPoints <= 0}
+                onClick={handleBatchInjectLxp}
+                className={`pointer-events-auto touch-manipulation w-full py-2 px-3 text-xs font-black border -skew-x-6 flex items-center justify-center gap-1.5 transition ${
+                  affordableStatPoints > 0
+                    ? "cursor-pointer bg-[#FACC15] hover:brightness-110 text-[#0B0D12] border-white shadow-[3px_3px_0_#10B981] active:scale-95"
+                    : "cursor-not-allowed bg-[#131720] text-[#94A3B8] border-[#262D3D]"
+                }`}
+              >
+                <Zap className="w-4 h-4 shrink-0" />
+                {affordableStatPoints > 0 ? (
+                  <span>
+                    ⚡ 貯まったLXPを一括注入して成長させる！（+{affordableStatPoints} PT 上昇）
+                  </span>
+                ) : (
+                  <span>
+                    バトルでLXPを貯めるとステータスへ注入できます
+                  </span>
+                )}
+              </button>
+
+              {/* 個別5ステータス +1 注入ボタン群 */}
+              <div className="grid grid-cols-5 gap-1">
+                {(
+                  [
+                    { key: "vocab", label: "語彙" },
+                    { key: "speed", label: "瞬発" },
+                    { key: "grammar", label: "構築" },
+                    { key: "listening", label: "聴覚" },
+                    { key: "guts", label: "度胸" },
+                  ] as { key: keyof FiveStats; label: string }[]
+                ).map(({ key, label }) => {
+                  const val = profile.stats[key];
+                  const cost = getStatUpgradeLxpCost(val);
+                  const canAfford = val < 100 && cost > 0 && profile.exp >= cost;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={!canAfford}
+                      onClick={() => handleInjectSingleStat(key)}
+                      className={`pointer-events-auto touch-manipulation py-1 px-1 text-center border transition ${
+                        canAfford
+                          ? "cursor-pointer bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] text-white border-[#FACC15] active:scale-95"
+                          : "cursor-not-allowed bg-[#131720]/50 text-[#94A3B8]/60 border-[#262D3D]"
+                      }`}
+                    >
+                      <div className="text-[10px] font-black leading-tight">
+                        {label}{" "}
+                        <span className="text-[#10B981]">{val}</span>
+                      </div>
+                      <div className="text-[9px] font-bold leading-tight mt-0.5">
+                        {val >= 100 ? "MAX" : `+1 (${cost}LXP)`}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -1092,7 +1421,7 @@ export default function DopaBenApp() {
                   : "出撃ステージ選択（3形式：英日/日英/文脈穴埋め・音声なし）"}
               </span>
 
-              {profile.level >= 5 ? (
+              {profile.level >= 5 && isHardcoreUnlocked ? (
                 <button
                   onClick={() => {
                     soundEngine.playTap();
@@ -1105,7 +1434,7 @@ export default function DopaBenApp() {
                   }`}
                 >
                   <Skull className="w-3.5 h-3.5" />
-                  激ムズ: {isHardcoreActive ? "ON (EXP×2)" : "OFF"}
+                  激ムズ: {isHardcoreActive ? "ON (LXP×2)" : "OFF"}
                 </button>
               ) : (
                 <button
@@ -1115,7 +1444,7 @@ export default function DopaBenApp() {
                   }}
                   className="text-[11px] font-bold text-[#94A3B8] hover:text-[#FACC15] shrink-0 transition"
                 >
-                  🔒 Lv.5で『激ムズ』解禁
+                  🔒 Lv.5で『激ムズ(LXP×2)』解禁
                 </button>
               )}
             </div>
@@ -1723,7 +2052,9 @@ export default function DopaBenApp() {
         <SkillHackModal
           profile={profile}
           onToggleSkill={handleToggleSkill}
+          onUnlockSkill={handleUnlockSkill}
           onInstantLevelChange={handleInstantLevelChange}
+          onAddTestLxp={handleAddTestLxp}
           onClose={() => setIsSkillModalOpen(false)}
         />
       )}

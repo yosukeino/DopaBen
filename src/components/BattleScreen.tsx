@@ -322,8 +322,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setBannerType(isRevenge ? "revenge" : "weak");
         setBannerText(
           isRevenge
-            ? `🔥 REVENGE JACKPOT!! +${gained} EXP (×${bountyMult}倍返し!)`
-            : `WEAK!! → 1 MORE! (${newCombo} COMBO / +${gained} EXP)`
+            ? `🔥 REVENGE JACKPOT!! +${gained} LXP (×${bountyMult}倍返し!)`
+            : `WEAK!! → 1 MORE! (${newCombo} COMBO / +${gained} LXP)`
         );
 
         setAnswerModal({
@@ -380,7 +380,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         }
 
         setBannerType("bounty");
-        setBannerText(`🛡️ BOUNTY LOCK!! 次回撃破で EXP ×${mult}倍！`);
+        setBannerText(`🛡️ BOUNTY LOCK!! 次回撃破で LXP ×${mult}倍！`);
 
         setAnswerModal({
           isCorrect: false,
@@ -536,7 +536,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         soundEngine.playEvolutionFanfare();
         soundEngine.speakEnglish(answer, 1.0);
         setBannerType("allout");
-        setBannerText(`💥 ALL-OUT FINISH!! 総攻撃成功 +${allOutBonus} EXP!!`);
+        setBannerText(`💥 ALL-OUT FINISH!! 総攻撃成功 +${allOutBonus} LXP!!`);
 
         setAnswerModal({
           isCorrect: true,
@@ -628,7 +628,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               animate={{ scale: 1 }}
               className="bg-[#FACC15] text-[#0B0D12] px-2.5 py-1 font-black text-xs -skew-x-12 border border-[#0B0D12]"
             >
-              +{earnedExp} EXP
+              +{earnedExp} LXP
             </motion.div>
           </div>
         </div>
@@ -659,7 +659,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             )}
             {hasHardcoreHack && (
               <span className="bg-[#FACC15] text-[#0B0D12] border border-white px-1.5 py-0.5 text-[10px] font-black">
-                激ムズEXP×2.0
+                激ムズLXP×2.0
               </span>
             )}
             {hasOverclockAudio && (
@@ -707,7 +707,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 {currentQuestion.isRevengeBounty && (
                   <div className="text-xs font-black text-[#FACC15] flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5" />
-                    今撃破で EXP ×{currentQuestion.bountyMultiplier}倍 ＆ 度胸爆伸び！
+                    今撃破で LXP ×{currentQuestion.bountyMultiplier}倍！
                   </div>
                 )}
               </div>
@@ -1053,8 +1053,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     }`}
                   >
                     {answerModal.isCorrect
-                      ? `+${answerModal.gainedExp} EXP GET!!`
-                      : `次回撃破 EXP ×${answerModal.bountyMultiplier}倍`}
+                      ? `+${answerModal.gainedExp} LXP GET!!`
+                      : `次回撃破 LXP ×${answerModal.bountyMultiplier}倍`}
                   </span>
                 </div>
 
@@ -1209,7 +1209,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       </AnimatePresence>
 
       <div className="text-center text-[11px] text-[#94A3B8] pt-2">
-        💡 ミスしても減点なし！最後まで走り切ると獲得EXP＆五角形ステータス全加算！
+        💡 ミスしても減点なし！最後まで走り切ると獲得LXPをストック！拠点で好きな時に注入強化！
       </div>
     </div>
   );

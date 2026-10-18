@@ -88,22 +88,56 @@ export const EVOLUTION_STAGES: EvolutionStageInfo[] = [
   },
 ];
 
+/**
+ * 各レベル（進化段階 Lv.1〜Lv.10）への昇格に必要な【累積LXP (totalLxp)】
+ * 累計約20時間のプレイで最終形態「語彙神 (Lv.10)」に到達する曲線
+ */
+export const LEVEL_CUMULATIVE_LXP: Record<number, number> = {
+  1: 0,
+  2: 2000,    // Lv.2 (約5バトル / 約8分)
+  3: 8000,    // Lv.3 (累計約20バトル / 約33分)
+  4: 21500,   // Lv.4 (累計約50バトル / 約1時間20分)
+  5: 46500,   // Lv.5 (累計約100バトル / 約2時間40分)
+  6: 111500,  // Lv.6 (累計約175バトル / 約4時間40分)
+  7: 211500,  // Lv.7 (累計約285バトル / 約7時間40分)
+  8: 371500,  // Lv.8 (累計約405バトル / 約11時間)
+  9: 581500,  // Lv.9 (累計約555バトル / 約15時間)
+  10: 851500, // Lv.10 (累計約750バトル / 約20時間) 最終形態「語彙神」！
+};
+
+/**
+ * 五角形ステータスを +1 強化するのに必要な【所持LXP】コスト
+ * 序盤は1バトル（約350 LXP）ですぐ注入でき、高ステータスになるほどやりごたえが増す設計
+ */
+export function getStatUpgradeLxpCost(currentValue: number): number {
+  if (currentValue >= 100) return 0;
+  if (currentValue < 30) return 150;
+  if (currentValue < 50) return 500;
+  if (currentValue < 70) return 1200;
+  if (currentValue < 90) return 2500;
+  return 5000;
+}
+
 export const SKILL_HACKS: SkillHackDefinition[] = [
   {
     id: "bounty_overdrive",
     unlockLevel: 2,
+    requiredTotalLxp: 2000,
+    lxpCost: 1000,
     name: "BOUNTY OVERDRIVE（倍返し強化）",
-    badge: "Lv.2 特権",
+    badge: "Lv.2 / 累積2,000 LXP",
     description:
       "ミスした問題に付く懸賞金（リベンジ撃破ボーナス）が通常の×2.5から『×3.5』へ超強化される！",
-    effectSummary: "リベンジ成功時のEXP ×3.5倍",
+    effectSummary: "リベンジ成功時の獲得LXP ×3.5倍",
     isToggleable: true,
   },
   {
     id: "phantom_eliminator",
     unlockLevel: 3,
+    requiredTotalLxp: 8000,
+    lxpCost: 3000,
     name: "PHANTOM EYE（2択ハック権）",
-    badge: "Lv.3 特権",
+    badge: "Lv.3 / 累積8,000 LXP",
     description:
       "バトル中、4択のダミー選択肢を2つ強制消去して『確実な2択』に書き換えるハックボタンが出現！",
     effectSummary: "バトル中に誤答2つ消去コマンド使用可能",
@@ -112,31 +146,37 @@ export const SKILL_HACKS: SkillHackDefinition[] = [
   {
     id: "hardcore_challenge",
     unlockLevel: 5,
+    requiredTotalLxp: 46500,
+    lxpCost: 10000,
     name: "激ムズ問題に挑戦できる権（HARDCORE HACK）",
-    badge: "Lv.5 特権",
+    badge: "Lv.5 / 累積46,500 LXP",
     description:
-      "選ばれし高レベル者のみがONにできる禁断のルールハック！高校入試難関レベルの『激ムズ単語＆英文』が乱入し、獲得EXPが常時2.0倍に跳ね上がる！",
-    effectSummary: "激ムズ問題乱入 ＋ 全獲得EXP ×2.0倍",
+      "選ばれし高レベル者のみがONにできる禁断のルールハック！高校入試難関レベルの『激ムズ単語＆英文』が乱入し、獲得LXPが常時2.0倍に跳ね上がる！",
+    effectSummary: "激ムズ問題乱入 ＋ 全獲得LXP ×2.0倍",
     isToggleable: true,
   },
   {
     id: "overclock_audio",
     unlockLevel: 7,
+    requiredTotalLxp: 211500,
+    lxpCost: 35000,
     name: "OVERCLOCK 1.35x（高速リスニング権）",
-    badge: "Lv.7 特権",
+    badge: "Lv.7 / 累積211,500 LXP",
     description:
-      "ネイティブ英語音声を1.35倍速のハイスピードで再生し、脳の処理速度を限界突破させる！クリア時の聴覚・瞬発ステータスとEXPが1.5倍！",
-    effectSummary: "英語音声1.35倍速 ＋ 獲得EXP ×1.5倍",
+      "ネイティブ英語音声を1.35倍速のハイスピードで再生し、脳の処理速度を限界突破させる！クリア時の獲得LXPが1.5倍！",
+    effectSummary: "英語音声1.35倍速 ＋ 獲得LXP ×1.5倍",
     isToggleable: true,
   },
   {
     id: "legend_aura",
     unlockLevel: 10,
+    requiredTotalLxp: 851500,
+    lxpCost: 100000,
     name: "DOPA-GOD AURA（語彙神の覇気）",
-    badge: "Lv.10 最終特権",
+    badge: "Lv.10 / 累積851,500 LXP",
     description:
-      "最終進化に到達した者だけの証。バトルでの獲得EXPがさらに＋100%加算され、黄金のオーラが常時発動する！",
-    effectSummary: "獲得EXP さらに2倍 ＋ 黄金神オーラ",
+      "最終進化に到達した者だけの証。バトルでの獲得LXPがさらに＋100%加算され、黄金のオーラが常時発動する！",
+    effectSummary: "獲得LXP さらに2倍 ＋ 黄金神オーラ",
     isToggleable: true,
   },
 ];
