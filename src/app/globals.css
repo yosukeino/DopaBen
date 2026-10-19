@@ -44,6 +44,15 @@ body {
   background-size: 12px 12px;
 }
 
+/* Vibrant pink halftone dot background when Girl is selected on Home screen */
+.bg-halftone-girl {
+  background-color: #EC4899;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1.4px, transparent 1.4px),
+    radial-gradient(rgba(11, 13, 18, 0.14) 1px, transparent 1px);
+  background-size: 18px 18px, 9px 9px;
+  background-position: 0 0, 4.5px 4.5px;
+}
+
 /* Persona 5 inspired jagged / diagonal polygon clip paths */
 .clip-p5-card {
   clip-path: polygon(1.5% 0%, 100% 2.5%, 98.5% 100%, 0% 97.5%);

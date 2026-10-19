@@ -792,8 +792,14 @@ export default function DopaBenApp() {
     isHardcoreUnlocked &&
     profile.activeSkillHacks.includes("hardcore_challenge");
 
+  const isGirlHome = screen === "home" && profile.gender === "girl";
+
   return (
-    <div className="min-h-screen bg-[#0B0D12] text-white relative overflow-x-clip touch-pan-y">
+    <div
+      className={`min-h-screen text-white relative overflow-x-clip touch-pan-y transition-colors duration-300 ${
+        isGirlHome ? "bg-[#EC4899] bg-halftone-girl" : "bg-[#0B0D12]"
+      }`}
+    >
       {/* 斜めスラッシュ画面遷移エフェクト */}
       <AnimatePresence>
         {slashTransition && (
@@ -1027,16 +1033,28 @@ export default function DopaBenApp() {
 
       {/* === 3. ホーム拠点（アジト）画面 === */}
       {screen === "home" && (
-        <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0B0D12] bg-halftone p-3.5 space-y-3 touch-pan-y">
+        <div
+          className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-between p-3.5 space-y-3 touch-pan-y transition-colors duration-300 ${
+            profile.gender === "girl"
+              ? "bg-[#EC4899] bg-halftone-girl"
+              : "bg-[#0B0D12] bg-halftone"
+          }`}
+        >
           {/* トップヒーローヘッダー：完全透過『ドパベン』ロゴ ＋ Twinkle Effect粒子 */}
-          <header className="relative pt-1 pb-2 border-b-2 border-[#262D3D] touch-pan-y">
+          <header
+            className={`relative pt-1 pb-2 border-b-2 touch-pan-y ${
+              profile.gender === "girl"
+                ? "border-white/50"
+                : "border-[#262D3D]"
+            }`}
+          >
             {/* 上部ユーティリティバー */}
             <div className="flex items-center justify-between mb-1.5 relative z-20">
               <div className="flex items-center gap-1.5 pointer-events-none select-none">
                 <span className="bg-[#FACC15] text-[#0B0D12] text-[10px] font-black px-2 py-0.5 -skew-x-12 border border-white">
                   DOPAMINE × STUDY
                 </span>
-                <span className="text-[10px] font-black text-white tracking-wider">
+                <span className="text-[10px] font-black text-white drop-shadow-[1px_1px_0_#0B0D12] tracking-wider">
                   脳汁育成イングリッシュ
                 </span>
               </div>
@@ -1422,7 +1440,7 @@ export default function DopaBenApp() {
           {/* 出撃ステージセレクト（中学英単語ステージ ＆ 英検1級ステージ） */}
           <section id="stage-select-section" className="space-y-2.5 pt-1 pb-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-black text-white flex items-center gap-1.5">
+              <span className="text-xs font-black text-white drop-shadow-[1px_1px_0_#0B0D12] flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FACC15] shrink-0" />
                 {includeListening
                   ? "出撃ステージ選択（全4形式：英日/日英/リスニング/文脈穴埋め）"
@@ -1450,7 +1468,7 @@ export default function DopaBenApp() {
                     soundEngine.playTap();
                     setIsSkillModalOpen(true);
                   }}
-                  className="text-[11px] font-bold text-[#94A3B8] hover:text-[#FACC15] shrink-0 transition"
+                  className="bg-[#131720] border border-[#262D3D] px-2 py-0.5 text-[10px] font-bold text-[#94A3B8] hover:text-[#FACC15] shrink-0 transition"
                 >
                   🔒 Lv.5で『激ムズ(LXP×2)』解禁
                 </button>
