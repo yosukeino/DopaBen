@@ -25,6 +25,7 @@ interface StatusModalProps {
   injectionNotice: string | null;
   affordableStatPoints: number;
   onBatchInjectLxp: () => void;
+  onFocusInjectStat?: (statKey: keyof FiveStats) => void;
   onInjectSingleStat: (statKey: keyof FiveStats) => void;
   getStatUpgradeLxpCost: (currentVal: number) => number;
   onOpenSkillModal: () => void;
@@ -41,11 +42,26 @@ export const StatusModal: React.FC<StatusModalProps> = ({
   injectionNotice,
   affordableStatPoints,
   onBatchInjectLxp,
+  onFocusInjectStat,
   onInjectSingleStat,
   getStatUpgradeLxpCost,
   onOpenSkillModal,
   onClose,
 }) => {
+  // 各ステータスに「今全振りしたら何ポイント伸ばせるか」を計算
+  const calculateFocusPoints = (statKey: keyof FiveStats) => {
+    let tempVal = profile.stats[statKey];
+    let remaining = profile.exp;
+    let pts = 0;
+    while (pts < 30 && tempVal < 100) {
+      const cost = getStatUpgradeLxpCost(tempVal);
+      if (cost <= 0 || remaining < cost) break;
+      remaining -= cost;
+      tempVal += 1;
+      pts += 1;
+    }
+    return pts;
+  };
   return (
     <div className="fixed inset-0 z-50 bg-[#0B0D12]/90 backdrop-blur-sm flex items-center justify-center p-3 select-none">
       <motion.div
@@ -185,8 +201,8 @@ export const StatusModal: React.FC<StatusModalProps> = ({
             </div>
           </div>
 
-          {/* 3. LXP注入育成パネル */}
-          <div className="bg-[#0B0D12] border border-[#262D3D] p-3 space-y-2.5">
+          {/* 3. LXP注入育成パネル（ボス戦用ステータス） */}
+          <div className="bg-[#0B0D12] border border-[#262D3D] p-3 space-y-3">
             <AnimatePresence>
               {injectionNotice && (
                 <motion.div
@@ -201,21 +217,29 @@ export const StatusModal: React.FC<StatusModalProps> = ({
             </AnimatePresence>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-white flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-[#FACC15] fill-[#FACC15]" />
-                五角形ステータス強化
-              </span>
-              <span className="text-[11px] font-black text-[#FACC15]">
-                所持: {profile.exp.toLocaleString()} LXP
-              </span>
+              <div>
+                <span className="text-xs font-black text-white flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-[#FACC15] fill-[#FACC15]" />
+                  五角形ステータス注入育成
+                </span>
+                <span className="text-[10px] text-[#94A3B8] font-bold block mt-0.5">
+                  ⚔️ 後に実装される「大ボス戦」で直接使う能力値です
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-[#94A3B8] block">所持LXP</span>
+                <span className="text-xs font-black text-[#FACC15]">
+                  {profile.exp.toLocaleString()} LXP
+                </span>
+              </div>
             </div>
 
-            {/* 一括注入ボタン */}
+            {/* ① 平均的に注入するボタン */}
             <button
               type="button"
               disabled={affordableStatPoints <= 0}
               onClick={onBatchInjectLxp}
-              className={`w-full py-2 px-3 text-xs font-black border -skew-x-6 flex items-center justify-center gap-1.5 transition ${
+              className={`w-full py-2.5 px-3 text-xs font-black border -skew-x-6 flex items-center justify-center gap-1.5 transition ${
                 affordableStatPoints > 0
                   ? "cursor-pointer bg-[#FACC15] hover:brightness-110 text-[#0B0D12] border-white shadow-[3px_3px_0_#10B981] active:scale-95"
                   : "cursor-not-allowed bg-[#131720] text-[#94A3B8] border-[#262D3D]"
@@ -223,47 +247,57 @@ export const StatusModal: React.FC<StatusModalProps> = ({
             >
               <Zap className="w-4 h-4 shrink-0" />
               {affordableStatPoints > 0 ? (
-                <span>⚡ LXPを一括注入！（+{affordableStatPoints} PT 上昇）</span>
+                <span>⚖️ 平均的にLXPを注入する（+{affordableStatPoints} PT 分配）</span>
               ) : (
                 <span>バトルでLXPを貯めると注入できます</span>
               )}
             </button>
 
-            {/* 個別注入ボタン群 */}
-            <div className="grid grid-cols-5 gap-1">
-              {(
-                [
-                  { key: "vocab", label: "語彙" },
-                  { key: "speed", label: "瞬発" },
-                  { key: "grammar", label: "構築" },
-                  { key: "listening", label: "聴覚" },
-                  { key: "guts", label: "度胸" },
-                ] as { key: keyof FiveStats; label: string }[]
-              ).map(({ key, label }) => {
-                const val = profile.stats[key];
-                const cost = getStatUpgradeLxpCost(val);
-                const canAfford = val < 100 && cost > 0 && profile.exp >= cost;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    disabled={!canAfford}
-                    onClick={() => onInjectSingleStat(key)}
-                    className={`py-1 px-1 text-center border transition ${
-                      canAfford
-                        ? "cursor-pointer bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] text-white border-[#FACC15] active:scale-95"
-                        : "cursor-not-allowed bg-[#131720]/50 text-[#94A3B8]/60 border-[#262D3D]"
-                    }`}
-                  >
-                    <div className="text-[10px] font-black leading-tight">
-                      {label} <span className="text-[#10B981]">{val}</span>
-                    </div>
-                    <div className="text-[9px] font-bold leading-tight mt-0.5">
-                      {val >= 100 ? "MAX" : `+1 (${cost})`}
-                    </div>
-                  </button>
-                );
-              })}
+            {/* ② 特定のちからに全振りセクション */}
+            <div className="space-y-1.5 pt-1 border-t border-[#1E293B]">
+              <span className="text-[10px] font-black text-[#CBD5E1] block">
+                ⚡ 特定のちからにLXPを全振り注入:
+              </span>
+              <div className="grid grid-cols-5 gap-1.5">
+                {(
+                  [
+                    { key: "vocab", label: "語彙", icon: "📖" },
+                    { key: "speed", label: "瞬発", icon: "⚡" },
+                    { key: "grammar", label: "構築", icon: "🛡️" },
+                    { key: "listening", label: "聴覚", icon: "🎧" },
+                    { key: "guts", label: "度胸", icon: "🔥" },
+                  ] as { key: keyof FiveStats; label: string; icon: string }[]
+                ).map(({ key, label, icon }) => {
+                  const val = profile.stats[key];
+                  const focusPts = calculateFocusPoints(key);
+                  const canFocus = focusPts > 0 && val < 100;
+
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={!canFocus}
+                      onClick={() => onFocusInjectStat?.(key)}
+                      className={`py-2 px-1 text-center border rounded transition flex flex-col items-center justify-between min-h-[58px] ${
+                        canFocus
+                          ? "cursor-pointer bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] text-white border-[#FACC15] active:scale-95 shadow-sm"
+                          : "cursor-not-allowed bg-[#0F172A]/40 text-[#64748B] border-[#1E293B]"
+                      }`}
+                    >
+                      <div className="text-[10px] font-black leading-tight flex items-center gap-0.5">
+                        <span>{icon}</span>
+                        <span>{label}</span>
+                      </div>
+                      <div className="text-[11px] font-black text-[#10B981] my-0.5">
+                        {val}
+                      </div>
+                      <div className="text-[9px] font-black px-1 rounded bg-[#030712]/60 text-[#FACC15]">
+                        {val >= 100 ? "MAX" : canFocus ? `+${focusPts}全振` : "残LXP少"}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

@@ -14,11 +14,10 @@ import {
   Sword,
   Shield,
   Zap,
-  Flame,
-  Music,
   Eye,
   Shirt,
   Crown,
+  Plus,
 } from "lucide-react";
 import {
   CharacterGender,
@@ -29,15 +28,16 @@ import {
 import {
   ALL_CHARACTER_PARTS,
   BACK_GEAR_PARTS,
-  COLOR_PALETTES,
   detectStatBranch,
   EYE_STYLES,
+  FourColorPalette,
+  generateRandom4ColorPalette,
   getCharacterEvolutionTitle,
   HAIR_STYLES,
   HEADGEAR_PARTS,
   OUTFIT_PARTS,
-  PALETTE_PART_DEFS,
   PartItemDef,
+  PRESET_4COLOR_PALETTES,
   resolveAutoLoadout,
   STAT_BRANCH_INFO,
   WEAPON_LEFT_PARTS,
@@ -54,24 +54,24 @@ interface CharacterCustomizeModalProps {
 }
 
 type SlotKey =
+  | "palette"
+  | "outfit"
   | "hairStyle"
   | "headgear"
-  | "eyeStyle"
-  | "outfit"
   | "weaponRight"
   | "weaponLeft"
   | "backGear"
-  | "palette";
+  | "eyeStyle";
 
 const SLOT_TABS: { key: SlotKey; label: string; icon: React.ReactNode }[] = [
+  { key: "palette", label: "4色パレット", icon: <Palette className="w-4 h-4" /> },
+  { key: "outfit", label: "制服・衣装", icon: <Shirt className="w-4 h-4" /> },
   { key: "hairStyle", label: "髪型", icon: <Sparkles className="w-4 h-4" /> },
-  { key: "headgear", label: "頭装備", icon: <Crown className="w-4 h-4" /> },
-  { key: "eyeStyle", label: "瞳", icon: <Eye className="w-4 h-4" /> },
-  { key: "outfit", label: "衣装", icon: <Shirt className="w-4 h-4" /> },
-  { key: "weaponRight", label: "右手武器", icon: <Sword className="w-4 h-4" /> },
+  { key: "headgear", label: "頭・メガネ", icon: <Crown className="w-4 h-4" /> },
+  { key: "weaponRight", label: "右手文具", icon: <Sword className="w-4 h-4" /> },
   { key: "weaponLeft", label: "左手装備", icon: <Shield className="w-4 h-4" /> },
-  { key: "backGear", label: "背面・翼", icon: <Zap className="w-4 h-4" /> },
-  { key: "palette", label: "カラー", icon: <Palette className="w-4 h-4" /> },
+  { key: "backGear", label: "背面・リュック", icon: <Zap className="w-4 h-4" /> },
+  { key: "eyeStyle", label: "瞳", icon: <Eye className="w-4 h-4" /> },
 ];
 
 export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = ({
@@ -81,11 +81,14 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
   onSave,
 }) => {
   const [mainTab, setMainTab] = useState<"customize" | "codex">("customize");
-  const [activeSlot, setActiveSlot] = useState<SlotKey>("hairStyle");
+  const [activeSlot, setActiveSlot] = useState<SlotKey>("palette");
   const [previewMood, setPreviewMood] = useState<"idle" | "attack" | "happy">("idle");
   const [selectedBranch, setSelectedBranch] = useState<StatBranchType>(
     detectStatBranch(profile.stats)
   );
+
+  // パレット一覧（プリセット ＋ ユーザーが生成したパレット）
+  const [palettes, setPalettes] = useState<FourColorPalette[]>(PRESET_4COLOR_PALETTES);
 
   // 一時ロードアウト
   const currentBranch = detectStatBranch(profile.stats);
@@ -127,8 +130,6 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
         return WEAPON_LEFT_PARTS;
       case "backGear":
         return BACK_GEAR_PARTS;
-      case "palette":
-        return PALETTE_PART_DEFS;
       default:
         return [];
     }
@@ -146,6 +147,44 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
     onSave({
       ...profile,
       characterLoadout: updated,
+      unlockedParts,
+      exp: currentExp,
+    });
+  };
+
+  // パレット装備
+  const handleEquipPalette = (paletteId: string) => {
+    soundEngine.playTap();
+    const updated: CharacterPartLoadout = {
+      ...loadout,
+      mode: "custom",
+      palette: paletteId,
+    };
+    setLoadout(updated);
+    onSave({
+      ...profile,
+      characterLoadout: updated,
+      unlockedParts,
+      exp: currentExp,
+    });
+  };
+
+  // ランダム4色パレットを新規生成＆即装備
+  const handleGenerateRandomPalette = () => {
+    soundEngine.playStageVictory();
+    const newPal = generateRandom4ColorPalette();
+    const updatedPalettes = [newPal, ...palettes];
+    setPalettes(updatedPalettes);
+
+    const updatedLoadout: CharacterPartLoadout = {
+      ...loadout,
+      mode: "custom",
+      palette: newPal.id,
+    };
+    setLoadout(updatedLoadout);
+    onSave({
+      ...profile,
+      characterLoadout: updatedLoadout,
       unlockedParts,
       exp: currentExp,
     });
@@ -197,6 +236,8 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
   const handleRandomize = () => {
     soundEngine.playWeakHit(5);
     const pickRandom = (arr: PartItemDef[]) => arr[Math.floor(Math.random() * arr.length)].id;
+    const randomPal = palettes[Math.floor(Math.random() * palettes.length)].id;
+
     const randomized: CharacterPartLoadout = {
       mode: "custom",
       hairStyle: pickRandom(HAIR_STYLES),
@@ -206,7 +247,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
       weaponRight: pickRandom(WEAPON_RIGHT_PARTS),
       weaponLeft: pickRandom(WEAPON_LEFT_PARTS),
       backGear: pickRandom(BACK_GEAR_PARTS),
-      palette: pickRandom(PALETTE_PART_DEFS),
+      palette: randomPal,
     };
     setLoadout(randomized);
     onSave({
@@ -249,13 +290,13 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
           {/* ヘッダー */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#334155] bg-[#1E293B]/70">
             <div className="flex items-center gap-2">
-              <span className="text-xl">🎨</span>
+              <span className="text-xl">🎓</span>
               <div>
                 <h2 className="text-base font-black text-white tracking-wider flex items-center gap-2">
-                  キャラ着せ替え ＆ 120形態図鑑
+                  学園生 DopaEng アバター＆4色パレット
                 </h2>
                 <p className="text-[11px] text-[#94A3B8]">
-                  4コマ・ドット絵アニメーション × 2,388万通りのパーツ組み合わせ
+                  4色パレットアイテム × 学園制服・スクール文具カスタマイズ
                 </p>
               </div>
             </div>
@@ -288,6 +329,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                   size={104}
                   showAura={true}
                   animateFrames={true}
+                  customPalettes={palettes}
                 />
               </div>
 
@@ -313,7 +355,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                   {titleInfo.title}
                 </h3>
                 <p className="text-[11px] text-[#94A3B8] mt-0.5">
-                  性別: {profile.gender === "boy" ? "男子 👦" : "女子 👧"} / 系統: {titleInfo.branchLabel}
+                  英語勇者「DopaEng」/ 性別: {profile.gender === "boy" ? "男子 👦" : "女子 👧"}
                 </p>
 
                 {/* 4コマモーション確認ボタン */}
@@ -382,7 +424,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
               }`}
             >
               <Palette className="w-4 h-4" />
-              🎨 パーツ自由着せ替え
+              🎨 4色パレット ＆ 学園パーツ
             </button>
             <button
               onClick={() => setMainTab("codex")}
@@ -393,7 +435,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              📖 120形態・進化図鑑
+              📖 120形態・学園進化図鑑
             </button>
           </div>
 
@@ -422,92 +464,171 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                   })}
                 </div>
 
-                {/* パーツ一覧グリッド */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {getSlotParts(activeSlot).map((part) => {
-                    const isEquipped = loadout[activeSlot] === part.id;
-                    const unlocked = isPartUnlocked(part);
-                    const canAfford = currentExp >= part.lxpCost;
-
-                    return (
-                      <div
-                        key={part.id}
-                        className={`relative p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
-                          isEquipped
-                            ? "bg-[#1E293B] border-[#FACC15] shadow-[0_0_15px_rgba(250,204,21,0.2)]"
-                            : unlocked
-                            ? "bg-[#111827]/80 border-[#334155] hover:border-[#64748B]"
-                            : "bg-[#090D16] border-[#1E293B] opacity-80"
-                        }`}
+                {/* 4色パレット選択画面 */}
+                {activeSlot === "palette" ? (
+                  <div className="space-y-3">
+                    {/* ランダムパレット生成アクションカード */}
+                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#1E293B] to-[#0F172A] border border-[#38BDF8]/40 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-black text-white flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-[#FACC15]" />
+                          <span>4色パレットをランダム生成する</span>
+                        </div>
+                        <p className="text-[11px] text-[#94A3B8] mt-0.5">
+                          開発用機能: 新しい4色の組み合わせアイテムを1クリックで無制限に生成・即試着！
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleGenerateRandomPalette}
+                        className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#06B6D4] to-[#3B82F6] hover:brightness-110 active:scale-95 text-white font-black text-xs shrink-0 flex items-center gap-1.5 shadow-md transition"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-[#030712] border border-[#334155] flex items-center justify-center shrink-0">
-                            {unlocked ? (
-                              isEquipped ? (
-                                <Check className="w-4 h-4 text-[#FACC15]" />
+                        <Plus className="w-4 h-4" />
+                        新パレット生成
+                      </button>
+                    </div>
+
+                    {/* パレットアイテム一覧グリッド */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {palettes.map((pal) => {
+                        const isEquipped = loadout.palette === pal.id;
+                        return (
+                          <div
+                            key={pal.id}
+                            className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                              isEquipped
+                                ? "bg-[#1E293B] border-[#FACC15] shadow-[0_0_15px_rgba(250,204,21,0.2)]"
+                                : "bg-[#111827]/80 border-[#334155] hover:border-[#64748B]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* 4色カラースウォッチ */}
+                              <div className="flex items-center rounded-lg overflow-hidden border border-[#475569] shrink-0 shadow-inner">
+                                <span className="w-4 h-8" style={{ backgroundColor: pal.c1 }} />
+                                <span className="w-4 h-8" style={{ backgroundColor: pal.c2 }} />
+                                <span className="w-4 h-8" style={{ backgroundColor: pal.c3 }} />
+                                <span className="w-4 h-8" style={{ backgroundColor: pal.c4 }} />
+                              </div>
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-black text-white truncate">
+                                    {pal.name}
+                                  </span>
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#334155] text-[#CBD5E1] shrink-0">
+                                    {pal.badge}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-[#94A3B8] mt-0.5">
+                                  4色パレットアイテム
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0">
+                              {isEquipped ? (
+                                <span className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#FACC15] text-black">
+                                  適用中
+                                </span>
                               ) : (
-                                <Sparkles className="w-4 h-4 text-[#38BDF8]" />
-                              )
+                                <button
+                                  onClick={() => handleEquipPalette(pal.id)}
+                                  className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#334155] hover:bg-[#475569] text-white transition-all"
+                                >
+                                  セット
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* 各部位パーツ一覧グリッド */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {getSlotParts(activeSlot).map((part) => {
+                      const isEquipped = loadout[activeSlot] === part.id;
+                      const unlocked = isPartUnlocked(part);
+                      const canAfford = currentExp >= part.lxpCost;
+
+                      return (
+                        <div
+                          key={part.id}
+                          className={`relative p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                            isEquipped
+                              ? "bg-[#1E293B] border-[#FACC15] shadow-[0_0_15px_rgba(250,204,21,0.2)]"
+                              : unlocked
+                              ? "bg-[#111827]/80 border-[#334155] hover:border-[#64748B]"
+                              : "bg-[#090D16] border-[#1E293B] opacity-80"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-[#030712] border border-[#334155] flex items-center justify-center shrink-0">
+                              {unlocked ? (
+                                isEquipped ? (
+                                  <Check className="w-4 h-4 text-[#FACC15]" />
+                                ) : (
+                                  <Sparkles className="w-4 h-4 text-[#38BDF8]" />
+                                )
+                              ) : (
+                                <Lock className="w-4 h-4 text-[#64748B]" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-white truncate">
+                                  {part.name}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#334155] text-[#CBD5E1] shrink-0">
+                                  {part.badge}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-[#94A3B8] mt-0.5">
+                                {part.lxpCost === 0
+                                  ? "初期解放"
+                                  : unlocked
+                                  ? "解放済み"
+                                  : `${part.lxpCost} LXP で即解放`}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            {isEquipped ? (
+                              <span className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#FACC15] text-black">
+                                装備中
+                              </span>
+                            ) : unlocked ? (
+                              <button
+                                onClick={() => handleEquipPart(part)}
+                                className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#334155] hover:bg-[#475569] text-white transition-all"
+                              >
+                                装備
+                              </button>
                             ) : (
-                              <Lock className="w-4 h-4 text-[#64748B]" />
+                              <button
+                                onClick={() => handleUnlockPart(part)}
+                                disabled={!canAfford}
+                                className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all flex items-center gap-1 ${
+                                  canAfford
+                                    ? "bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-black hover:brightness-110 shadow-sm"
+                                    : "bg-[#1E293B] text-[#64748B] cursor-not-allowed"
+                                }`}
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                解放
+                              </button>
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-white truncate">
-                                {part.name}
-                              </span>
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#334155] text-[#CBD5E1] shrink-0">
-                                {part.badge}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-[#94A3B8] mt-0.5">
-                              {part.lxpCost === 0
-                                ? "初期解放"
-                                : unlocked
-                                ? "解放済み"
-                                : `${part.lxpCost} LXP で即解放`}
-                            </div>
-                          </div>
                         </div>
-
-                        {/* アクションボタン */}
-                        <div className="shrink-0">
-                          {isEquipped ? (
-                            <span className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#FACC15] text-black">
-                              装備中
-                            </span>
-                          ) : unlocked ? (
-                            <button
-                              onClick={() => handleEquipPart(part)}
-                              className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#334155] hover:bg-[#475569] text-white transition-all"
-                            >
-                              装備
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleUnlockPart(part)}
-                              disabled={!canAfford}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all flex items-center gap-1 ${
-                                canAfford
-                                  ? "bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-black hover:brightness-110 shadow-sm"
-                                  : "bg-[#1E293B] text-[#64748B] cursor-not-allowed"
-                              }`}
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              解放
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             ) : (
-              /* 120形態・進化図鑑 */
+              /* 120形態・学園進化図鑑 */
               <div className="space-y-4">
-                {/* 6系統セレクター */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(
                     Object.keys(STAT_BRANCH_INFO) as StatBranchType[]
@@ -541,7 +662,6 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                   })}
                 </div>
 
-                {/* 選択中の系統バナー */}
                 <div className="p-3.5 rounded-xl bg-[#111827] border border-[#334155] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <h4 className="text-sm font-black text-white flex items-center gap-2">
@@ -560,7 +680,6 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                   </button>
                 </div>
 
-                {/* Lv.1〜10 の10段階プレビューリスト */}
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((stageNum) => {
                     const stageLoadout = resolveAutoLoadout(
@@ -593,6 +712,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                             size={56}
                             showAura={stageNum >= 5}
                             animateFrames={true}
+                            customPalettes={palettes}
                           />
                         </div>
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-[#334155] text-[#FACC15] mb-1">
@@ -612,7 +732,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
           {/* フッター */}
           <div className="px-5 py-3 border-t border-[#334155] bg-[#1E293B]/60 flex items-center justify-between">
             <span className="text-[11px] text-[#94A3B8]">
-              ※ パーツはいつでも自由に着せ替え・戻すことができます
+              ※ 英語勇者DopaEngは他教科の仲間と共鳴し、大ボスへ挑みます
             </span>
             <button
               onClick={onClose}

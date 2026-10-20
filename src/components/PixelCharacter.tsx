@@ -8,12 +8,11 @@ import {
   FiveStats,
 } from "@/lib/types";
 import {
-  COLOR_PALETTES,
   detectStatBranch,
-  PaletteColors,
+  FourColorPalette,
+  PRESET_4COLOR_PALETTES,
   resolveAutoLoadout,
 } from "@/lib/characterPartsEngine";
-import { EVOLUTION_STAGES } from "@/lib/vocabData";
 
 interface PixelCharacterProps {
   gender: CharacterGender;
@@ -24,12 +23,14 @@ interface PixelCharacterProps {
   stats?: FiveStats;
   loadout?: CharacterPartLoadout;
   animateFrames?: boolean;
+  customPalettes?: FourColorPalette[]; // ユーザーがランダム生成・所持しているパレットリスト
 }
 
 /**
- * 24×24 高精細モジュラー・ドット絵キャラクター描画エンジン（4コマアニメーション搭載）
- * - 五角形ステータス×Lv.1〜10×男女の「全120形態オート進化」＋「8部位パーツ自由着せ替え（2,388万通り）」対応
- * - 4コマ（Frame 0, 1, 2, 3）の呼吸・瞬き・髪やマントの揺れ・翼の羽ばたき・武器の煌めき＆斬撃エフェクトをプロシージャル描画
+ * 【学園モノ × 万能勇者DopaEng】
+ * 24×24 レトロ4色パレット・ドット絵キャラクター描画エンジン（4コマアニメーション搭載）
+ * - キャラクター全体を厳密に「4色のみ（c1暗部, c2明部/肌, c3メイン制服/髪, c4アクセント）」で表現
+ * - 4コマ（Frame 0, 1, 2, 3）の呼吸・瞬き・マフラー/髪の揺れ・学園文具ブレードの煌めき＆斬撃
  */
 export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   gender,
@@ -40,9 +41,9 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   stats,
   loadout,
   animateFrames = true,
+  customPalettes = [],
 }) => {
   const clampedStage = Math.max(1, Math.min(10, stage));
-  const stageInfo = EVOLUTION_STAGES[clampedStage - 1];
 
   // 4コマアニメーション状態 (0 -> 1 -> 2 -> 3)
   const [frame, setFrame] = useState<0 | 1 | 2 | 3>(0);
@@ -73,102 +74,22 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
       ? resolveAutoLoadout(gender, clampedStage, loadout.forcedBranch)
       : autoLoadout;
 
-  // カラーパレット解決
-  const resolvedPalette: PaletteColors = (() => {
-    const found = COLOR_PALETTES.find((p) => p.id === effectiveLoadout.palette);
-    if (found && found.id !== "pal_stage_default") return found;
+  // 4色パレット解決（厳密に4色のみ使用！）
+  const palettePool = [...PRESET_4COLOR_PALETTES, ...customPalettes];
+  const activePalette: FourColorPalette =
+    palettePool.find((p) => p.id === effectiveLoadout.palette) ||
+    PRESET_4COLOR_PALETTES[0];
 
-    // 進化段階デフォルト（Stage 1〜10 の伝統カラー）
-    const hairColorsBoy = [
-      "#3B281E",
-      "#2A2421",
-      "#1E3A8A",
-      "#0F766E",
-      "#991B1B",
-      "#D97706",
-      "#E5E7EB",
-      "#7C3AED",
-      "#EF4444",
-      "#FFE600",
-    ];
-    const hairColorsGirl = [
-      "#5C3A21",
-      "#312E81",
-      "#DB2777",
-      "#0284C7",
-      "#DC2626",
-      "#F59E0B",
-      "#F3F4F6",
-      "#9333EA",
-      "#F43F5E",
-      "#FFF04D",
-    ];
-    const outfitPrimaries = [
-      "#64748B",
-      "#1E293B",
-      "#10B981",
-      "#06B6D4",
-      "#E60012",
-      "#F59E0B",
-      "#311042",
-      "#111827",
-      "#99000C",
-      "#FFFFFF",
-    ];
-    const outfitAccents = [
-      "#CBD5E1",
-      "#EF4444",
-      "#FBBF24",
-      "#22D3EE",
-      "#FFE600",
-      "#FEF08A",
-      "#A855F7",
-      "#EC4899",
-      "#FF4D4D",
-      "#FFE600",
-    ];
-    const idx = clampedStage - 1;
-    return {
-      id: "pal_stage_default",
-      name: "進化段階デフォルト",
-      hairBoy: hairColorsBoy[idx],
-      hairGirl: hairColorsGirl[idx],
-      hairHighlight: "#FEF08A",
-      primary: outfitPrimaries[idx],
-      secondary: "#0F172A",
-      accent: outfitAccents[idx],
-      weaponBlade:
-        clampedStage === 10
-          ? "#FFE600"
-          : clampedStage >= 7
-          ? "#00F0FF"
-          : "#EF4444",
-      weaponGlow: "#FFFFFF",
-      wingMain: clampedStage === 10 ? "#FFE600" : "#EF4444",
-      wingInner: clampedStage === 10 ? "#FFFFFF" : "#FACC15",
-      aura: stageInfo.auraColor,
-    };
-  })();
+  const c1 = activePalette.c1; // Base Dark (輪郭・影・靴・瞳深部)
+  const c2 = activePalette.c2; // Light / Skin (肌色・シャツ白・明るい光)
+  const c3 = activePalette.c3; // Main Fabric / Hair (ブレザー制服・髪・メインパーツ)
+  const c4 = activePalette.c4; // Accent (ネクタイ・リボン・ペン先・金ボタン・光刃)
 
-  const skin = "#FFDCB8";
-  const skinShadow = "#F3C398";
-  const cheek = "#FF8FA3";
-  const hair =
-    gender === "boy" ? resolvedPalette.hairBoy : resolvedPalette.hairGirl;
-  const hairHi = resolvedPalette.hairHighlight;
-  const primary = resolvedPalette.primary;
-  const secondary = resolvedPalette.secondary;
-  const accent = resolvedPalette.accent;
-  const blade = resolvedPalette.weaponBlade;
-  const glow = resolvedPalette.weaponGlow;
-  const wingMain = resolvedPalette.wingMain;
-  const wingInner = resolvedPalette.wingInner;
-
-  // 4コマのモーションオフセット計算
+  // 4コマのモーションオフセット
   // Frame 0: 基本立ち
-  // Frame 1: 呼吸で1px沈む + 翼UP + 髪/マント外揺れ
-  // Frame 2: 基本立ち + 武器の輝き + マント波打ち
-  // Frame 3: 瞬き/ウインク + 翼DOWN
+  // Frame 1: 呼吸で1px沈む (bobY = 1) + マフラー/髪が外側へ揺れる
+  // Frame 2: 基本立ち + 武器の白光グリント (gleam)
+  // Frame 3: 瞬き (isBlink)
   const bobY =
     mood === "happy"
       ? frame % 2 === 1
@@ -178,11 +99,10 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
       ? 1
       : 0;
   const hairSway = frame === 1 || frame === 2 ? 1 : 0;
-  const wingFlap = frame === 1 ? -1 : frame === 3 ? 1 : 0;
   const isBlink = frame === 3 && mood === "idle";
   const isGleam = frame === 2 || frame === 3;
 
-  // 24x24 ピクセルグリッド初期化
+  // 24x24 ピクセルグリッド
   const GRID_SIZE = 24;
   const grid: (string | null)[][] = Array.from({ length: GRID_SIZE }, () =>
     Array(GRID_SIZE).fill(null)
@@ -211,602 +131,434 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   };
 
   // =========================================================================
-  // LAYER 1: 背面装備 (BackGear: マント・マフラー・翼・浮遊剣・イコライザー・九尾)
+  // LAYER 1: 背面装備 (BackGear: リュック、マフラー、肩掛けニット、マント、勇者光翼)
   // =========================================================================
   const backGear = effectiveLoadout.backGear;
 
-  if (backGear === "back_scarf") {
-    // 疾風マフラー（右後ろへなびく）
-    rectPx(15, 11 + bobY, 5 + hairSway, 2, accent);
-    rectPx(17, 13 + bobY - hairSway, 4, 2, accent);
-    setPx(21 + hairSway, 12 + bobY, glow);
-  } else if (backGear === "back_cape") {
-    // 怪盗の深紅マント
-    rectPx(6 - hairSway, 11 + bobY, 12 + hairSway * 2, 8, wingMain);
-    rectPx(7, 12 + bobY, 10, 6, secondary);
-    setPx(5 - hairSway, 17 + bobY, wingMain);
-    setPx(18 + hairSway, 17 + bobY, wingMain);
-  } else if (backGear === "back_thruster") {
-    // サイバーウイング推進器
-    rectPx(5, 10 + bobY, 3, 5, "#334155");
-    rectPx(16, 10 + bobY, 3, 5, "#334155");
-    rectPx(3, 9 + bobY + wingFlap, 3, 2, blade);
-    rectPx(18, 9 + bobY + wingFlap, 3, 2, blade);
-    // ジェット噴射炎（4コマで伸縮）
-    rectPx(5, 15 + bobY, 2, frame % 2 === 1 ? 3 : 2, "#00F0FF");
-    rectPx(17, 15 + bobY, 2, frame % 2 === 1 ? 3 : 2, "#00F0FF");
+  if (backGear === "back_rucksack") {
+    // 通学スクールリュックサック（両肩から後ろへ）
+    rectPx(6, 11 + bobY, 3, 6, c3);
+    rectPx(15, 11 + bobY, 3, 6, c3);
+    rectPx(6, 13 + bobY, 1, 3, c4);
+    rectPx(17, 13 + bobY, 1, 3, c4);
+  } else if (backGear === "back_scarf") {
+    // 風になびく通学マフラー（右後ろへたなびく）
+    rectPx(7, 11 + bobY, 10, 2, c4);
+    rectPx(16 + hairSway, 12 + bobY, 5, 2, c4);
+    rectPx(19 + hairSway, 14 + bobY, 3, 2, c4);
+    setPx(21 + hairSway, 13 + bobY, c2);
+  } else if (backGear === "back_shoulder_knit") {
+    // 肩掛けプロデューサーニット
+    rectPx(7, 11 + bobY, 10, 2, c3);
+    rectPx(9, 13 + bobY, 2, 4, c3);
+    rectPx(13, 13 + bobY, 2, 4, c3);
   } else if (backGear === "back_equalizer") {
-    // ネオン音波イコライザー翼（4コマでバーの高さがリズミカルに変化！）
-    const eqHeights =
-      frame === 0
-        ? [4, 7, 5]
-        : frame === 1
-        ? [7, 4, 8]
-        : frame === 2
-        ? [5, 8, 3]
-        : [8, 6, 6];
+    // ネオン音波イコライザー（4コマでバーが躍動）
+    const barH = frame === 0 ? [3, 6, 4] : frame === 1 ? [6, 4, 7] : [4, 7, 3];
     for (let i = 0; i < 3; i++) {
-      const h = eqHeights[i];
-      rectPx(2 + i * 2, 14 - h + bobY, 1, h, i % 2 === 0 ? "#EC4899" : "#00F0FF");
-      rectPx(21 - i * 2, 14 - h + bobY, 1, h, i % 2 === 0 ? "#EC4899" : "#00F0FF");
+      rectPx(3 + i * 2, 15 - barH[i] + bobY, 1, barH[i], c4);
+      rectPx(20 - i * 2, 15 - barH[i] + bobY, 1, barH[i], c4);
     }
-  } else if (backGear === "back_thunder_drums") {
-    // 雷神の背面雷鼓リング
-    const drumPts = [
-      [5, 6],
-      [3, 9],
-      [4, 13],
-      [18, 6],
-      [20, 9],
-      [19, 13],
+  } else if (backGear === "back_flying_stationery") {
+    // 浮遊する必勝文具ビット（消しゴム・クリップ・三角定規がホバー）
+    const hOff = frame % 2 === 0 ? 0 : -1;
+    rectPx(3, 8 + hOff, 2, 3, c2);
+    setPx(4, 9 + hOff, c4);
+    rectPx(19, 7 - hOff, 3, 3, c4);
+    setPx(20, 8 - hOff, c2);
+  } else if (backGear === "back_speech_banner") {
+    // 大会応援スクールフラッグ（背後に掲げる幟）
+    rectPx(5, 5 + bobY, 1, 13, c1);
+    rectPx(2, 5 + bobY, 4, 5, c4);
+    setPx(3, 7 + bobY, c2);
+  } else if (backGear === "back_alphabet_aura") {
+    // 舞い踊る英単語(A-Z)オーラ
+    const letters = [
+      [3, 7],
+      [5, 12],
+      [19, 7],
+      [20, 13],
     ];
-    drumPts.forEach(([dx, dy], idx) => {
-      rectPx(dx, dy + bobY, 2, 2, "#FACC15");
+    letters.forEach(([lx, ly], idx) => {
       if ((idx + frame) % 2 === 0) {
-        setPx(dx, dy + bobY, "#FFFFFF");
+        setPx(lx, ly + bobY, c4);
+        setPx(lx + 1, ly + bobY, c2);
       }
     });
-  } else if (backGear === "back_floating_swords") {
-    // 無限展開・浮遊剣陣（左右に4本の光剣がホバー）
-    const hover = frame % 2 === 0 ? 0 : -1;
-    // 左側2本
-    rectPx(3, 6 + hover, 1, 6, blade);
-    setPx(3, 5 + hover, glow);
-    rectPx(5, 9 - hover, 1, 6, accent);
-    setPx(5, 8 - hover, glow);
-    // 右側2本
-    rectPx(20, 6 + hover, 1, 6, blade);
-    setPx(20, 5 + hover, glow);
-    rectPx(18, 9 - hover, 1, 6, accent);
-    setPx(18, 8 - hover, glow);
-  } else if (backGear === "back_angel_wings") {
-    // 純白の熾天使ウイング
-    const wy = 7 + bobY + wingFlap;
-    // 左翼
-    rectPx(2, wy, 5, 3, "#FFFFFF");
-    rectPx(1, wy + 2, 6, 3, "#E2E8F0");
-    rectPx(3, wy + 5, 4, 2, "#38BDF8");
-    // 右翼
-    rectPx(17, wy, 5, 3, "#FFFFFF");
-    rectPx(17, wy + 2, 6, 3, "#E2E8F0");
-    rectPx(17, wy + 5, 4, 2, "#38BDF8");
-  } else if (backGear === "back_demon_wings" || backGear === "back_crimson_wings") {
-    // 悪魔ウイング / 紅蓮アークドラゴン翼
-    const wy = 6 + bobY + wingFlap;
-    const wMain = backGear === "back_crimson_wings" ? "#EF4444" : "#4C1D95";
-    const wSub = backGear === "back_crimson_wings" ? "#FACC15" : "#DC2626";
-    // 左翼
-    rectPx(1, wy, 6, 2, wMain);
-    rectPx(2, wy + 2, 5, 4, wSub);
-    setPx(1, wy + 4, wMain);
-    setPx(3, wy + 6, wMain);
-    setPx(5, wy + 7, wMain);
-    // 右翼
-    rectPx(17, wy, 6, 2, wMain);
-    rectPx(17, wy + 2, 5, 4, wSub);
-    setPx(22, wy + 4, wMain);
-    setPx(20, wy + 6, wMain);
-    setPx(18, wy + 7, wMain);
-  } else if (backGear === "back_nine_tails") {
-    // 神秘の九尾狐オーラ
-    const ty = 9 + bobY + wingFlap;
-    rectPx(2, ty, 5, 7, wingMain);
-    rectPx(17, ty, 5, 7, wingMain);
-    rectPx(1, ty + 2, 4, 4, wingInner);
-    rectPx(19, ty + 2, 4, 4, wingInner);
-    setPx(2, ty - 1, glow);
-    setPx(21, ty - 1, glow);
-  } else if (backGear === "back_seraphim_gold") {
-    // 黄金六枚翼・セラフィム（上翼・中翼・下翼の3対＋背面神光輪）
-    const wy = 5 + bobY + wingFlap;
-    // 背面ハロ（光輪）
-    rectPx(8, 2, 8, 1, "#FFE600");
-    setPx(7, 3, "#FFE600");
-    setPx(16, 3, "#FFE600");
-    // 上対翼
-    rectPx(1, wy, 6, 2, "#FFE600");
-    rectPx(17, wy, 6, 2, "#FFE600");
-    // 中対翼
-    rectPx(0, wy + 3, 7, 2, "#FFFFFF");
-    rectPx(17, wy + 3, 7, 2, "#FFFFFF");
-    // 下対翼
-    rectPx(2, wy + 6, 5, 3, "#EF4444");
-    rectPx(17, wy + 6, 5, 3, "#EF4444");
+  } else if (backGear === "back_brave_cape") {
+    // 英語勇者の学園マント
+    rectPx(6 - hairSway, 11 + bobY, 12 + hairSway * 2, 8, c3);
+    rectPx(7, 12 + bobY, 10, 6, c1);
+    rectPx(6 - hairSway, 18 + bobY, 2, 1, c4);
+    rectPx(16 + hairSway, 18 + bobY, 2, 1, c4);
+  } else if (backGear === "back_brave_wings") {
+    // 万能勇者DopaEngの光翼（学園の頂点・覚醒羽）
+    const wy = 6 + bobY + (frame === 1 ? -1 : frame === 3 ? 1 : 0);
+    // 左光翼
+    rectPx(1, wy, 6, 2, c4);
+    rectPx(2, wy + 2, 5, 3, c2);
+    setPx(1, wy + 4, c4);
+    // 右光翼
+    rectPx(17, wy, 6, 2, c4);
+    rectPx(17, wy + 2, 5, 3, c2);
+    setPx(22, wy + 4, c4);
   }
 
   // =========================================================================
-  // LAYER 2: 後ろ髪（ロングヘア・ツインテール・ポニーテール等）
+  // LAYER 2: 後ろ髪（ツインテ、ポニーテール、ロール等）
   // =========================================================================
   const hairStyle = effectiveLoadout.hairStyle;
 
   if (hairStyle === "hair_twintail") {
-    // 王道ツインテール（4コマで毛先が揺れる）
-    rectPx(5 - hairSway, 7 + bobY, 2, 7, hair);
-    rectPx(17 + hairSway, 7 + bobY, 2, 7, hair);
-    setPx(5 - hairSway, 14 + bobY, hairHi);
-    setPx(18 + hairSway, 14 + bobY, hairHi);
+    rectPx(5 - hairSway, 7 + bobY, 2, 7, c3);
+    rectPx(17 + hairSway, 7 + bobY, 2, 7, c3);
+    setPx(5 - hairSway, 13 + bobY, c4);
+    setPx(18 + hairSway, 13 + bobY, c4);
   } else if (hairStyle === "hair_ponytail") {
-    // 疾風ポニーテール（右後ろへ跳ねる）
-    rectPx(16, 6 + bobY - hairSway, 4, 3, hair);
-    rectPx(18, 8 + bobY - hairSway, 3, 3, hair);
+    rectPx(16, 6 + bobY - hairSway, 4, 3, c3);
+    rectPx(18, 8 + bobY - hairSway, 3, 3, c3);
+    setPx(16, 7 + bobY - hairSway, c4);
   } else if (hairStyle === "hair_drill") {
-    // お嬢様ツイン縦ロール
-    rectPx(5, 7 + bobY, 3, 8, hair);
-    rectPx(16, 7 + bobY, 3, 8, hair);
-    setPx(6, 9 + bobY, hairHi);
-    setPx(6, 12 + bobY, hairHi);
-    setPx(17, 9 + bobY, hairHi);
-    setPx(17, 12 + bobY, hairHi);
-  } else if (hairStyle === "hair_long_sage") {
-    // 星詠み大賢者ロング
-    rectPx(6, 7 + bobY, 12, 9, hair);
-    rectPx(5 - hairSway, 11 + bobY, 14 + hairSway * 2, 5, hair);
+    rectPx(5, 7 + bobY, 3, 8, c3);
+    rectPx(16, 7 + bobY, 3, 8, c3);
+    setPx(6, 9 + bobY, c2);
+    setPx(17, 9 + bobY, c2);
   } else if (hairStyle === "hair_odango") {
-    // ネオ中華お団子ツイン
-    rectPx(5, 4 + bobY, 3, 3, hair);
-    rectPx(16, 4 + bobY, 3, 3, hair);
-    setPx(5, 4 + bobY, accent);
-    setPx(18, 4 + bobY, accent);
+    rectPx(5, 4 + bobY, 3, 3, c3);
+    rectPx(16, 4 + bobY, 3, 3, c3);
+    setPx(5, 4 + bobY, c4);
+    setPx(18, 4 + bobY, c4);
   }
 
   // =========================================================================
-  // LAYER 3: ボディ・衣装・脚・腕
+  // LAYER 3: 脚・靴・ボトムス（接地 y=18..21）
   // =========================================================================
   const outfit = effectiveLoadout.outfit;
 
-  // 脚＆ブーツ（地面 y=18..21 に接地して安定感を出す）
   if (
     gender === "girl" &&
     (outfit === "outfit_uniform" ||
-      outfit === "outfit_idol_rock" ||
-      outfit === "outfit_sage")
+      outfit === "outfit_sailor_gakuran" ||
+      outfit === "outfit_cardigan" ||
+      outfit === "outfit_idol_stage")
   ) {
-    // スカート＋ソックス＋シューズ
-    rectPx(8, 17 + bobY, 8, 2, accent);
-    rectPx(9, 19, 2, 1, skin);
-    rectPx(13, 19, 2, 1, skin);
-    rectPx(9, 20, 2, 2, secondary);
-    rectPx(13, 20, 2, 2, secondary);
+    // スカート ＋ ハイソックス ＋ ローファー
+    rectPx(8, 17 + bobY, 8, 2, c3);
+    rectPx(9, 19, 2, 1, c2); // 生足部分
+    rectPx(13, 19, 2, 1, c2);
+    rectPx(9, 20, 2, 2, c1); // ソックス＆ローファー
+    rectPx(13, 20, 2, 2, c1);
   } else {
-    // パンツ＋アーマーブーツ
-    rectPx(9, 18, 2, 2, secondary);
-    rectPx(13, 18, 2, 2, secondary);
-    rectPx(8, 20, 3, 2, accent);
-    rectPx(13, 20, 3, 2, accent);
+    // スラックスズボン ＋ スクールスニーカー
+    rectPx(9, 18, 2, 2, c3);
+    rectPx(13, 18, 2, 2, c3);
+    rectPx(8, 20, 3, 2, c1); // 靴
+    rectPx(13, 20, 3, 2, c1);
+    setPx(8, 20, c2); // スニーカー白ライン
+    setPx(13, 20, c2);
   }
 
-  // トルソー（胴体 y=12..17）
-  rectPx(8, 12 + bobY, 8, 6, primary);
+  // =========================================================================
+  // LAYER 4: 胴体・衣装（制服・ジャージ・パーカー・スーツ）
+  // =========================================================================
+  rectPx(8, 12 + bobY, 8, 6, c3);
 
-  // 衣装別のディテール装飾
   if (outfit === "outfit_jersey") {
-    // 部屋着ジャージ（2本ライン）
-    rectPx(8, 12 + bobY, 1, 6, "#FFFFFF");
-    rectPx(15, 12 + bobY, 1, 6, "#FFFFFF");
-    rectPx(10, 12 + bobY, 4, 2, "#E2E8F0");
+    // 部屋着ジャージ（胸に白ライン）
+    rectPx(8, 12 + bobY, 1, 6, c2);
+    rectPx(15, 12 + bobY, 1, 6, c2);
+    rectPx(11, 12 + bobY, 2, 3, c1);
   } else if (outfit === "outfit_uniform") {
-    // 学園ブレザー制服（白シャツ＋赤ネクタイ/リボン）
-    rectPx(10, 12 + bobY, 4, 3, "#FFFFFF");
-    rectPx(11, 13 + bobY, 2, 3, "#EF4444");
+    // 学園ブレザー制服（白シャツ ＋ ネクタイ/リボン ＋ 金ボタン）
+    rectPx(10, 12 + bobY, 4, 3, c2);
+    rectPx(11, 13 + bobY, 2, 3, c4);
+    setPx(10, 15 + bobY, c4);
+  } else if (outfit === "outfit_sailor_gakuran") {
+    // セーラー / 学ラン
+    if (gender === "boy") {
+      // 学ラン（詰襟ゴールドボタン）
+      rectPx(11, 12 + bobY, 2, 1, c2);
+      setPx(11, 13 + bobY, c4);
+      setPx(11, 15 + bobY, c4);
+    } else {
+      // セーラー服（白襟＋三角スカーフ）
+      rectPx(9, 12 + bobY, 6, 2, c2);
+      rectPx(11, 13 + bobY, 2, 3, c4);
+    }
+  } else if (outfit === "outfit_cardigan") {
+    // 放課後スクールカーディガン
+    rectPx(10, 12 + bobY, 4, 4, c2);
+    rectPx(11, 13 + bobY, 2, 2, c4);
   } else if (outfit === "outfit_hoodie") {
-    // ストリートパーカー
-    rectPx(9, 12 + bobY, 6, 2, accent);
-    rectPx(10, 14 + bobY, 1, 3, "#FFFFFF");
-    rectPx(13, 14 + bobY, 1, 3, "#FFFFFF");
-  } else if (outfit === "outfit_cyber") {
-    // ネオンサイバースーツ
-    rectPx(8, 13 + bobY, 8, 1, "#00F0FF");
-    rectPx(11, 14 + bobY, 2, 3, "#00F0FF");
-  } else if (outfit === "outfit_phantom") {
-    // 怪盗ロングコート
-    rectPx(7, 16 + bobY, 10, 3, primary);
-    rectPx(11, 12 + bobY, 2, 5, "#EF4444");
-    setPx(10, 14 + bobY, "#FACC15");
-    setPx(13, 14 + bobY, "#FACC15");
-  } else if (outfit === "outfit_shinobi") {
-    // 神速の闇忍装束（クロスベルト＆マフラー襟）
-    rectPx(8, 12 + bobY, 8, 2, "#EF4444");
-    setPx(9, 14 + bobY, accent);
-    setPx(10, 15 + bobY, accent);
-    setPx(14, 14 + bobY, accent);
-    setPx(13, 15 + bobY, accent);
-  } else if (outfit === "outfit_sage") {
-    // 星詠み大魔導ローブ
-    rectPx(7, 15 + bobY, 10, 4, primary);
-    rectPx(10, 12 + bobY, 4, 6, accent);
-    setPx(11, 14 + bobY, "#FFE600");
-    setPx(12, 14 + bobY, "#FFE600");
-  } else if (outfit === "outfit_idol_rock") {
-    // 超音撃ステージ衣装
-    rectPx(9, 12 + bobY, 6, 2, "#EC4899");
-    rectPx(8, 15 + bobY, 8, 1, "#00F0FF");
-    rectPx(10, 13 + bobY, 4, 2, "#FFE600");
-  } else if (outfit === "outfit_paladin") {
-    // 白銀の聖騎士アーマー
-    rectPx(7, 12 + bobY, 2, 3, "#E2E8F0");
-    rectPx(15, 12 + bobY, 2, 3, "#E2E8F0");
-    rectPx(11, 12 + bobY, 2, 6, "#FFE600");
-    rectPx(9, 14 + bobY, 6, 1, "#10B981");
-  } else if (outfit === "outfit_berserker") {
-    // 黒炎の狂戦士メイル
-    rectPx(7, 12 + bobY, 2, 2, "#EF4444");
-    rectPx(15, 12 + bobY, 2, 2, "#EF4444");
-    rectPx(9, 13 + bobY, 6, 2, "#991B1B");
-    rectPx(10, 15 + bobY, 4, 2, "#FACC15");
-  } else if (outfit === "outfit_overlord") {
-    // アークロード覇王鎧
-    rectPx(6, 11 + bobY, 3, 3, accent);
-    rectPx(15, 11 + bobY, 3, 3, accent);
-    rectPx(10, 13 + bobY, 4, 4, "#FFE600");
-    rectPx(11, 14 + bobY, 2, 2, "#EF4444");
-  } else if (outfit === "outfit_god") {
-    // 語彙神の黄金神衣
-    rectPx(6, 11 + bobY, 3, 3, "#FFE600");
-    rectPx(15, 11 + bobY, 3, 3, "#FFE600");
-    rectPx(8, 12 + bobY, 8, 6, "#FFFFFF");
-    rectPx(10, 12 + bobY, 4, 6, "#FFE600");
-    rectPx(11, 13 + bobY, 2, 3, "#E60012");
+    // パーカー制服
+    rectPx(9, 12 + bobY, 6, 2, c4);
+    rectPx(10, 14 + bobY, 1, 3, c2);
+    rectPx(13, 14 + bobY, 1, 3, c2);
+  } else if (outfit === "outfit_tuxedo") {
+    // 英語弁論大会フォーマルスーツ
+    rectPx(10, 12 + bobY, 4, 5, c2);
+    rectPx(11, 13 + bobY, 2, 2, c1); // 蝶ネクタイ
+    setPx(11, 15 + bobY, c4);
+  } else if (outfit === "outfit_scholar_robe") {
+    // 図書室スカラー制服
+    rectPx(7, 15 + bobY, 10, 3, c3);
+    rectPx(10, 12 + bobY, 4, 6, c4);
+  } else if (outfit === "outfit_idol_stage") {
+    // 学園祭ステージ衣装
+    rectPx(9, 12 + bobY, 6, 2, c4);
+    rectPx(8, 15 + bobY, 8, 1, c2);
+  } else if (outfit === "outfit_council_blazer") {
+    // 生徒会特注エンブレム制服
+    rectPx(10, 12 + bobY, 4, 3, c2);
+    rectPx(11, 13 + bobY, 2, 3, c4);
+    rectPx(9, 14 + bobY, 2, 2, c4); // 胸の特注エンブレム
+  } else if (outfit === "outfit_ace_blazer") {
+    // 学園英語選抜エースブレザー
+    rectPx(10, 12 + bobY, 4, 3, c2);
+    rectPx(11, 13 + bobY, 2, 3, c4);
+    rectPx(7, 12 + bobY, 2, 2, c4); // 肩章
+    rectPx(15, 12 + bobY, 2, 2, c4);
+  } else if (outfit === "outfit_brave_dopaeng") {
+    // 万能勇者DopaEngマント制服（ゴールド装飾＆勇者のエンブレム）
+    rectPx(7, 12 + bobY, 2, 3, c4);
+    rectPx(15, 12 + bobY, 2, 3, c4);
+    rectPx(10, 12 + bobY, 4, 6, c2);
+    rectPx(11, 13 + bobY, 2, 4, c4);
   }
 
   // 両腕＆手（happy時はバンザイ！）
   const armY = mood === "happy" && frame % 2 === 1 ? 10 + bobY : 12 + bobY;
-  rectPx(6, armY, 2, 4, primary);
-  rectPx(16, armY, 2, 4, primary);
-  rectPx(6, armY + 4, 2, 1, skin);
-  rectPx(16, armY + 4, 2, 1, skin);
+  rectPx(6, armY, 2, 4, c3);
+  rectPx(16, armY, 2, 4, c3);
+  rectPx(6, armY + 4, 2, 1, c2); // 手（肌）
+  rectPx(16, armY + 4, 2, 1, c2);
 
   // =========================================================================
-  // LAYER 4: 頭部・顔・表情・瞳 (EyeStyle + 4コマ瞬き)
+  // LAYER 5: 頭部・顔・瞳 (EyeStyle)
   // =========================================================================
-  rectPx(8, 6 + bobY, 8, 6, skin);
-  rectPx(9, 11 + bobY, 6, 1, skinShadow);
-  // 耳
-  setPx(7, 8 + bobY, skin);
-  setPx(7, 9 + bobY, skinShadow);
-  setPx(16, 8 + bobY, skin);
-  setPx(16, 9 + bobY, skinShadow);
+  rectPx(8, 6 + bobY, 8, 6, c2); // 顔の肌
+  // 輪郭影
+  rectPx(9, 11 + bobY, 6, 1, c1);
+  setPx(7, 8 + bobY, c2); // 耳
+  setPx(16, 8 + bobY, c2);
 
-  // ほっぺ
-  setPx(8, 10 + bobY, cheek);
-  setPx(15, 10 + bobY, cheek);
+  // ほっぺ（アクセントカラー c4 の薄ドット）
+  setPx(8, 10 + bobY, c4);
+  setPx(15, 10 + bobY, c4);
 
-  // 瞳の描画 (EyeStyle)
+  // 瞳の描画（isBlink時は横1本の細線）
   const eyeStyle = effectiveLoadout.eyeStyle;
   if (isBlink) {
-    // Frame 3: 瞬き（横線）
-    rectPx(9, 9 + bobY, 2, 1, "#1E1B18");
-    rectPx(13, 9 + bobY, 2, 1, "#1E1B18");
+    rectPx(9, 9 + bobY, 2, 1, c1);
+    rectPx(13, 9 + bobY, 2, 1, c1);
   } else if (mood === "happy" || mood === "evolve") {
-    // 歓喜のキラキラ目
-    setPx(9, 8 + bobY, "#1E1B18");
-    setPx(10, 9 + bobY, "#1E1B18");
-    setPx(14, 8 + bobY, "#1E1B18");
-    setPx(13, 9 + bobY, "#1E1B18");
+    // ニッコリ目
+    setPx(9, 8 + bobY, c1);
+    setPx(10, 9 + bobY, c1);
+    setPx(14, 8 + bobY, c1);
+    setPx(13, 9 + bobY, c1);
   } else {
-    let leftEyeColor = "#1E1B18";
-    let rightEyeColor = "#1E1B18";
-    if (eyeStyle === "eye_determined") {
-      leftEyeColor = "#1E1B18";
-      rightEyeColor = "#1E1B18";
-      // キリッとした眉毛
-      setPx(9, 7 + bobY, hair);
-      setPx(10, 8 + bobY, hair);
-      setPx(14, 7 + bobY, hair);
-      setPx(13, 8 + bobY, hair);
-    } else if (eyeStyle === "eye_cool") {
-      leftEyeColor = "#312E81";
-      rightEyeColor = "#312E81";
-      rectPx(9, 7 + bobY, 2, 1, hair);
-      rectPx(13, 7 + bobY, 2, 1, hair);
-    } else if (eyeStyle === "eye_sparkle") {
-      leftEyeColor = "#DB2777";
-      rightEyeColor = "#DB2777";
-    } else if (eyeStyle === "eye_cyber") {
-      leftEyeColor = "#00F0FF";
-      rightEyeColor = "#00F0FF";
-    } else if (eyeStyle === "eye_oddeye") {
-      leftEyeColor = "#EF4444";
-      rightEyeColor = "#00F0FF";
-    } else if (eyeStyle === "eye_crimson") {
-      leftEyeColor = "#EF4444";
-      rightEyeColor = "#EF4444";
-    } else if (eyeStyle === "eye_god") {
-      leftEyeColor = "#FFE600";
-      rightEyeColor = "#FFE600";
-    }
+    rectPx(9, 8 + bobY, 2, 2, c1);
+    rectPx(13, 8 + bobY, 2, 2, c1);
+    // 瞳のハイライト
+    setPx(9, 8 + bobY, c2);
+    setPx(13, 8 + bobY, c2);
 
-    rectPx(9, 8 + bobY, 2, 2, leftEyeColor);
-    rectPx(13, 8 + bobY, 2, 2, rightEyeColor);
-    // ハイライト白ドット
-    setPx(9, 8 + bobY, "#FFFFFF");
-    setPx(13, 8 + bobY, "#FFFFFF");
+    if (eyeStyle === "eye_determined") {
+      setPx(9, 7 + bobY, c3); // 眉毛
+      setPx(14, 7 + bobY, c3);
+    } else if (eyeStyle === "eye_brave") {
+      // 勇者の瞳（アクセントカラーが宿る）
+      setPx(10, 9 + bobY, c4);
+      setPx(14, 9 + bobY, c4);
+    }
   }
 
   // 口元
-  if (mood === "happy" || mood === "attack" || mood === "evolve") {
-    rectPx(11, 10 + bobY, 2, 1, "#E60012");
-  } else {
-    rectPx(11, 10 + bobY, 2, 1, "#C97A63");
-  }
+  setPx(11, 10 + bobY, c1);
+  setPx(12, 10 + bobY, c1);
 
   // =========================================================================
-  // LAYER 5: 前髪・トップヘア (HairStyle)
+  // LAYER 6: 前髪・ヘアスタイル (HairStyle)
   // =========================================================================
-  // ベース頭頂部
-  rectPx(7, 4 + bobY, 10, 2, hair);
-  rectPx(8, 3 + bobY, 8, 1, hair);
-  // 前髪＆サイドロック
-  setPx(7, 6 + bobY, hair);
-  setPx(7, 7 + bobY, hair);
-  setPx(16, 6 + bobY, hair);
-  setPx(16, 7 + bobY, hair);
-  setPx(9, 6 + bobY, hair);
-  setPx(11, 6 + bobY, hair);
-  setPx(12, 6 + bobY, hair);
-  setPx(14, 6 + bobY, hair);
+  rectPx(7, 4 + bobY, 10, 2, c3);
+  rectPx(8, 3 + bobY, 8, 1, c3);
+  // 前髪サイド
+  setPx(7, 6 + bobY, c3);
+  setPx(16, 6 + bobY, c3);
+  setPx(9, 6 + bobY, c3);
+  setPx(11, 6 + bobY, c3);
+  setPx(12, 6 + bobY, c3);
+  setPx(14, 6 + bobY, c3);
 
   if (hairStyle === "hair_spiky") {
-    // ツンツンヒーロー
-    setPx(7, 3 + bobY, hair);
-    setPx(10, 2 + bobY, hair);
-    setPx(13, 2 + bobY, hair);
-    setPx(16, 3 + bobY, hair);
-  } else if (hairStyle === "hair_bob") {
-    // ふんわりショートボブ
-    rectPx(6, 5 + bobY, 1, 5, hair);
-    rectPx(17, 5 + bobY, 1, 5, hair);
-  } else if (hairStyle === "hair_wolf") {
-    // クールウルフ
-    rectPx(6, 5 + bobY, 1, 6, hair);
-    rectPx(17, 5 + bobY, 1, 6, hair);
-    setPx(8, 2 + bobY, hair);
-    setPx(15, 2 + bobY, hair);
-  } else if (hairStyle === "hair_cyber_mesh") {
-    // ネオンアシメバング（前髪にネオンメッシュ！）
-    rectPx(10, 5 + bobY, 3, 2, accent);
-    setPx(11, 7 + bobY, accent);
-  } else if (hairStyle === "hair_samurai") {
-    // 剣豪サムライ結い（頭頂部マゲ＋結い紐）
-    rectPx(10, 1 + bobY, 4, 2, hair);
-    rectPx(11, 3 + bobY, 2, 1, accent);
-  } else if (hairStyle === "hair_wild_flame" || hairStyle === "hair_god_aura") {
-    // 紅蓮バーサーカー逆毛 / 超覚醒・神逆立ちヘア
-    const spikeColor = hairStyle === "hair_god_aura" ? "#FFE600" : hair;
-    rectPx(7, 2 + bobY, 2, 2, spikeColor);
-    rectPx(10, 1 + bobY - hairSway, 4, 2, spikeColor);
-    rectPx(15, 2 + bobY, 2, 2, spikeColor);
-    setPx(9, 3 + bobY, hairHi);
-    setPx(14, 3 + bobY, hairHi);
+    setPx(7, 3 + bobY, c3);
+    setPx(10, 2 + bobY, c3);
+    setPx(13, 2 + bobY, c3);
+    setPx(16, 3 + bobY, c3);
+  } else if (hairStyle === "hair_mush") {
+    rectPx(8, 5 + bobY, 8, 2, c3);
+  } else if (hairStyle === "hair_center") {
+    rectPx(7, 4 + bobY, 4, 3, c3);
+    rectPx(13, 4 + bobY, 4, 3, c3);
+  } else if (hairStyle === "hair_allback") {
+    rectPx(7, 2 + bobY, 10, 2, c3);
+    setPx(9, 1 + bobY, c3);
+    setPx(14, 1 + bobY, c3);
+  } else if (hairStyle === "hair_flame" || hairStyle === "hair_brave_crown") {
+    // 逆毛 / 覚醒勇者ヘア
+    setPx(7, 2 + bobY, c3);
+    rectPx(10, 1 + bobY - hairSway, 4, 2, c3);
+    setPx(16, 2 + bobY, c3);
+    setPx(11, 3 + bobY, c4); // 勇者の光ハイライト
   }
 
   // =========================================================================
-  // LAYER 6: 頭・顔装備 (Headgear)
+  // LAYER 7: 頭装備 (Headgear)
   // =========================================================================
   const headgear = effectiveLoadout.headgear;
 
   if (headgear === "head_ahoge") {
-    // 寝癖ピョコ毛（4コマでピョコピョコ動く）
-    setPx(11, 2 + bobY, hair);
-    setPx(12 + hairSway, 1 + bobY, hair);
-    setPx(13 + hairSway, 1 + bobY, hair);
+    setPx(11, 2 + bobY, c3);
+    setPx(12 + hairSway, 1 + bobY, c3);
+    setPx(13 + hairSway, 1 + bobY, c3);
   } else if (headgear === "head_ribbon") {
-    // ツインリボン飾り
-    rectPx(5, 5 + bobY, 2, 2, "#EF4444");
-    rectPx(17, 5 + bobY, 2, 2, "#EF4444");
+    rectPx(5, 5 + bobY, 2, 2, c4);
+    rectPx(17, 5 + bobY, 2, 2, c4);
   } else if (headgear === "head_glasses") {
-    // 知略のインテリ眼鏡
-    rectPx(8, 8 + bobY, 4, 1, "#38BDF8");
-    rectPx(12, 8 + bobY, 4, 1, "#38BDF8");
+    rectPx(8, 8 + bobY, 4, 1, c1);
+    rectPx(12, 8 + bobY, 4, 1, c1);
     if (isGleam) {
-      setPx(9, 8 + bobY, "#FFFFFF");
-      setPx(13, 8 + bobY, "#FFFFFF");
+      setPx(9, 8 + bobY, c2);
+      setPx(13, 8 + bobY, c2);
     }
   } else if (headgear === "head_headphones") {
-    // ネオンヘッドホン
-    rectPx(7, 3 + bobY, 10, 1, "#E2E8F0");
-    rectPx(6, 7 + bobY, 2, 3, "#EC4899");
-    rectPx(16, 7 + bobY, 2, 3, "#EC4899");
-    setPx(6, 8 + bobY, "#00F0FF");
-    setPx(17, 8 + bobY, "#00F0FF");
-  } else if (headgear === "head_ninja_band") {
-    // 疾風の忍額当て
-    rectPx(7, 5 + bobY, 10, 2, "#0F172A");
-    rectPx(10, 5 + bobY, 4, 1, "#94A3B8");
-    // 後ろになびくハチマキ紐
-    rectPx(17, 5 + bobY - hairSway, 3, 1, "#EF4444");
-  } else if (headgear === "head_visor") {
-    // サイバースカウター
-    rectPx(8, 7 + bobY, 8, 2, "#00F0FF");
-    rectPx(9, 8 + bobY, 6, 1, "#FFFFFF");
-  } else if (headgear === "head_phantom_mask") {
-    // 怪盗ファントムマスク
-    rectPx(8, 7 + bobY, 8, 2, "#F8FAFC");
-    setPx(7, 6 + bobY, "#EF4444");
-    setPx(16, 6 + bobY, "#EF4444");
-    setPx(9, 8 + bobY, "#EF4444");
-    setPx(14, 8 + bobY, "#EF4444");
-  } else if (headgear === "head_wizard_hat") {
-    // 星詠み魔導クラウン
-    rectPx(6, 3 + bobY, 12, 2, "#312E81");
-    rectPx(8, 1 + bobY, 8, 2, "#4C1D95");
-    rectPx(10, 0, 4, 1, "#6D28D9");
-    rectPx(11, 3 + bobY, 2, 1, "#FFE600");
-  } else if (headgear === "head_valkyrie_helm") {
-    // 聖騎士ヴァルキリー翼冠
-    rectPx(5, 3 + bobY, 2, 3, "#FFFFFF");
-    rectPx(6, 2 + bobY, 2, 2, "#38BDF8");
-    rectPx(17, 3 + bobY, 2, 3, "#FFFFFF");
-    rectPx(16, 2 + bobY, 2, 2, "#38BDF8");
-    rectPx(10, 4 + bobY, 4, 2, "#FFE600");
-  } else if (headgear === "head_demon_horns") {
-    // 紅蓮覇王の龍角
-    rectPx(6, 2 + bobY, 2, 3, "#EF4444");
-    rectPx(5, 1 + bobY, 2, 2, "#FACC15");
-    rectPx(16, 2 + bobY, 2, 3, "#EF4444");
-    rectPx(17, 1 + bobY, 2, 2, "#FACC15");
-  } else if (headgear === "head_god_crown") {
-    // 語彙神の黄金王冠＆光輪
-    rectPx(8, 1 + bobY, 8, 3, "#FFE600");
-    setPx(8, 0 + bobY, "#FFFFFF");
-    setPx(11, 0 + bobY, "#FFFFFF");
-    setPx(12, 0 + bobY, "#FFFFFF");
-    setPx(15, 0 + bobY, "#FFFFFF");
-    rectPx(11, 2 + bobY, 2, 1, "#E60012");
+    rectPx(7, 3 + bobY, 10, 1, c1);
+    rectPx(6, 7 + bobY, 2, 3, c4);
+    rectPx(16, 7 + bobY, 2, 3, c4);
+    setPx(6, 8 + bobY, c2);
+    setPx(17, 8 + bobY, c2);
+  } else if (headgear === "head_cap") {
+    rectPx(7, 3 + bobY, 10, 2, c3);
+    rectPx(15, 5 + bobY, 4, 1, c4); // つば
+  } else if (headgear === "head_smart_glass") {
+    rectPx(8, 7 + bobY, 8, 2, c4);
+    setPx(9, 8 + bobY, c2);
+  } else if (headgear === "head_headband") {
+    rectPx(7, 5 + bobY, 10, 1, c2); // 白ハチマキ
+    rectPx(17, 5 + bobY - hairSway, 3, 1, c4); // なびく赤紐
+  } else if (headgear === "head_laurel") {
+    rectPx(6, 4 + bobY, 2, 2, c4);
+    rectPx(16, 4 + bobY, 2, 2, c4);
+    setPx(11, 2 + bobY, c4);
+  } else if (headgear === "head_brave_tiara") {
+    rectPx(8, 1 + bobY, 8, 2, c4);
+    setPx(11, 0 + bobY, c2);
+    setPx(12, 0 + bobY, c2);
   }
 
   // =========================================================================
-  // LAYER 7: 左手サブ装備 (WeaponLeft: 画面左側 x=1..6)
+  // LAYER 8: 左手装備 (WeaponLeft: 単語帳、スクールバッグ、辞書、シールド)
   // =========================================================================
   const wpLeft = effectiveLoadout.weaponLeft;
   const subHover = frame % 2 === 1 ? -1 : 0;
 
-  if (wpLeft === "sub_note_shield") {
-    // 必勝単語帳ボード
-    rectPx(3, 12 + bobY, 3, 4, "#F8FAFC");
-    rectPx(3, 12 + bobY, 1, 4, "#EF4444");
-    setPx(4, 13 + bobY, "#1E293B");
-  } else if (wpLeft === "sub_grimoire") {
-    // 浮遊する古代魔導書
-    rectPx(2, 10 + subHover, 4, 4, "#6D28D9");
-    rectPx(3, 11 + subHover, 2, 2, "#FEF08A");
-    if (isGleam) setPx(3, 9 + subHover, "#00F0FF");
-  } else if (wpLeft === "sub_sonic_amp") {
+  if (wpLeft === "sub_word_ring") {
+    // 必勝リング単語帳
+    rectPx(3, 12 + bobY, 3, 4, c2);
+    setPx(3, 12 + bobY, c1); // リング部
+    setPx(4, 13 + bobY, c4); // 単語文字
+  } else if (wpLeft === "sub_school_bag") {
+    // 通学スクールバッグ
+    rectPx(2, 13 + bobY, 4, 4, c1);
+    rectPx(3, 12 + bobY, 2, 1, c3); // 持ち手
+    setPx(4, 14 + bobY, c4);
+  } else if (wpLeft === "sub_oxford_dict") {
+    // 厚口オックスフォード英英辞典
+    rectPx(2, 11 + bobY, 4, 5, c3);
+    rectPx(2, 11 + bobY, 1, 5, c4); // 背表紙
+    setPx(4, 13 + bobY, c2);
+  } else if (wpLeft === "sub_speech_notes") {
+    // 英語弁論スピーチ原稿バインダー
+    rectPx(2, 11 + bobY, 4, 5, c1);
+    rectPx(3, 12 + bobY, 3, 4, c2);
+  } else if (wpLeft === "sub_e_dict_pad") {
+    // 小型電子辞書パッド
+    rectPx(2, 10 + subHover, 4, 4, c1);
+    rectPx(3, 11 + subHover, 2, 2, c4);
+  } else if (wpLeft === "sub_wireless_earbud") {
     // 重低音スピーカー宝珠
-    rectPx(2, 10 + subHover, 4, 4, "#18181B");
-    rectPx(3, 11 + subHover, 2, 2, "#EC4899");
-    if (frame % 2 === 1) {
-      setPx(1, 9 + subHover, "#00F0FF");
-      setPx(1, 14 + subHover, "#00F0FF");
-    }
-  } else if (wpLeft === "sub_aegis_shield") {
-    // 聖盾イージス
-    rectPx(2, 11 + bobY, 5, 6, "#E2E8F0");
-    rectPx(3, 12 + bobY, 3, 4, "#10B981");
-    rectPx(4, 12 + bobY, 1, 4, "#FFE600");
-    rectPx(3, 13 + bobY, 3, 1, "#FFE600");
-  } else if (wpLeft === "sub_dual_kodachi") {
-    // 逆手・二刀流小太刀
-    rectPx(4, 14 + bobY, 2, 1, "#94A3B8");
-    rectPx(1, 15 + bobY, 4, 1, "#00F0FF");
-    rectPx(0, 16 + bobY, 3, 1, "#FFFFFF");
-  } else if (wpLeft === "sub_cyber_drone") {
-    // 電脳ビットドローン
-    rectPx(2, 7 + subHover, 4, 3, "#06B6D4");
-    rectPx(3, 8 + subHover, 2, 1, "#FFFFFF");
-    setPx(3, 10 + subHover, "#FFE600");
-  } else if (wpLeft === "sub_dragon_claw") {
-    // 紅蓮の竜爪ガントレット
-    rectPx(3, 12 + bobY, 4, 4, "#DC2626");
-    setPx(2, 13 + bobY, "#FFE600");
-    setPx(2, 15 + bobY, "#FFE600");
-  } else if (wpLeft === "sub_dual_laser") {
-    // 二刀流・紅蓮レーザー刃
-    rectPx(4, 13 + bobY, 2, 2, "#475569");
-    rectPx(3, 7 + bobY, 2, 6, "#FF007F");
-    rectPx(3, 6 + bobY, 1, 6, "#FFFFFF");
-  } else if (wpLeft === "sub_god_orb") {
-    // 森羅万象の黄金宝珠
-    rectPx(2, 9 + subHover, 4, 4, "#FFE600");
-    rectPx(3, 10 + subHover, 2, 2, "#FFFFFF");
-    setPx(3, 8 + subHover, "#EF4444");
-    setPx(3, 13 + subHover, "#00F0FF");
+    rectPx(2, 10 + subHover, 4, 4, c1);
+    rectPx(3, 11 + subHover, 2, 2, c4);
+  } else if (wpLeft === "sub_dual_pen") {
+    // 逆手・二刀流赤ペン
+    rectPx(2, 14 + bobY, 4, 1, c4);
+    setPx(1, 15 + bobY, c2);
+  } else if (wpLeft === "sub_brave_crest_shield") {
+    // 万能勇者の生徒手帳シールド
+    rectPx(2, 11 + bobY, 5, 6, c1);
+    rectPx(3, 12 + bobY, 3, 4, c3);
+    rectPx(4, 12 + bobY, 1, 4, c4);
+    rectPx(3, 13 + bobY, 3, 1, c4);
   }
 
   // =========================================================================
-  // LAYER 8: 右手メイン武器 (WeaponRight: 画面右側 x=17..23) ＋ 4コマ斬撃エフェクト
+  // LAYER 9: 右手メイン武器 (WeaponRight: シャーペン、定規、マイク、光筆カリバー)
   // =========================================================================
   const wpRight = effectiveLoadout.weaponRight;
-  const gleamColor = isGleam ? "#FFFFFF" : blade;
 
   if (wpRight === "wp_pencil_dagger") {
-    // 必勝ペンシルダガー
-    rectPx(18, 11 + bobY, 2, 5, "#FACC15");
-    rectPx(18, 9 + bobY, 2, 2, "#FDE68A");
-    setPx(18, 8 + bobY, "#1E293B");
-    rectPx(18, 16 + bobY, 2, 1, "#F472B6");
-  } else if (wpRight === "wp_katana") {
-    // 名刀・紫電ブレード
-    rectPx(18, 14 + bobY, 2, 2, "#FACC15");
-    rectPx(19, 6 + bobY, 1, 8, blade);
-    rectPx(20, 5 + bobY, 1, 7, gleamColor);
-  } else if (wpRight === "wp_sonic_mic") {
-    // 超音撃マイクランス
-    rectPx(19, 8 + bobY, 1, 9, "#E2E8F0");
-    rectPx(18, 5 + bobY, 3, 3, "#EC4899");
-    rectPx(19, 6 + bobY, 1, 1, "#00F0FF");
-  } else if (wpRight === "wp_arcane_staff") {
-    // 星結晶の魔導杖
-    rectPx(19, 7 + bobY, 1, 12, "#92400E");
-    rectPx(18, 4 + bobY, 3, 3, "#A855F7");
-    setPx(19, 5 + bobY, isGleam ? "#FFFFFF" : "#FFE600");
-  } else if (wpRight === "wp_laser_sabre") {
-    // ネオンプラズマセイバー
-    rectPx(18, 14 + bobY, 2, 3, "#64748B");
-    rectPx(18, 5 + bobY, 2, 9, "#00F0FF");
-    rectPx(19, 5 + bobY, 1, 8, "#FFFFFF");
-  } else if (wpRight === "wp_greatsword") {
-    // 聖騎士の白銀大剣
-    rectPx(17, 14 + bobY, 5, 1, "#FFE600");
-    rectPx(18, 4 + bobY, 3, 10, "#E2E8F0");
-    rectPx(19, 3 + bobY, 1, 11, gleamColor);
-  } else if (wpRight === "wp_thunder_spear") {
-    // 雷神の稲妻スピア
-    rectPx(19, 6 + bobY, 1, 13, "#475569");
-    rectPx(18, 3 + bobY, 3, 3, "#FACC15");
-    setPx(19, 2 + bobY, "#FFFFFF");
-  } else if (wpRight === "wp_shuriken_chakram") {
-    // 巨大風魔チャクラム（4コマで回転！）
-    rectPx(18, 10 + bobY, 5, 5, "#00F0FF");
-    rectPx(19, 11 + bobY, 3, 3, "#0F172A");
-    if (frame % 2 === 0) {
-      setPx(20, 9 + bobY, "#FFFFFF");
-      setPx(20, 15 + bobY, "#FFFFFF");
-    } else {
-      setPx(17, 12 + bobY, "#FFFFFF");
-      setPx(23, 12 + bobY, "#FFFFFF");
+    // 必勝シャープペンシル
+    rectPx(18, 10 + bobY, 2, 6, c4);
+    setPx(18, 9 + bobY, c1); // ペン先芯
+    rectPx(18, 16 + bobY, 2, 1, c2); // 消しゴム
+  } else if (wpRight === "wp_fountain_pen") {
+    // インテリ万年筆ブレード
+    rectPx(18, 9 + bobY, 2, 7, c1);
+    rectPx(18, 7 + bobY, 2, 2, c4); // 金ペン先
+    setPx(18, 6 + bobY, c2);
+  } else if (wpRight === "wp_ruler_blade") {
+    // 30cm定規スラッシャー
+    rectPx(18, 5 + bobY, 2, 11, c2);
+    for (let m = 6; m < 15; m += 2) {
+      setPx(19, m + bobY, c1); // 目盛り
     }
-  } else if (wpRight === "wp_demon_buster") {
-    // 紅蓮の断罪バスター剣
-    rectPx(17, 14 + bobY, 5, 1, "#FACC15");
-    rectPx(18, 3 + bobY, 4, 11, "#991B1B");
-    rectPx(19, 4 + bobY, 2, 9, "#EF4444");
-    setPx(20, 5 + bobY, isGleam ? "#FFFFFF" : "#FACC15");
-  } else if (wpRight === "wp_scythe") {
-    // 紅蓮死神の大鎌
-    rectPx(19, 4 + bobY, 1, 15, "#334155");
-    rectPx(15, 3 + bobY, 7, 2, "#EF4444");
-    rectPx(14, 5 + bobY, 3, 1, "#FFFFFF");
-  } else if (wpRight === "wp_excalibur") {
-    // 神剣エクスカリバーΩ
-    rectPx(17, 14 + bobY, 6, 1, "#FFE600");
-    rectPx(18, 2 + bobY, 3, 12, "#FFE600");
-    rectPx(19, 1 + bobY, 1, 13, "#FFFFFF");
-    setPx(19, 14 + bobY, "#E60012");
+  } else if (wpRight === "wp_speech_mic") {
+    // 英語スピーチマイク
+    rectPx(19, 9 + bobY, 1, 8, c1);
+    rectPx(18, 6 + bobY, 3, 3, c4);
+    setPx(19, 7 + bobY, c2);
+  } else if (wpRight === "wp_laser_pointer") {
+    // レーザーポインターセイバー
+    rectPx(18, 13 + bobY, 2, 3, c1);
+    rectPx(18, 5 + bobY, 2, 8, c4);
+    setPx(18, 5 + bobY, c2);
+  } else if (wpRight === "wp_megaphone") {
+    // 学園応援メガホン
+    rectPx(18, 11 + bobY, 2, 4, c1);
+    rectPx(19, 9 + bobY, 3, 6, c4);
+    rectPx(22, 8 + bobY, 1, 8, c2);
+  } else if (wpRight === "wp_penlight_sabre") {
+    // ペンライトツインブレード
+    rectPx(18, 13 + bobY, 2, 3, c1);
+    rectPx(18, 6 + bobY, 2, 7, c4);
+    rectPx(19, 6 + bobY, 1, 6, c2);
+  } else if (wpRight === "wp_e_dict_sabre") {
+    // 電子辞書プラズマセイバー
+    rectPx(18, 13 + bobY, 3, 3, c1);
+    rectPx(18, 4 + bobY, 3, 9, c4);
+    rectPx(19, 4 + bobY, 1, 8, c2);
+  } else if (wpRight === "wp_brave_pen_caliber") {
+    // 勇者の光筆ペンシルカリバー（万能勇者DopaEngの聖剣）
+    rectPx(17, 14 + bobY, 5, 1, c4);
+    rectPx(18, 3 + bobY, 3, 11, c4);
+    rectPx(19, 2 + bobY, 1, 12, c2);
+    setPx(19, 14 + bobY, c1);
   }
 
-  // アタック時の4コマ・ドット斬撃エフェクト（三日月スラッシュ軌跡）
+  // アタック時の4コマ・ドット斬撃エフェクト
   if (mood === "attack" && (frame === 1 || frame === 2)) {
-    const slashColor = frame === 1 ? "#FFFFFF" : "#FFE600";
+    const slashColor = frame === 1 ? c2 : c4;
     setPx(20, 3, slashColor);
     setPx(21, 4, slashColor);
     rectPx(22, 5, 2, 8, slashColor);
@@ -814,7 +566,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
     setPx(20, 14, slashColor);
   }
 
-  // 行単位のランレングス圧縮（隣接同色ピクセルを結合して高速＆隙間ゼロ描画）
+  // 行単位のランレングス圧縮（同色ピクセルを結合してDOM負荷最小化）
   const mergedRects: {
     x: number;
     y: number;
@@ -844,7 +596,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
       className="relative flex items-center justify-center select-none pointer-events-none touch-pan-y"
       style={{ width: size, height: size }}
     >
-      {/* 進化段階＆パレットに応じた背景オーラ */}
+      {/* 4色パレットのアクセント色に連動したオーラ */}
       {showAura && (
         <motion.div
           animate={{
@@ -852,39 +604,14 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
             rotate: [0, 6, -6, 0],
           }}
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-2 rounded-full blur-xl opacity-55 pointer-events-none"
+          className="absolute inset-2 rounded-full blur-xl opacity-50 pointer-events-none"
           style={{
-            background: `radial-gradient(circle, ${resolvedPalette.aura} 0%, transparent 72%)`,
+            background: `radial-gradient(circle, ${c4} 0%, transparent 72%)`,
           }}
         />
       )}
 
-      {/* Stage 4以上の星屑・稲妻ピクセルパーティクル */}
-      {showAura && clampedStage >= 4 && (
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            animate={{ y: [0, -10, 0], opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1.4, repeat: Infinity }}
-            className="w-2 h-2 absolute top-3 left-3"
-            style={{ backgroundColor: resolvedPalette.aura }}
-          />
-          <motion.div
-            animate={{ y: [0, -14, 0], opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.8, repeat: Infinity, delay: 0.4 }}
-            className="w-2 h-2 absolute bottom-4 right-3"
-            style={{ backgroundColor: "#FFE600" }}
-          />
-          {clampedStage >= 8 && (
-            <motion.div
-              animate={{ scale: [0.8, 1.4, 0.8], opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.1, repeat: Infinity }}
-              className="w-2.5 h-2.5 absolute top-2 right-5 bg-[#E60012]"
-            />
-          )}
-        </div>
-      )}
-
-      {/* 24x24 4コマ・ドット絵スプライト本体 */}
+      {/* 24x24 厳格4色ドット絵スプライト本体 */}
       <motion.svg
         viewBox="0 0 24 24"
         width={size}
@@ -899,11 +626,6 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
             ? {
                 scale: [0.8, 1.25, 1],
                 rotate: [0, -8, 8, 0],
-                filter: [
-                  "brightness(1)",
-                  "brightness(2.5)",
-                  "brightness(1)",
-                ],
               }
             : { y: 0 }
         }

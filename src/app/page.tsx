@@ -871,6 +871,58 @@ export default function DopaBenApp() {
   };
 
   /**
+   * 特定のちから（語彙・瞬発・構築・聴覚・度胸）に所持LXPを全振り注入する
+   */
+  const handleFocusInjectStat = (statKey: keyof FiveStats) => {
+    let remainingLxp = profile.exp;
+    const tempStats: FiveStats = { ...profile.stats };
+    let pointsAdded = 0;
+    let totalSpent = 0;
+
+    const statLabelMap: Record<keyof FiveStats, string> = {
+      vocab: "語彙力",
+      speed: "瞬発力",
+      grammar: "構築力",
+      listening: "聴覚力",
+      guts: "度胸",
+    };
+
+    while (pointsAdded < 30 && tempStats[statKey] < 100) {
+      const cost = getStatUpgradeLxpCost(tempStats[statKey]);
+      if (cost <= 0 || remainingLxp < cost) break;
+      remainingLxp -= cost;
+      totalSpent += cost;
+      tempStats[statKey] += 1;
+      pointsAdded += 1;
+    }
+
+    if (pointsAdded === 0) return;
+
+    saveProfile({
+      ...profile,
+      exp: remainingLxp,
+      stats: tempStats,
+    });
+
+    setRecentInjectedGains({ [statKey]: pointsAdded });
+    setRadarBounceKey((k) => k + 1);
+    setInjectionNotice(
+      `🔥 ${totalSpent.toLocaleString()} LXP を全振り注入！【${statLabelMap[statKey]}】が +${pointsAdded} PT (${tempStats[statKey]}) へ急上昇！`
+    );
+    soundEngine.playEvolutionFanfare();
+    try {
+      confetti({
+        particleCount: 70,
+        spread: 60,
+        origin: { y: 0.55 },
+        colors: ["#FACC15", "#EF4444", "#FFFFFF"],
+      });
+    } catch {
+      // ignore
+    }
+  };
+
+  /**
    * 所持LXPを消費して特権スキルを習得する
    */
   const handleUnlockSkill = (skillId: SkillHackId, cost: number) => {
@@ -1783,6 +1835,7 @@ export default function DopaBenApp() {
           injectionNotice={injectionNotice}
           affordableStatPoints={affordableStatPoints}
           onBatchInjectLxp={handleBatchInjectLxp}
+          onFocusInjectStat={handleFocusInjectStat}
           onInjectSingleStat={handleInjectSingleStat}
           getStatUpgradeLxpCost={getStatUpgradeLxpCost}
           onOpenSkillModal={() => setIsSkillModalOpen(true)}
