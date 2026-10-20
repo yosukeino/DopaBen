@@ -329,167 +329,183 @@ class SoundEngine {
   }
 
   /**
-   * P5風の鋭いボタンタップ／スラッシュ音
+   * 2オペレータFM合成エンジン（Carrier × Modulator）
+   * - YAMAHA DX7 / PC-9801 (YM2608/OPNA) の澄んだクリスタルベル・金属倍音をWeb Audio APIでリアルタイム合成
+   * @param freq キャリア周波数 (Hz)
+   * @param modRatio モジュレータ比率 (キャリアに対する周波数倍率。例: 2.0=オクターブ, 3.5=クリスタルベル倍音)
+   * @param modDepth モジュレーション深度 (変調指数の初期ゲイン)
+   * @param duration 持続時間 (秒)
+   * @param startTime 開始時刻 (ctx.currentTime 基準)
+   * @param volume 出力音量 (0.0〜1.0)
+   */
+  private playFmTone(
+    freq: number,
+    modRatio: number,
+    modDepth: number,
+    duration: number,
+    startTime: number,
+    volume: number = 0.1
+  ) {
+    const ctx = this.getContext();
+    if (!ctx || this.muted) return;
+
+    try {
+      const carrier = ctx.createOscillator();
+      const modulator = ctx.createOscillator();
+      const modGain = ctx.createGain();
+      const masterGain = ctx.createGain();
+
+      carrier.type = "sine";
+      modulator.type = "sine";
+
+      carrier.frequency.setValueAtTime(freq, startTime);
+      modulator.frequency.setValueAtTime(freq * modRatio, startTime);
+
+      // モジュレータのエンベロープ（アタック時に金属的な鋭いFM倍音を生み、指数関数的にサイン波の余韻へと減衰）
+      modGain.gain.setValueAtTime(modDepth, startTime);
+      modGain.gain.exponentialRampToValueAtTime(
+        Math.max(1, modDepth * 0.01),
+        startTime + duration * 0.65
+      );
+      modGain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+      // キャリア（音量）のエンベロープ
+      masterGain.gain.setValueAtTime(volume, startTime);
+      masterGain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        startTime + duration
+      );
+
+      // FM変調ルーティング: Modulator -> ModGain -> Carrier.frequency
+      modulator.connect(modGain);
+      modGain.connect(carrier.frequency);
+
+      // マスター出力: Carrier -> MasterGain -> Destination
+      carrier.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      modulator.start(startTime);
+      carrier.start(startTime);
+      modulator.stop(startTime + duration + 0.02);
+      carrier.stop(startTime + duration + 0.02);
+    } catch {
+      // ignore audio errors
+    }
+  }
+
+  /**
+   * 【案A: PC-98風クリスタル・タップ】澄んだ硬質ガラスのようなUIタップ音
    */
   public playTap() {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
-    try {
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(520, now);
-      osc.frequency.exponentialRampToValueAtTime(1280, now + 0.055);
-
-      gain.gain.setValueAtTime(0.14, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.065);
-    } catch {
-      // ignore
-    }
+    const now = ctx.currentTime;
+    // C7 (2093Hz) + ratio 2.0 による極短ディケイのクリスタル・キータップ
+    this.playFmTone(2093, 2.0, 950, 0.055, now, 0.12);
   }
 
   /**
-   * WEAK! → 1 MORE! 正解コンボ音（発音音声を邪魔しないよう音量を最適化）
+   * 【案A: PC-98風クリスタルベル・アルペジオ】正解コンボ音（コンボ数で倍音・ピッチが上昇）
    */
   public playWeakHit(combo: number = 1, isRevenge: boolean = false) {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
-    try {
-      const now = ctx.currentTime;
-      const baseBoost = Math.min(combo * 28, 320);
-      const notes = isRevenge
-        ? [523.25, 659.25, 783.99, 1046.5, 1318.5]
-        : [
-            440 + baseBoost,
-            554.37 + baseBoost,
-            659.25 + baseBoost,
-            880 + baseBoost,
-          ];
+    const now = ctx.currentTime;
+    // コンボが繋がるほどピッチが上がり、倍音の煌めきが深まる
+    const baseBoost = Math.min(combo * 32, 320);
 
-      notes.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = isRevenge ? "sawtooth" : "square";
-        const startTime = now + idx * 0.04;
-        osc.frequency.setValueAtTime(freq, startTime);
+    const notes = isRevenge
+      // リベンジ正解時: 5重のDX7クリスタルチャイムによる華麗な祝祭和音
+      ? [
+          { f: 1046.5, t: 0, d: 0.18, depth: 2200 },
+          { f: 1318.5, t: 0.035, d: 0.18, depth: 2500 },
+          { f: 1567.98, t: 0.07, d: 0.22, depth: 2800 },
+          { f: 2093.0, t: 0.105, d: 0.28, depth: 3200 },
+          { f: 2637.0, t: 0.14, d: 0.35, depth: 3600 },
+        ]
+      // 通常正解時: 澄んだ透明感あふれる3重FMクリスタルベル
+      : [
+          { f: 880 + baseBoost, t: 0, d: 0.14, depth: 1400 },
+          { f: 1108.73 + baseBoost, t: 0.035, d: 0.16, depth: 1700 },
+          { f: 1318.51 + baseBoost, t: 0.07, d: 0.22, depth: 2000 },
+        ];
 
-        gain.gain.setValueAtTime(isRevenge ? 0.08 : 0.06, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.12);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + 0.13);
-      });
-    } catch {
-      // ignore
-    }
+    notes.forEach((n) => {
+      this.playFmTone(
+        n.f,
+        3.5, // DX7系クリスタルベル倍音比率
+        n.depth,
+        n.d,
+        now + n.t,
+        isRevenge ? 0.09 : 0.075
+      );
+    });
   }
 
   /**
-   * ミス時：「ターゲットロック（倍返しチャンス発生！）」音（発音音声を邪魔しないよう音量を最適化）
+   * 【案A: PC-98風FMメタリック・クラベス】ミス時・倍返しロック警告音
    */
   public playBountyLock() {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
-    try {
-      const now = ctx.currentTime;
-      [330, 440].forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sawtooth";
-        const t = now + idx * 0.075;
-        osc.frequency.setValueAtTime(freq, t);
-        osc.frequency.linearRampToValueAtTime(freq * 1.15, t + 0.06);
-
-        gain.gain.setValueAtTime(0.07, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t);
-        osc.stop(t + 0.075);
-      });
-    } catch {
-      // ignore
-    }
+    const now = ctx.currentTime;
+    // 非整数倍音 (ratio 1.414) による耳障りのない硬質で上品なメタリック・アタック
+    this.playFmTone(440, 1.414, 700, 0.07, now, 0.08);
+    this.playFmTone(330, 1.414, 550, 0.09, now + 0.05, 0.07);
   }
 
   /**
-   * HOLD UP! → 総攻撃 (ALL-OUT ATTACK) 突入サイレン＆スラッシュ音
+   * 【案A: PC-98/FM TOWNS風 FMシンセ・グリッサンド】出撃・BATTLE START音
    */
   public playAllOutIntro() {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
-    try {
-      const now = ctx.currentTime;
-      const chords = [392.0, 493.88, 587.33, 783.99, 987.77];
-      chords.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sawtooth";
-        const start = now + i * 0.055;
-        osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(0.11, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(start);
-        osc.stop(start + 0.36);
-      });
-    } catch {
-      // ignore
-    }
+    const now = ctx.currentTime;
+    // 疾走感あふれる6重FMシンセ・チャイムの駆け上がり
+    const arpeggio = [
+      { f: 523.25, t: 0, d: 0.12 },
+      { f: 659.25, t: 0.038, d: 0.14 },
+      { f: 783.99, t: 0.076, d: 0.16 },
+      { f: 1046.5, t: 0.114, d: 0.20 },
+      { f: 1318.5, t: 0.152, d: 0.24 },
+      { f: 1567.98, t: 0.19, d: 0.35 },
+    ];
+
+    arpeggio.forEach((n) => {
+      this.playFmTone(n.f, 2.0, 1300, n.d, now + n.t, 0.085);
+    });
   }
 
   /**
-   * レベルアップ＆ドット絵進化ファンファーレ
+   * 【案A: DX7名機風 クリスタルベル・ファンファーレ】レベルアップ・進化ファンファーレ
    */
   public playEvolutionFanfare() {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
-    try {
-      const now = ctx.currentTime;
-      const melody = [
-        { f: 523.25, t: 0, d: 0.12 },
-        { f: 659.25, t: 0.1, d: 0.12 },
-        { f: 783.99, t: 0.2, d: 0.12 },
-        { f: 1046.5, t: 0.3, d: 0.25 },
-        { f: 987.77, t: 0.52, d: 0.12 },
-        { f: 1046.5, t: 0.64, d: 0.45 },
-      ];
+    const now = ctx.currentTime;
+    // YAMAHA DX7のグロッケン＆FMエレピを彷彿とさせる祝祭アルペジオ
+    const melody = [
+      { f: 523.25, t: 0, d: 0.16, r: 2.0, depth: 1400 },
+      { f: 659.25, t: 0.09, d: 0.16, r: 2.0, depth: 1500 },
+      { f: 783.99, t: 0.18, d: 0.18, r: 2.0, depth: 1600 },
+      { f: 1046.5, t: 0.27, d: 0.28, r: 3.5, depth: 2200 },
+      { f: 987.77, t: 0.48, d: 0.14, r: 2.0, depth: 1600 },
+      { f: 1046.5, t: 0.58, d: 0.55, r: 3.5, depth: 2800 },
+    ];
 
-      melody.forEach((n) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "square";
-        osc.frequency.setValueAtTime(n.f, now + n.t);
-        gain.gain.setValueAtTime(0.12, now + n.t);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + n.t);
-        osc.stop(now + n.t + n.d + 0.02);
-      });
-    } catch {
-      // ignore
-    }
+    melody.forEach((n) => {
+      this.playFmTone(n.f, n.r, n.depth, n.d, now + n.t, 0.11);
+    });
   }
 }
 
