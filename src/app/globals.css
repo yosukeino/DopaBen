@@ -226,6 +226,33 @@ body {
   animation: heartbeatPulse 1.8s ease-in-out infinite;
 }
 
+@keyframes cardSubtleHeartbeat {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.25));
+  }
+  14% {
+    transform: scale(1.008);
+    filter: drop-shadow(0 0 14px rgba(250, 204, 21, 0.55));
+  }
+  28% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.3));
+  }
+  42% {
+    transform: scale(1.005);
+    filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.45));
+  }
+  70% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.25));
+  }
+}
+
+.animate-card-heartbeat {
+  animation: cardSubtleHeartbeat 1.8s ease-in-out infinite;
+}
+
 @keyframes stagePulseBorder {
   0%, 100% {
     transform: scale(1);

@@ -1496,20 +1496,20 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* 5. 正式なメインスタートボタン（デフォルト「続きから」⇔ 新規選択時「出撃」動的切替 ＆ 虹色オーラ＋Twinkle粒子） */}
-            <div className="relative group">
-              {/* 背後で呼吸する虹色グローオーラ */}
+            {/* 5. 正式なメインスタートボタン（再生ボタンと同期して控えめにドクンドクンと脈打つカード） */}
+            <div className="relative group animate-card-heartbeat">
+              {/* 背後で呼吸する控えめな虹色グローオーラ */}
               <div
-                className={`pointer-events-none absolute -inset-1 blur-md opacity-70 transition ${
+                className={`pointer-events-none absolute -inset-1 blur-md opacity-50 transition ${
                   isResume
-                    ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-pulse"
-                    : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15] animate-pulse"
+                    ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899]"
+                    : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15]"
                 }`}
               />
 
-              {/* 虹色グラデーション枠コンテナ（ブラーなし、中身がハッキリくっきり！） */}
+              {/* 虹色グラデーション枠コンテナ */}
               <div
-                className={`relative p-[2.5px] transition shadow-[0_4px_20px_rgba(0,0,0,0.5)] ${
+                className={`relative p-[2px] transition shadow-[0_4px_16px_rgba(0,0,0,0.6)] ${
                   isResume
                     ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899]"
                     : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15]"
@@ -1561,43 +1561,30 @@ export default function DopaBenApp() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-black px-2 py-0.5 -skew-x-6 shadow-sm transition ${
-                            isResume
-                              ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#10B981] text-[#0B0D12] shadow-[0_0_10px_rgba(250,204,21,0.5)]"
-                              : "bg-[#FACC15] text-[#0B0D12] animate-pulse shadow-[0_0_8px_#FACC15]"
-                          }`}
-                        >
-                          {isResume ? "続きから" : "出撃"}
+                        {/* 控えめでスタイリッシュなサイバーHUDバッジ */}
+                        <span className="bg-[#0B0D12] text-[#94A3B8] text-[10px] font-bold px-2 py-0.5 -skew-x-6 border border-[#262D3D] flex items-center gap-1 shrink-0">
+                          <span className={`w-1.5 h-1.5 rounded-full ${isResume ? "bg-[#10B981]" : "bg-[#FACC15]"}`} />
+                          <span>{isResume ? "続きから" : "出撃"}</span>
                         </span>
                         <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
                           {stageBattleInfo.label}
                         </span>
                       </div>
-                      <div
-                        className={`text-[10px] sm:text-[11px] font-black truncate mt-0.5 ${
-                          isResume
-                            ? "bg-gradient-to-r from-[#FACC15] via-[#10B981] to-[#06B6D4] bg-clip-text text-transparent"
-                            : "text-[#FACC15]"
-                        }`}
-                      >
-                        {stageBattleInfo.sub}・{stageBattleInfo.progress}
+                      <div className="text-[11px] text-[#94A3B8] font-medium truncate mt-0.5">
+                        <span>{stageBattleInfo.sub}</span>
+                        <span className="mx-1.5 opacity-40">|</span>
+                        <span className="text-[#E2E8F0] font-bold">{stageBattleInfo.progress}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div
-                    className={`flex items-center gap-1.5 font-black text-sm px-3.5 sm:px-4 py-2 -skew-x-6 shrink-0 border-2 border-white shadow-[3px_3px_0_#0B0D12] relative z-10 group-hover:scale-105 transition ${
-                      isResume
-                        ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#10B981] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.5)]"
-                        : "bg-[#FACC15] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.6)]"
-                    }`}
-                  >
+                  {/* 控えめで上品な右側アクションボタン */}
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#E2E8F0] group-hover:text-white bg-[#0B0D12] border border-[#262D3D] group-hover:border-[#FACC15] px-3 py-1.5 -skew-x-6 shadow-[2px_2px_0_#0B0D12] shrink-0 transition">
                     <span>{isResume ? "続きから" : "出撃"}</span>
                     {isResume ? (
-                      <Play className="w-4 h-4 fill-[#0B0D12]" />
+                      <Play className="w-3.5 h-3.5 fill-[#FACC15] text-[#FACC15] ml-0.5" />
                     ) : (
-                      <Zap className="w-4 h-4 fill-[#0B0D12]" />
+                      <Zap className="w-3.5 h-3.5 fill-[#FACC15] text-[#FACC15]" />
                     )}
                   </div>
                 </motion.button>
