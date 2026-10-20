@@ -730,10 +730,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
             {/* ターゲット問題パネル */}
             <div
-              className={`p-4 border-2 relative clip-p5-card bg-[#131720] ${
+              className={`p-4 sm:p-5 border-2 relative bg-gradient-to-br from-[#131720] via-[#1a202c] to-[#0B0D12] ${
                 currentQuestion.isRevengeBounty
-                  ? "border-[#EF4444] shadow-p5-red"
-                  : "border-white shadow-p5-yellow"
+                  ? "border-[#EF4444] shadow-[4px_4px_0_#EF4444]"
+                  : "border-white shadow-[4px_4px_0_#FACC15]"
               }`}
             >
               <div className="text-center space-y-2">
@@ -897,54 +897,58 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       answerModal?.selectedChoiceId === choice.id;
 
                     let choiceStyle =
-                      "bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] border-white shadow-[4px_4px_0_#262D3D] hover:shadow-[4px_4px_0_#FFFFFF]";
+                      "bg-gradient-to-r from-[#131720] to-[#1a202c] border-white text-white shadow-[3px_3px_0_#0B0D12] hover:border-[#FACC15] hover:shadow-[3px_3px_0_#FACC15]";
                     if (isAnswered) {
                       if (choice.isCorrect) {
                         choiceStyle =
-                          "bg-[#10B981]/25 border-[#10B981] shadow-[4px_4px_0_#10B981]";
+                          "bg-gradient-to-r from-[#064E3B] to-[#131720] border-[#10B981] shadow-[3px_3px_0_#10B981] text-white";
                       } else if (isSelectedChoice && !choice.isCorrect) {
                         choiceStyle =
-                          "bg-[#EF4444]/30 border-[#EF4444] opacity-90";
+                          "bg-gradient-to-r from-[#7F1D1D] to-[#131720] border-[#EF4444] shadow-[3px_3px_0_#EF4444] text-white";
                       } else {
                         choiceStyle =
-                          "bg-[#0B0D12]/60 border-[#262D3D] opacity-45";
+                          "bg-[#0B0D12]/70 border-[#262D3D] opacity-40 text-[#94A3B8]";
                       }
                     }
 
                     return (
                       <motion.button
                         key={choice.id}
-                        whileTap={isAnswered ? undefined : { scale: 0.96, x: 6 }}
+                        whileTap={isAnswered ? undefined : { scale: 0.98 }}
                         disabled={isAnswered}
                         onClick={() => handleSelectChoice(choice)}
-                        className={`w-full py-3 px-4 text-left border-2 transition flex items-center justify-between group ${
-                          idx % 2 === 0 ? "clip-p5-btn" : "clip-p5-btn-alt"
-                        } ${choiceStyle}`}
+                        className={`w-full py-3 px-3.5 sm:px-4 text-left border-2 transition flex items-center justify-between group -skew-x-2 ${choiceStyle}`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`w-6 h-6 font-black text-xs flex items-center justify-center border -skew-x-12 shrink-0 ${
-                              isAnswered && choice.isCorrect
-                                ? "bg-[#10B981] text-[#0B0D12] border-white"
-                                : isAnswered && isSelectedChoice && !choice.isCorrect
-                                ? "bg-[#EF4444] text-white border-white"
-                                : "bg-[#0B0D12] group-hover:bg-[#0B0D12] text-[#FACC15] group-hover:text-[#FACC15] border-[#262D3D]"
-                            }`}
-                          >
-                            {idx + 1}
-                          </span>
-                          <div>
-                            <div className="font-black text-base text-white group-hover:text-[#0B0D12] tracking-wide">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          {/* こだわりのスタイリッシュ番号バッジ */}
+                          <div className="relative shrink-0 flex items-center justify-center">
+                            <div
+                              className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center font-black text-xs sm:text-sm -skew-x-6 border-2 transition-all relative overflow-hidden shadow-[2px_2px_0_#0B0D12] ${
+                                isAnswered && choice.isCorrect
+                                  ? "bg-[#10B981] text-[#0B0D12] border-white shadow-[0_0_10px_#10B981]"
+                                  : isAnswered && isSelectedChoice && !choice.isCorrect
+                                  ? "bg-[#EF4444] text-white border-white shadow-[0_0_10px_#EF4444]"
+                                  : "bg-[#0B0D12] text-[#FACC15] border-[#FACC15]/80 group-hover:border-white group-hover:bg-[#FACC15] group-hover:text-[#0B0D12]"
+                              }`}
+                            >
+                              {/* バッジ上部の光沢スライス */}
+                              <span className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-white/50" />
+                              <span className="relative z-10 italic">{idx + 1}</span>
+                            </div>
+                          </div>
+
+                          {/* 選択肢テキスト */}
+                          <div className="min-w-0">
+                            <div className="font-black text-base sm:text-lg text-white group-hover:text-[#FACC15] tracking-wide truncate transition-colors">
                               {choice.label}
                             </div>
                             {choice.subLabel && (
-                              <div className="text-[11px] text-[#94A3B8] group-hover:text-[#0B0D12]">
+                              <div className="text-[11px] text-[#94A3B8] truncate">
                                 {choice.subLabel}
                               </div>
                             )}
                           </div>
                         </div>
-                        <Zap className="w-4 h-4 text-[#FACC15] group-hover:text-[#0B0D12] opacity-80 group-hover:opacity-100 group-hover:translate-x-1 transition shrink-0" />
                       </motion.button>
                     );
                   })}
