@@ -658,7 +658,7 @@ export default function DopaBenApp() {
 
     triggerSlashTransition(() => {
       setScreen("result");
-      soundEngine.playEvolutionFanfare();
+      soundEngine.playStageVictory();
       try {
         confetti({
           particleCount: 65,

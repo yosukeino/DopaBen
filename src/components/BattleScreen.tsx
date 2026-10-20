@@ -445,7 +445,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       if (answerModal) {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          soundEngine.playTap();
+          if (isLastQuestion) {
+            soundEngine.playTap();
+          } else {
+            soundEngine.playTransition();
+          }
           const snap = answerModal.nextSnapshot;
           advanceToNext(
             snap.exp,
@@ -1223,7 +1227,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 {/* 3. もう1タップで次の問題へ進むボタン */}
                 <button
                   onClick={() => {
-                    soundEngine.playTap();
+                    if (isLastQuestion) {
+                      soundEngine.playTap();
+                    } else {
+                      soundEngine.playTransition();
+                    }
                     const snap = answerModal.nextSnapshot;
                     advanceToNext(
                       snap.exp,

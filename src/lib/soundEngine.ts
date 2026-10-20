@@ -337,6 +337,7 @@ class SoundEngine {
    * @param duration 持続時間 (秒)
    * @param startTime 開始時刻 (ctx.currentTime 基準)
    * @param volume 出力音量 (0.0〜1.0)
+   * @param endFreq 終了時キャリア周波数 (Hz。周波数スウィープ・ピッチベンド用)
    */
   private playFmTone(
     freq: number,
@@ -344,7 +345,8 @@ class SoundEngine {
     modDepth: number,
     duration: number,
     startTime: number,
-    volume: number = 0.1
+    volume: number = 0.1,
+    endFreq?: number
   ) {
     const ctx = this.getContext();
     if (!ctx || this.muted) return;
@@ -360,6 +362,17 @@ class SoundEngine {
 
       carrier.frequency.setValueAtTime(freq, startTime);
       modulator.frequency.setValueAtTime(freq * modRatio, startTime);
+
+      if (endFreq && endFreq !== freq) {
+        carrier.frequency.exponentialRampToValueAtTime(
+          Math.max(20, endFreq),
+          startTime + duration
+        );
+        modulator.frequency.exponentialRampToValueAtTime(
+          Math.max(20, endFreq * modRatio),
+          startTime + duration
+        );
+      }
 
       // モジュレータのエンベロープ（アタック時に金属的な鋭いFM倍音を生み、指数関数的にサイン波の余韻へと減衰）
       modGain.gain.setValueAtTime(modDepth, startTime);
@@ -386,8 +399,8 @@ class SoundEngine {
 
       modulator.start(startTime);
       carrier.start(startTime);
-      modulator.stop(startTime + duration + 0.02);
-      carrier.stop(startTime + duration + 0.02);
+      modulator.stop(startTime + duration + 0.03);
+      carrier.stop(startTime + duration + 0.03);
     } catch {
       // ignore audio errors
     }
@@ -407,7 +420,7 @@ class SoundEngine {
   }
 
   /**
-   * 【案A: PC-98風クリスタルベル・アルペジオ】正解コンボ音（コンボ数で倍音・ピッチが上昇）
+   * 【案A改: DX7風 華麗なクリスタルチャイム】正解コンボ音（より派手＆きらびやかに強化！）
    */
   public playWeakHit(combo: number = 1, isRevenge: boolean = false) {
     if (this.muted) return;
@@ -416,34 +429,57 @@ class SoundEngine {
 
     const now = ctx.currentTime;
     // コンボが繋がるほどピッチが上がり、倍音の煌めきが深まる
-    const baseBoost = Math.min(combo * 32, 320);
+    const baseBoost = Math.min(combo * 36, 360);
 
-    const notes = isRevenge
-      // リベンジ正解時: 5重のDX7クリスタルチャイムによる華麗な祝祭和音
-      ? [
-          { f: 1046.5, t: 0, d: 0.18, depth: 2200 },
-          { f: 1318.5, t: 0.035, d: 0.18, depth: 2500 },
-          { f: 1567.98, t: 0.07, d: 0.22, depth: 2800 },
-          { f: 2093.0, t: 0.105, d: 0.28, depth: 3200 },
-          { f: 2637.0, t: 0.14, d: 0.35, depth: 3600 },
-        ]
-      // 通常正解時: 澄んだ透明感あふれる3重FMクリスタルベル
-      : [
-          { f: 880 + baseBoost, t: 0, d: 0.14, depth: 1400 },
-          { f: 1108.73 + baseBoost, t: 0.035, d: 0.16, depth: 1700 },
-          { f: 1318.51 + baseBoost, t: 0.07, d: 0.22, depth: 2000 },
-        ];
+    if (isRevenge) {
+      // リベンジ正解時: 金属アタック ＋ 6重のDX7クリスタルチャイムによる超ゴージャスな祝祭和音
+      // アタックのメタリック・スパーク
+      this.playFmTone(1760, 1.414, 3200, 0.06, now, 0.15, 3520);
 
-    notes.forEach((n) => {
-      this.playFmTone(
-        n.f,
-        3.5, // DX7系クリスタルベル倍音比率
-        n.depth,
-        n.d,
-        now + n.t,
-        isRevenge ? 0.09 : 0.075
-      );
-    });
+      const notes = [
+        { f: 1046.5, t: 0.015, d: 0.28, depth: 2600 }, // C6
+        { f: 1318.5, t: 0.05, d: 0.30, depth: 3000 },  // E6
+        { f: 1567.98, t: 0.085, d: 0.32, depth: 3400 }, // G6
+        { f: 2093.0, t: 0.12, d: 0.38, depth: 3800 },  // C7
+        { f: 2637.0, t: 0.155, d: 0.45, depth: 4200 }, // E7
+        { f: 3135.96, t: 0.19, d: 0.55, depth: 4600 }, // G7
+      ];
+
+      notes.forEach((n) => {
+        this.playFmTone(n.f, 3.5, n.depth, n.d, now + n.t, 0.14);
+      });
+    } else {
+      // 通常正解時: 澄んだ透明感あふれる4重FMクリスタルベル ＋ 高音シマー（ピロリロリン！✨）
+      const baseF = 880 + baseBoost;
+      const notes = [
+        { f: baseF, t: 0, d: 0.20, depth: 1800 },
+        { f: baseF * 1.25, t: 0.038, d: 0.22, depth: 2200 }, // 長3度
+        { f: baseF * 1.5, t: 0.076, d: 0.26, depth: 2500 },  // 完全5度
+        { f: baseF * 2.0, t: 0.114, d: 0.36, depth: 3000 },  // オクターブ上
+      ];
+
+      notes.forEach((n) => {
+        this.playFmTone(n.f, 3.5, n.depth, n.d, now + n.t, 0.14);
+      });
+
+      // 最高音のクリスタルシマー（余韻にきらめきを付加）
+      this.playFmTone(baseF * 3.0, 2.0, 1500, 0.28, now + 0.114, 0.07);
+    }
+  }
+
+  /**
+   * 【案A: PC-98/FM TOWNS風 サイバートランジション音】次の問題へ進む（スライド・突入）時の爽快サウンド！
+   */
+  public playTransition() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // 1. 周波数が一瞬で駆け抜けるFMスウィープ（450Hz → 1650Hz / シュインッ！）
+    this.playFmTone(450, 2.0, 1800, 0.13, now, 0.13, 1650);
+    // 2. 高域のクリスタル・未来感ベル（2400Hz）がアクセントで煌めく
+    this.playFmTone(2400, 3.5, 2200, 0.15, now + 0.04, 0.11);
   }
 
   /**
@@ -485,27 +521,62 @@ class SoundEngine {
   }
 
   /**
-   * 【案A: DX7名機風 クリスタルベル・ファンファーレ】レベルアップ・進化ファンファーレ
+   * 【案A改: YAMAHA FM音源黄金期風 王道ビクトリー・ファンファーレ】ステージクリア＆進化ファンファーレ
+   * - ペルソナ風のメロディを完全排除！
+   * - 従来の2.5倍以上の長さ（約1.6秒）で、80〜90年代の日本の名作ゲームを彷彿とさせる最高に明るく爽快な祝祭メロディー！
+   * - FMベース ＋ ブラス調リード ＋ クリスタルベル重音の豪華アンサンブル
    */
-  public playEvolutionFanfare() {
+  public playStageVictory() {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    // YAMAHA DX7のグロッケン＆FMエレピを彷彿とさせる祝祭アルペジオ
-    const melody = [
-      { f: 523.25, t: 0, d: 0.16, r: 2.0, depth: 1400 },
-      { f: 659.25, t: 0.09, d: 0.16, r: 2.0, depth: 1500 },
-      { f: 783.99, t: 0.18, d: 0.18, r: 2.0, depth: 1600 },
-      { f: 1046.5, t: 0.27, d: 0.28, r: 3.5, depth: 2200 },
-      { f: 987.77, t: 0.48, d: 0.14, r: 2.0, depth: 1600 },
-      { f: 1046.5, t: 0.58, d: 0.55, r: 3.5, depth: 2800 },
+
+    // パート1: 駆け上がりファンファーレ (レ・ファ#・ラ・高レ)
+    const introNotes = [
+      { f: 587.33, t: 0.0, d: 0.18, r: 2.0, depth: 1600, vol: 0.13 },  // D5
+      { f: 739.99, t: 0.09, d: 0.18, r: 2.0, depth: 1700, vol: 0.13 }, // F#5
+      { f: 880.0, t: 0.18, d: 0.18, r: 2.0, depth: 1800, vol: 0.14 },  // A5
+      { f: 1174.66, t: 0.27, d: 0.24, r: 3.5, depth: 2400, vol: 0.15 }, // D6
     ];
 
-    melody.forEach((n) => {
-      this.playFmTone(n.f, n.r, n.depth, n.d, now + n.t, 0.11);
+    // パート2: 展開 (高ミ・高ファ#)
+    const midNotes = [
+      { f: 1318.51, t: 0.44, d: 0.18, r: 2.0, depth: 2000, vol: 0.14 }, // E6
+      { f: 1479.98, t: 0.54, d: 0.26, r: 2.0, depth: 2200, vol: 0.15 }, // F#6
+    ];
+
+    // パート3: クライマックス・ゴールデンコード（高ラ ＋ 高ファ# ＋ Dベース ＋ きらめくDX7ベル余韻！）
+    const climaxTime = 0.72;
+    const climaxDuration = 0.95;
+
+    // ベース音 (D4: 293.66Hz) で重厚な支え
+    this.playFmTone(293.66, 1.0, 900, climaxDuration, now + climaxTime, 0.13);
+
+    // 主旋律: 最高音の A6 (1760Hz)
+    this.playFmTone(1760.0, 3.5, 3200, climaxDuration, now + climaxTime, 0.17);
+
+    // ハーモニー: F#6 (1479.98Hz)
+    this.playFmTone(1479.98, 2.0, 2600, climaxDuration, now + climaxTime, 0.14);
+
+    // オクターブ上のスパークル・チャイム (A7: 3520Hz)
+    this.playFmTone(3520.0, 3.5, 2800, climaxDuration * 0.75, now + climaxTime + 0.04, 0.08);
+
+    introNotes.forEach((n) => {
+      this.playFmTone(n.f, n.r, n.depth, n.d, now + n.t, n.vol);
     });
+
+    midNotes.forEach((n) => {
+      this.playFmTone(n.f, n.r, n.depth, n.d, now + n.t, n.vol);
+    });
+  }
+
+  /**
+   * レベルアップ・進化ファンファーレ（playStageVictoryと同一の明るい祝祭サウンド）
+   */
+  public playEvolutionFanfare() {
+    this.playStageVictory();
   }
 }
 
