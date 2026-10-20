@@ -41,6 +41,7 @@ export interface BattleResultSummary {
 
 /**
  * スマホ端末の触覚フィードバック（バイブレーション）
+ * - ネイティブアプリのような「コンッ」とした極短のキータップ手応え
  * - Android等の対応ブラウザで小気味よく振動（iOS Safariでは無害にスルー）
  */
 const triggerHapticFeedback = (type: "light" | "medium" | "heavy" | "success" | "error" = "light") => {
@@ -48,19 +49,22 @@ const triggerHapticFeedback = (type: "light" | "medium" | "heavy" | "success" | 
   try {
     switch (type) {
       case "light":
-        navigator.vibrate(28);
+        // わずか12msの超短パルス：モーターが尾を引かない「コンッ」とした心地よいタップ手応え
+        navigator.vibrate(12);
         break;
       case "medium":
-        navigator.vibrate(45);
+        navigator.vibrate(22);
         break;
       case "heavy":
-        navigator.vibrate(70);
+        navigator.vibrate(36);
         break;
       case "success":
-        navigator.vibrate([28, 35, 40]);
+        // 極短パルスによるリズミカルな「コ・コンッ！」
+        navigator.vibrate([10, 40, 14]);
         break;
       case "error":
-        navigator.vibrate([45, 50, 45]);
+        // 短めの微小2連振動「ツ・ツッ」
+        navigator.vibrate([18, 45, 18]);
         break;
     }
   } catch {
