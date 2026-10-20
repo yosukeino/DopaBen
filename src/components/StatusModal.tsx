@@ -8,6 +8,7 @@ import { PixelCharacter } from "./PixelCharacter";
 import { StarRadarChart } from "./StarRadarChart";
 import { SKILL_HACKS } from "@/lib/vocabData";
 import { soundEngine } from "@/lib/soundEngine";
+import { getCharacterEvolutionTitle } from "@/lib/characterPartsEngine";
 
 interface StatusModalProps {
   profile: PlayerProfile;
@@ -85,22 +86,38 @@ export const StatusModal: React.FC<StatusModalProps> = ({
               <PixelCharacter
                 gender={profile.gender}
                 stage={profile.level}
+                stats={profile.stats}
+                loadout={profile.characterLoadout}
                 size={68}
                 mood="happy"
+                animateFrames={true}
               />
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black italic text-[#FACC15]">
-                  Lv.{profile.level}
-                </span>
-                <span className="text-xs font-bold text-white truncate">
-                  {profile.gender === "boy"
-                    ? currentStageInfo.titleBoy
-                    : currentStageInfo.titleGirl}
-                </span>
-              </div>
+              {(() => {
+                const evo = getCharacterEvolutionTitle(
+                  profile.gender,
+                  profile.level,
+                  profile.stats,
+                  profile.characterLoadout
+                );
+                return (
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-black italic text-[#FACC15]">
+                        Lv.{profile.level}
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40">
+                        {evo.branchBadge}
+                      </span>
+                      <span className="text-xs font-bold text-white truncate">
+                        {evo.title}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="text-[10px] text-[#94A3B8] font-bold line-clamp-1 mt-0.5">
                 {currentStageInfo.unlockMessage}
               </div>

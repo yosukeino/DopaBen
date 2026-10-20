@@ -738,9 +738,18 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 <PixelCharacter
                   gender={profile.gender}
                   stage={profile.level}
+                  stats={profile.stats}
+                  loadout={profile.characterLoadout}
                   size={54}
-                  mood={answerModal?.isCorrect ? "happy" : "idle"}
-                  showAura={false}
+                  mood={
+                    answerModal?.isCorrect
+                      ? "attack"
+                      : combo >= 5
+                      ? "happy"
+                      : "idle"
+                  }
+                  showAura={profile.level >= 5}
+                  animateFrames={true}
                 />
               </div>
 

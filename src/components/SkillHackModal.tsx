@@ -276,8 +276,11 @@ export const SkillHackModal: React.FC<SkillHackModalProps> = ({
                       <PixelCharacter
                         gender={profile.gender}
                         stage={st.stage}
+                        stats={profile.stats}
+                        loadout={isCurrent ? profile.characterLoadout : undefined}
                         size={76}
                         showAura={isCurrent}
+                        animateFrames={true}
                       />
 
                       <div className="mt-1.5 text-center">

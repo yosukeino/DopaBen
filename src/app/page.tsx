@@ -51,6 +51,8 @@ import { BattleResultSummary, BattleScreen } from "@/components/BattleScreen";
 import { SkillHackModal } from "@/components/SkillHackModal";
 import { StatusModal } from "@/components/StatusModal";
 import { CodexCategory, VocabCodexModal } from "@/components/VocabCodexModal";
+import { CharacterCustomizeModal } from "@/components/CharacterCustomizeModal";
+import { getCharacterEvolutionTitle } from "@/lib/characterPartsEngine";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
 
@@ -422,6 +424,7 @@ export default function DopaBenApp() {
 
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
   const [codexCategory, setCodexCategory] = useState<CodexCategory>("英検4級");
   const [lastPlayed, setLastPlayed] = useState<{ grade: GradeLevel; stage: number }>({
@@ -1038,6 +1041,8 @@ export default function DopaBenApp() {
                   <PixelCharacter
                     gender={profile.gender}
                     stage={profile.level}
+                    stats={profile.stats}
+                    loadout={profile.characterLoadout}
                     size={84}
                     mood="happy"
                   />
@@ -1303,8 +1308,11 @@ export default function DopaBenApp() {
                   <PixelCharacter
                     gender={profile.gender}
                     stage={profile.level}
+                    stats={profile.stats}
+                    loadout={profile.characterLoadout}
                     size={96}
                     mood={canEvolveLevel ? "happy" : "idle"}
+                    animateFrames={true}
                   />
                 </div>
 
@@ -1316,15 +1324,41 @@ export default function DopaBenApp() {
                       <span className="text-3xl font-black italic text-[#FACC15] animate-level-badge">
                         Lv.{profile.level}
                       </span>
-                      <span className="text-[10px] text-[#94A3B8] font-bold">
-                        累積: <span className="text-white font-black"><CountUpNumber value={totalLxp} /></span> LXP
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            soundEngine.playTap();
+                            setIsCustomizeModalOpen(true);
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#FACC15] hover:bg-[#FFE600] active:scale-95 text-black font-black text-[10px] flex items-center gap-1 shadow-sm transition"
+                        >
+                          <span>🎨 着せ替え・図鑑</span>
+                        </button>
+                        <span className="text-[10px] text-[#94A3B8] font-bold">
+                          累積: <span className="text-white font-black"><CountUpNumber value={totalLxp} /></span> LXP
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm mt-0.5">
-                      {profile.gender === "boy"
-                        ? currentStageInfo.titleBoy
-                        : currentStageInfo.titleGirl}
-                    </div>
+                    {(() => {
+                      const evo = getCharacterEvolutionTitle(
+                        profile.gender,
+                        profile.level,
+                        profile.stats,
+                        profile.characterLoadout
+                      );
+                      return (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40 shrink-0">
+                            {evo.branchBadge}
+                          </span>
+                          <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
+                            {evo.title}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* ハイテク NEXT EVOLUTION ゲージデザイン */}
@@ -1784,6 +1818,23 @@ export default function DopaBenApp() {
             handleStartBattle(trackNum, onlyWeak, cat)
           }
           onClose={() => setIsCodexModalOpen(false)}
+        />
+      )}
+
+      {/* 🎨 キャラクター着せ替え ＆ 120形態進化図鑑モーダル */}
+      {isCustomizeModalOpen && (
+        <CharacterCustomizeModal
+          isOpen={isCustomizeModalOpen}
+          onClose={() => setIsCustomizeModalOpen(false)}
+          profile={profile}
+          onSave={(updatedProfile) => {
+            setProfile(updatedProfile);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProfile));
+            } catch (e) {
+              console.error("Failed to save profile:", e);
+            }
+          }}
         />
       )}
     </div>

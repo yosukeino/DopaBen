@@ -115,6 +115,27 @@ export interface BattleWordLog {
   result: "perfect" | "revenge" | "missed";
 }
 
+export type StatBranchType =
+  | "balanced"  // 万能ヒーロー／ヒロイン系統
+  | "vocab"     // 語彙特化：魔導・賢者系統 (SAGE / ARCANIST)
+  | "speed"     // 瞬発特化：疾風・神速忍系統 (SPEEDSTER / SHINOBI)
+  | "grammar"   // 構築特化：機巧・聖騎士系統 (ARCHITECT / PALADIN)
+  | "listening" // 聴覚特化：音撃・サイバー怪盗系統 (SONIC PHANTOM)
+  | "guts";     // 度胸特化：紅蓮・覇王系統 (BERSERKER / OVERLORD)
+
+export interface CharacterPartLoadout {
+  mode: "auto" | "custom"; // auto = Lv×五角形ステータス連動進化, custom = 自由パーツ組み合わせ
+  forcedBranch?: StatBranchType; // auto時に特定系統をプレビュー・固定したい場合
+  hairStyle: string;
+  headgear: string;
+  eyeStyle: string;
+  outfit: string;
+  weaponRight: string;
+  weaponLeft: string;
+  backGear: string;
+  palette: string;
+}
+
 export interface PlayerProfile {
   name: string;
   gender: CharacterGender;
@@ -129,4 +150,6 @@ export interface PlayerProfile {
   unlockedSkillHacks: SkillHackId[]; // 所持LXPを消費して習得済みのスキル一覧
   activeSkillHacks: SkillHackId[];   // 現在ONにしているスキル一覧
   wordMastery?: Record<string, WordMasteryRecord>;
+  unlockedParts?: string[];          // LXPで解放した着せ替えパーツID一覧
+  characterLoadout?: CharacterPartLoadout;
 }
