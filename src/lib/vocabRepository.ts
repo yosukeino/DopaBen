@@ -2,6 +2,12 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import { SentenceItem, WordItem } from "./types";
 import { EIKEN1_SENTENCES, EIKEN1_UNIT1_ENTRIES, EIKEN1_WORDS } from "./eiken1Data";
 import {
+  EIKEN4_ENTRIES,
+  EIKEN4_SENTENCES,
+  EIKEN4_STAGES,
+  EIKEN4_WORDS,
+} from "./eiken4Data";
+import {
   TARGET1800_ENTRIES,
   TARGET1800_SENTENCES,
   TARGET1800_STAGES,
@@ -22,7 +28,7 @@ export interface DbStageRow {
 export interface DbVocabEntryRow {
   id: string;
   stage_slug: string;
-  category: "ターゲット1800" | "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
+  category: "英検4級" | "ターゲット1800" | "英検1級" | "中1" | "中2" | "中3" | "激ムズ";
   unit_number: number;
   track_number: number;
   entry_number: string;
@@ -56,6 +62,8 @@ export interface ExtendedSentenceItem extends SentenceItem {
 export interface VocabDataPool {
   source: "supabase" | "local";
   totalCount: number;
+  eiken4Words: ExtendedWordItem[];
+  eiken4Sentences: ExtendedSentenceItem[];
   target1800Words: ExtendedWordItem[];
   target1800Sentences: ExtendedSentenceItem[];
   eiken1Words: ExtendedWordItem[];
@@ -71,6 +79,19 @@ let cachedPool: VocabDataPool | null = null;
  * ローカル定義データから初期フォールバックプールを生成
  */
 export function getLocalFallbackPool(): VocabDataPool {
+  const eiken4Words: ExtendedWordItem[] = EIKEN4_WORDS.map((w) => ({
+    ...w,
+    track: w.level,
+    stageSlug: w.stageSlug,
+    unitNumber: w.level,
+  }));
+  const eiken4Sentences: ExtendedSentenceItem[] = EIKEN4_SENTENCES.map((s) => ({
+    ...s,
+    track: s.level,
+    stageSlug: s.stageSlug,
+    unitNumber: s.level,
+  }));
+
   const target1800Words: ExtendedWordItem[] = TARGET1800_WORDS.map((w) => ({
     ...w,
     track: w.level,
@@ -99,7 +120,13 @@ export function getLocalFallbackPool(): VocabDataPool {
 
   return {
     source: "local",
-    totalCount: target1800Words.length + eiken1Words.length + WORDS.length,
+    totalCount:
+      eiken4Words.length +
+      target1800Words.length +
+      eiken1Words.length +
+      WORDS.length,
+    eiken4Words,
+    eiken4Sentences,
     target1800Words,
     target1800Sentences,
     eiken1Words,
@@ -118,7 +145,7 @@ export function getActiveVocabPool(): VocabDataPool {
 
 function mapExtendedRows(
   rows: DbVocabEntryRow[],
-  gradeLabel: "ターゲット1800" | "英検1級",
+  gradeLabel: "英検4級" | "ターゲット1800" | "英検1級",
   defaultStageSlug: string
 ): { words: ExtendedWordItem[]; sentences: ExtendedSentenceItem[] } {
   const words: ExtendedWordItem[] = rows.map((row, idx) => {
@@ -250,12 +277,21 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
     }
 
     const fallback = getLocalFallbackPool();
+    const eiken4Rows = allRows.filter((r) => r.category === "英検4級");
     const targetRows = allRows.filter((r) => r.category === "ターゲット1800");
     const eikenRows = allRows.filter((r) => r.category === "英検1級");
     const standardRows = allRows.filter(
-      (r) => r.category !== "英検1級" && r.category !== "ターゲット1800"
+      (r) =>
+        r.category !== "英検1級" &&
+        r.category !== "ターゲット1800" &&
+        r.category !== "英検4級"
     );
 
+    const eiken4Mapped = mapExtendedRows(
+      eiken4Rows,
+      "英検4級",
+      "eiken4_stage01"
+    );
     const targetMapped = mapExtendedRows(
       targetRows,
       "ターゲット1800",
@@ -307,6 +343,14 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
     cachedPool = {
       source: "supabase",
       totalCount: allRows.length,
+      eiken4Words:
+        eiken4Mapped.words.length > 0
+          ? eiken4Mapped.words
+          : fallback.eiken4Words,
+      eiken4Sentences:
+        eiken4Mapped.sentences.length > 0
+          ? eiken4Mapped.sentences
+          : fallback.eiken4Sentences,
       target1800Words:
         targetMapped.words.length > 0
           ? targetMapped.words
@@ -334,7 +378,7 @@ export async function loadVocabPoolFromSupabase(): Promise<VocabDataPool> {
 }
 
 /**
- * 全ステージ＆全問題データ（ターゲット1800 全18ステージ1800語 ＋ 英検1級 96語 ＋ 中1〜中3・激ムズ）を
+ * 全ステージ＆全問題データ（英検4級 全16ステージ700語 ＋ ターゲット1800 全18ステージ1800語 ＋ 英検1級 96語 ＋ 中1〜中3・激ムズ）を
  * Supabase の `dopaben_stages` と `dopaben_vocab_entries` に一括Upsert（同期）する関数
  */
 export async function syncAllLocalDataToSupabase(): Promise<{
@@ -351,6 +395,16 @@ export async function syncAllLocalDataToSupabase(): Promise<{
     };
   }
 
+  const eiken4Stages: DbStageRow[] = EIKEN4_STAGES.map((s) => ({
+    slug: s.slug,
+    category: "英検4級",
+    unit_number: s.unitNumber,
+    title: s.title,
+    subtitle: s.subtitle,
+    sort_order: s.sortOrder,
+    is_active: true,
+  }));
+
   const targetStages: DbStageRow[] = TARGET1800_STAGES.map((s) => ({
     slug: s.slug,
     category: "ターゲット1800",
@@ -362,6 +416,7 @@ export async function syncAllLocalDataToSupabase(): Promise<{
   }));
 
   const stages: DbStageRow[] = [
+    ...eiken4Stages,
     ...targetStages,
     {
       slug: "eiken1_unit01",
@@ -420,6 +475,30 @@ export async function syncAllLocalDataToSupabase(): Promise<{
       message: `ステージテーブル同期エラー: ${stageError.message}`,
     };
   }
+
+  const eiken4Entries: DbVocabEntryRow[] = EIKEN4_ENTRIES.map((entry, idx) => {
+    const generatedWord = EIKEN4_WORDS[idx];
+    const generatedSentence = EIKEN4_SENTENCES[idx];
+    return {
+      id: `eiken4_${entry.num}`,
+      stage_slug: entry.stageSlug,
+      category: "英検4級",
+      unit_number: entry.level,
+      track_number: entry.level,
+      entry_number: entry.num,
+      english: entry.english,
+      japanese: entry.japanese,
+      phonetic: entry.phonetic,
+      part_of_speech: entry.partOfSpeech,
+      tip: entry.tip,
+      distractors_ja: generatedWord.distractorsJa,
+      distractors_en: generatedWord.distractorsEn,
+      sentence_en_tokens: entry.sentenceEn,
+      sentence_ja: entry.sentenceJa,
+      sentence_distractor_tokens: generatedSentence.distractorTokens,
+      grammar_point: generatedSentence.grammarPoint,
+    };
+  });
 
   const targetEntries: DbVocabEntryRow[] = TARGET1800_ENTRIES.map(
     (entry, idx) => {
@@ -509,7 +588,12 @@ export async function syncAllLocalDataToSupabase(): Promise<{
     };
   });
 
-  const allEntries = [...targetEntries, ...eikenEntries, ...standardEntries];
+  const allEntries = [
+    ...eiken4Entries,
+    ...targetEntries,
+    ...eikenEntries,
+    ...standardEntries,
+  ];
 
   const batchSize = 400;
   for (let i = 0; i < allEntries.length; i += batchSize) {

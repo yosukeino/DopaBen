@@ -33,6 +33,7 @@ import {
   getStatUpgradeLxpCost,
 } from "@/lib/vocabData";
 import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
+import { EIKEN4_STAGES } from "@/lib/eiken4Data";
 import { TARGET1800_STAGES } from "@/lib/target1800Data";
 import { generateBattleDeck } from "@/lib/questionGenerator";
 import {
@@ -46,7 +47,7 @@ import { PixelCharacter } from "@/components/PixelCharacter";
 import { StarRadarChart } from "@/components/StarRadarChart";
 import { BattleResultSummary, BattleScreen } from "@/components/BattleScreen";
 import { SkillHackModal } from "@/components/SkillHackModal";
-import { VocabCodexModal } from "@/components/VocabCodexModal";
+import { CodexCategory, VocabCodexModal } from "@/components/VocabCodexModal";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
 
@@ -297,7 +298,9 @@ function getRequiredCumulativeLxpForNextLevel(currentLevel: number): number {
 
 export default function DopaBenApp() {
   const [profile, setProfile] = useState<PlayerProfile>(DEFAULT_PROFILE);
-  const [selectedGrade, setSelectedGrade] = useState<GradeLevel>("ターゲット1800");
+  const [selectedGrade, setSelectedGrade] = useState<GradeLevel>("英検4級");
+  const [selectedEiken4Stage, setSelectedEiken4Stage] = useState<number>(1); // 1〜16 = 英検4級 全16ステージ
+  const [eiken4StageTab, setEiken4StageTab] = useState<"stage12" | "summary">("stage12");
   const [selectedEikenTrack, setSelectedEikenTrack] = useState<number>(0); // 0 = Unit 01 全96語, 1〜8 = Track 001〜008
   const [selectedTargetStage, setSelectedTargetStage] = useState<number>(1); // 1〜18 = Target 1800 全18ステージ
   const [targetStageTab, setTargetStageTab] = useState<"level10" | "summary">("level10");
@@ -313,11 +316,11 @@ export default function DopaBenApp() {
 
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isCodexModalOpen, setIsCodexModalOpen] = useState(false);
-  const [codexCategory, setCodexCategory] = useState<"ターゲット1800" | "英検1級">("ターゲット1800");
+  const [codexCategory, setCodexCategory] = useState<CodexCategory>("英検4級");
   const [isMuted, setIsMuted] = useState(false);
   const [slashTransition, setSlashTransition] = useState(false);
   const [dbSource, setDbSource] = useState<"supabase" | "local">("local");
-  const [dbTotalWords, setDbTotalWords] = useState<number>(1917);
+  const [dbTotalWords, setDbTotalWords] = useState<number>(2617);
   const [isSyncingDb, setIsSyncingDb] = useState<boolean>(false);
   const [dbSyncNotice, setDbSyncNotice] = useState<string | null>(null);
   const [radarBounceKey, setRadarBounceKey] = useState<number>(0);
@@ -408,7 +411,7 @@ export default function DopaBenApp() {
   const handleStartBattle = (
     overrideTrack?: number,
     onlyWeakWords: boolean = false,
-    overrideCategory?: "ターゲット1800" | "英検1級"
+    overrideCategory?: CodexCategory
   ) => {
     soundEngine.playAllOutIntro();
     const useHardcore =
@@ -423,12 +426,17 @@ export default function DopaBenApp() {
     const targetTrack =
       overrideTrack !== undefined
         ? overrideTrack
+        : activeGrade === "英検4級"
+        ? selectedEiken4Stage
         : activeGrade === "ターゲット1800"
         ? selectedTargetStage
         : selectedEikenTrack;
     if (overrideTrack !== undefined) {
       setSelectedGrade(activeGrade);
-      if (activeGrade === "ターゲット1800") {
+      if (activeGrade === "英検4級") {
+        setSelectedEiken4Stage(overrideTrack);
+        setEiken4StageTab(overrideTrack <= 12 ? "stage12" : "summary");
+      } else if (activeGrade === "ターゲット1800") {
         setSelectedTargetStage(overrideTrack);
         setTargetStageTab(overrideTrack <= 10 ? "level10" : "summary");
       } else {
@@ -1515,6 +1523,325 @@ export default function DopaBenApp() {
               </div>
             )}
 
+            {/* 📗 英検4級 ステージ【でる順パス単】（12分割 ＆ まとめ＆FINAL 全16ステージ・全700語） */}
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  soundEngine.playTap();
+                  setSelectedGrade("英検4級");
+                }}
+                className={`w-full py-2.5 px-3 font-black text-left border-2 -skew-x-6 transition flex items-center justify-between ${
+                  selectedGrade === "英検4級"
+                    ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981]"
+                    : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 border ${
+                      selectedGrade === "英検4級"
+                        ? "bg-[#0B0D12] text-[#FACC15] border-[#0B0D12]"
+                        : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D]"
+                    }`}
+                  >
+                    {selectedGrade === "英検4級"
+                      ? "● 選択中"
+                      : "16 STAGES"}
+                  </span>
+                  <span className="text-sm tracking-tight">
+                    📗 英検4級 ステージ【でる順パス単】
+                  </span>
+                </div>
+                <span
+                  className={`text-[11px] font-black ${
+                    selectedGrade === "英検4級"
+                      ? "text-[#0B0D12]"
+                      : "text-[#94A3B8]"
+                  }`}
+                >
+                  全700語
+                </span>
+              </button>
+
+              {selectedGrade === "英検4級" && (
+                <div className="bg-[#131720] border-2 border-[#FACC15] p-2.5 space-y-2">
+                  {/* 上部ガイド＆700語図鑑ボタン */}
+                  <div className="flex items-center justify-between text-[10px] font-black">
+                    <span className="text-[#94A3B8]">
+                      📗 全16ステージ選択（黄色＝現在の出撃ステージ）
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playTap();
+                        setCodexCategory("英検4級");
+                        setIsCodexModalOpen(true);
+                      }}
+                      className="bg-[#0B0D12] hover:bg-[#FACC15] hover:text-[#0B0D12] text-white border border-white px-2 py-0.5 flex items-center gap-1 transition"
+                    >
+                      <BookOpen className="w-3 h-3 text-[#FACC15]" />
+                      700語図鑑・制覇率
+                    </button>
+                  </div>
+
+                  {/* タブ切り替え：12分割ステージ vs まとめ＆FINAL */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playTap();
+                        setEiken4StageTab("stage12");
+                        if (selectedEiken4Stage > 12) {
+                          setSelectedEiken4Stage(1);
+                        }
+                      }}
+                      className={`py-1.5 px-2 text-[11px] font-black border transition ${
+                        eiken4StageTab === "stage12"
+                          ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                          : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
+                      }`}
+                    >
+                      ⚡ 12分割ステージ (Stage 01〜12)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playTap();
+                        setEiken4StageTab("summary");
+                        if (selectedEiken4Stage <= 12) {
+                          setSelectedEiken4Stage(13);
+                        }
+                      }}
+                      className={`py-1.5 px-2 text-[11px] font-black border transition ${
+                        eiken4StageTab === "summary"
+                          ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                          : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
+                      }`}
+                    >
+                      👑 まとめ＆FINAL (学校・でる単・熟語・全)
+                    </button>
+                  </div>
+
+                  {/* 現在選択中のステージ詳細バナー */}
+                  {(() => {
+                    const activeStage =
+                      EIKEN4_STAGES.find(
+                        (s) => s.unitNumber === selectedEiken4Stage
+                      ) || EIKEN4_STAGES[0];
+                    const poolWords = getActiveVocabPool().eiken4Words;
+                    const stageWords = poolWords.filter((w) =>
+                      activeStage.levels.includes(w.track || 1)
+                    );
+                    const masteredCount = stageWords.filter(
+                      (w) => (profile.wordMastery?.[w.id]?.cleared || 0) > 0
+                    ).length;
+                    return (
+                      <div className="bg-[#0B0D12] border border-[#262D3D] px-2.5 py-1.5 flex items-center justify-between text-[11px]">
+                        <div>
+                          <span className="font-black text-[#FACC15]">
+                            {activeStage.title}
+                          </span>
+                          <span className="text-[#94A3B8] ml-1.5 text-[10px] font-bold">
+                            {activeStage.subLabel}
+                          </span>
+                        </div>
+                        <span className="font-black text-[#10B981] shrink-0">
+                          制覇 {masteredCount}/{stageWords.length}語
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ステージ一覧グリッド */}
+                  {eiken4StageTab === "stage12" ? (
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {EIKEN4_STAGES.filter((s) => s.group === "stage12").map(
+                        (s) => {
+                          const isSelected = selectedEiken4Stage === s.unitNumber;
+                          const poolWords = getActiveVocabPool().eiken4Words;
+                          const stageWords = poolWords.filter((w) =>
+                            s.levels.includes(w.track || 1)
+                          );
+                          const masteredCount = stageWords.filter(
+                            (w) => (profile.wordMastery?.[w.id]?.cleared || 0) > 0
+                          ).length;
+                          const totalInStage = stageWords.length || 58;
+                          const isComplete =
+                            totalInStage > 0 && masteredCount >= totalInStage;
+
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                soundEngine.playTap();
+                                setSelectedEiken4Stage(s.unitNumber);
+                              }}
+                              className={`py-1.5 px-1 text-center border transition relative overflow-hidden ${
+                                isSelected
+                                  ? "bg-[#FACC15] text-[#0B0D12] border-white font-black"
+                                  : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white font-bold"
+                              }`}
+                            >
+                              <div className="text-[11px] leading-tight flex items-center justify-center gap-0.5">
+                                {isComplete && (
+                                  <CheckCircle2
+                                    className={`w-2.5 h-2.5 shrink-0 ${
+                                      isSelected
+                                        ? "text-[#0B0D12]"
+                                        : "text-[#10B981]"
+                                    }`}
+                                  />
+                                )}
+                                <span
+                                  className={
+                                    isSelected ? "text-[#0B0D12]" : "text-white"
+                                  }
+                                >
+                                  {s.label}
+                                </span>
+                              </div>
+                              <div
+                                className={`text-[9px] leading-tight ${
+                                  isSelected
+                                    ? "text-[#0B0D12]/80 font-black"
+                                    : "text-[#94A3B8]"
+                                }`}
+                              >
+                                {s.rangeLabel}
+                              </div>
+                              <div
+                                className={`w-full h-1 mt-1 ${
+                                  isSelected ? "bg-[#0B0D12]/25" : "bg-[#131720]"
+                                }`}
+                              >
+                                <div
+                                  className="h-full bg-[#10B981] transition-all"
+                                  style={{
+                                    width: `${Math.min(
+                                      100,
+                                      Math.round(
+                                        (masteredCount /
+                                          Math.max(1, totalInStage)) *
+                                          100
+                                      )
+                                    )}%`,
+                                  }}
+                                />
+                              </div>
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-black text-[#94A3B8]">
+                        🔥 分野別まとめステージ（学校単語・でる単語・重要熟語）
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {EIKEN4_STAGES.filter((s) => s.group === "summary").map(
+                          (s) => {
+                            const isSelected =
+                              selectedEiken4Stage === s.unitNumber;
+                            const poolWords = getActiveVocabPool().eiken4Words;
+                            const stageWords = poolWords.filter((w) =>
+                              s.levels.includes(w.track || 1)
+                            );
+                            const masteredCount = stageWords.filter(
+                              (w) =>
+                                (profile.wordMastery?.[w.id]?.cleared || 0) > 0
+                            ).length;
+                            const totalInStage = stageWords.length || 100;
+
+                            return (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => {
+                                  soundEngine.playTap();
+                                  setSelectedEiken4Stage(s.unitNumber);
+                                }}
+                                className={`py-1.5 px-1 text-center border transition ${
+                                  isSelected
+                                    ? "bg-[#FACC15] text-[#0B0D12] border-white font-black"
+                                    : "bg-[#0B0D12] text-white border-[#262D3D] hover:border-[#FACC15] font-bold"
+                                }`}
+                              >
+                                <div className="text-[10px] leading-tight">
+                                  {s.label}
+                                </div>
+                                <div
+                                  className={`text-[9px] ${
+                                    isSelected
+                                      ? "text-[#0B0D12]/80 font-black"
+                                      : "text-[#10B981]"
+                                  }`}
+                                >
+                                  {s.rangeLabel} ({masteredCount}/{totalInStage})
+                                </div>
+                              </button>
+                            );
+                          }
+                        )}
+                      </div>
+
+                      <div className="text-[10px] font-black text-[#94A3B8] pt-0.5">
+                        👑 総合FINALステージ（全12ステージ・全700語）
+                      </div>
+                      <div>
+                        {EIKEN4_STAGES.filter((s) => s.group === "final").map(
+                          (s) => {
+                            const isSelected =
+                              selectedEiken4Stage === s.unitNumber;
+                            const poolWords = getActiveVocabPool().eiken4Words;
+                            const stageWords = poolWords.filter((w) =>
+                              s.levels.includes(w.track || 1)
+                            );
+                            const masteredCount = stageWords.filter(
+                              (w) =>
+                                (profile.wordMastery?.[w.id]?.cleared || 0) > 0
+                            ).length;
+                            const totalInStage = stageWords.length || 700;
+
+                            return (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => {
+                                  soundEngine.playTap();
+                                  setSelectedEiken4Stage(s.unitNumber);
+                                }}
+                                className={`w-full py-2 px-2 text-center border transition ${
+                                  isSelected
+                                    ? "bg-[#FACC15] text-[#0B0D12] border-white font-black"
+                                    : "bg-[#0B0D12] text-white border-[#262D3D] hover:border-[#FACC15] font-bold"
+                                }`}
+                              >
+                                <div className="text-xs leading-tight">
+                                  {s.label}
+                                </div>
+                                <div
+                                  className={`text-[10px] ${
+                                    isSelected
+                                      ? "text-[#0B0D12]/80 font-black"
+                                      : "text-[#10B981]"
+                                  }`}
+                                >
+                                  {s.rangeLabel} (制覇 {masteredCount}/
+                                  {totalInStage}語)
+                                </div>
+                              </button>
+                            );
+                          }
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* 🎯 中学英単語ステージ【ターゲット1800】（10分割 ＆ まとめステージ全18ステージ） */}
             <div className="space-y-2">
               <button
@@ -2085,13 +2412,15 @@ export default function DopaBenApp() {
         />
       )}
 
-      {/* 📖 中学英単語1,800語 ＆ 英検1級 Unit 01 全96語 図鑑＆制覇状況モーダル */}
+      {/* 📖 英検4級700語 ＆ 中学英単語1,800語 ＆ 英検1級 Unit 01 全96語 図鑑＆制覇状況モーダル */}
       {isCodexModalOpen && (
         <VocabCodexModal
           category={codexCategory}
           wordMastery={profile.wordMastery || {}}
           initialTrack={
-            codexCategory === "ターゲット1800"
+            codexCategory === "英検4級"
+              ? selectedEiken4Stage
+              : codexCategory === "ターゲット1800"
               ? selectedTargetStage
               : selectedEikenTrack
           }

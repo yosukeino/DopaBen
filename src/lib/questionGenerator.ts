@@ -7,6 +7,7 @@ import {
   WordMasteryRecord,
 } from "./types";
 import { getActiveVocabPool } from "./vocabRepository";
+import { EIKEN4_STAGES } from "./eiken4Data";
 import { TARGET1800_STAGES } from "./target1800Data";
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -19,6 +20,8 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 const IRREGULAR_FORMS: Record<string, string[]> = {
+  be: ["am", "is", "are", "was", "were", "been", "being", "be"],
+  do: ["did", "done", "doing", "does"],
   override: ["overrode", "overridden", "overriding", "overrides"],
   undergo: ["underwent", "undergone", "undergoing", "undergoes"],
   undertake: ["undertook", "undertaken", "undertaking", "undertakes"],
@@ -83,34 +86,71 @@ const IRREGULAR_FORMS: Record<string, string[]> = {
   tell: ["told", "telling", "tells"],
   understand: ["understood", "understanding", "understands"],
   win: ["won", "winning", "wins"],
+  become: ["became", "becoming", "becomes"],
 };
 
+function buildSingleWordPattern(word: string): string {
+  const clean = word.toLowerCase().replace(/[^a-z0-9'’. -]/g, "");
+  if (!clean) return "";
+  const stem =
+    clean.length > 3 && (clean.endsWith("e") || clean.endsWith("y"))
+      ? clean.slice(0, -1)
+      : clean;
+  const escapedFull = clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedStem = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const irregularAlts = (IRREGULAR_FORMS[clean] || []).join("|");
+  const irregularPart = irregularAlts ? `|${irregularAlts}` : "";
+  return `(?:${escapedFull}[a-z]*|${escapedStem}(?:e|ed|d|s|es|ing|ied|ies|ier|iest|ly)?${irregularPart})`;
+}
+
 /**
- * 例文中のターゲット単語（活用形 -ed, -ing, -s, -d や不規則変化を含む）を検出して穴埋めマスクまたは分割する
+ * 例文中のターゲット単語・熟語（活用形 -ed, -ing, -s や不規則変化、熟語の ~ / A / B / one's 等を含む）を検出して分割する
  */
 export function splitSentenceByTargetWord(
   sentence: string,
   baseWord: string
 ): { before: string; matched: string; after: string } | null {
   if (!sentence || !baseWord) return null;
-  const cleanBase = baseWord.trim().toLowerCase();
-  // 語幹（末尾の e や y を除いた部分、最低3文字）
-  const stem =
-    cleanBase.endsWith("e") || cleanBase.endsWith("y")
-      ? cleanBase.slice(0, -1)
-      : cleanBase;
+  const trimmed = baseWord.trim();
 
-  const escapedFull = cleanBase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const escapedStem = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const irregularAlts = (IRREGULAR_FORMS[cleanBase] || []).join("|");
-  const irregularPart = irregularAlts ? `|${irregularAlts}` : "";
+  // 熟語表記（[to do], (back), ~, A, B, do, doing, one's 等）をクリーニングして構成語トークンを抽出
+  const cleanedPhrase = trimmed
+    .replace(/\[.*?\]/g, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[~〜…]{1,3}/g, " ")
+    .replace(/\b(?:do|doing|one's|one’s|A|B)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // 1. 完全一致・不規則活用・規則活用語尾つきの単語境界マッチ
-  const regex = new RegExp(
-    `\\b(${escapedFull}[a-z]*|${escapedStem}(?:e|ed|d|s|es|ing|ied|ies|ier|iest|ly)?${irregularPart})\\b`,
-    "i"
-  );
-  const match = sentence.match(regex);
+  const tokens = cleanedPhrase.split(" ").filter(Boolean);
+
+  // 1. 複数語から成る熟語・複合名詞（例: want to, look for, take A to B, cell phone, social studies）のマッチ
+  if (tokens.length >= 2) {
+    const parts = tokens.map((t) => buildSingleWordPattern(t)).filter(Boolean);
+    if (parts.length >= 2) {
+      const phraseRegex = new RegExp(
+        `\\b(${parts.join("\\s+(?:[a-zA-Z0-9'’]+\\s+){0,2}")})`,
+        "i"
+      );
+      const phraseMatch = sentence.match(phraseRegex);
+      if (phraseMatch && phraseMatch.index !== undefined) {
+        return {
+          before: sentence.slice(0, phraseMatch.index),
+          matched: phraseMatch[0],
+          after: sentence.slice(phraseMatch.index + phraseMatch[0].length),
+        };
+      }
+    }
+  }
+
+  // 2. 単一語（または熟語の先頭コア語）のマッチ
+  const targetToken = tokens[0] || trimmed.toLowerCase();
+  const pat = buildSingleWordPattern(targetToken);
+  if (!pat) return null;
+
+  const boundaryRegex = new RegExp(`\\b(${pat})\\b`, "i");
+  const match =
+    sentence.match(boundaryRegex) || sentence.match(new RegExp(`(${pat})`, "i"));
   if (!match || match.index === undefined) {
     return null;
   }
@@ -201,7 +241,7 @@ export function buildWordQuestion(
         ? "🔥 REVENGE TARGET // 倍返しチャンス！"
         : "SLASH THE MEANING // 意味を撃ち抜け！",
       promptMain: word.english,
-      promptSub: `${word.phonetic}  |  ${word.partOfSpeech}`,
+      promptSub: `${word.phonetic ? `${word.phonetic}  |  ` : ""}${word.partOfSpeech}`,
       audioText: word.english,
       choices,
       isRevengeBounty: options?.isRevengeBounty,
@@ -278,7 +318,7 @@ export function buildWordQuestion(
 }
 
 /**
- * 例文データから「総攻撃（ALL-OUT ATTACK）ワードバンク並び替え問題」を生成する（中学ステージ用）
+ * 例文データから「総攻撃（ALL-OUT ATTACK）ワードバンク並び替え問題」を生成する
  */
 export function buildSentenceQuestion(sentence: SentenceItem): GeneratedQuestion {
   const uid = `${sentence.id}_allout_${Math.random().toString(36).slice(2, 7)}`;
@@ -358,24 +398,47 @@ function prioritizeWordsByMastery<T extends WordItem>(
 }
 
 /**
+ * 選出された単語リストに対応する例文から、ラスト1問の「総攻撃（語順並び替え）」問題を1問選出する
+ */
+function pickAllOutSentenceQuestion(
+  selectedWords: WordItem[],
+  sentencesPool: SentenceItem[]
+): GeneratedQuestion | null {
+  const selectedIds = new Set(selectedWords.map((w) => w.id));
+  const matchingSentences = sentencesPool.filter(
+    (s) =>
+      s.targetWordIds.some((id) => selectedIds.has(id)) &&
+      s.englishTokens.length >= 4 &&
+      s.englishTokens.length <= 10
+  );
+  const candidates =
+    matchingSentences.length > 0
+      ? matchingSentences
+      : sentencesPool.filter(
+          (s) => s.englishTokens.length >= 4 && s.englishTokens.length <= 10
+        );
+
+  if (candidates.length === 0) return null;
+  const chosen = shuffleArray(candidates)[0];
+  return buildSentenceQuestion(chosen);
+}
+
+/**
  * 1プレイのバトルデッキを自動生成する
  * - 全ステージ共通：4形式（①英→日 ②日→英 ③リスニング ④文脈穴埋め）がデフォルトで均等に出現！
- * - テンポの良い4択 6問で出撃（英検1級も中学ステージも統一！）
+ * - 4択6問 ＋ ラスト総攻撃（語順並び替え）1問の二段ロケット構成
  * - 未出題＆苦手ワードを自動優先出題
- * - 激ムズモード（HARDCORE CHALLENGE）ON時は、難関・激ムズ問題が乱入し全獲得EXPが2倍に跳ね上がる！
  */
 export function generateBattleDeck(
   grade: GradeLevel,
   includeHardcoreHack: boolean,
-  eiken1Track: number = 0,
+  stageOrTrack: number = 0,
   wordMastery?: Record<string, WordMasteryRecord>,
   onlyWeakWords: boolean = false,
   includeListening: boolean = true
 ): GeneratedQuestion[] {
   const pool = getActiveVocabPool();
 
-  // 4種類の4択問題（①英→日 ②日→英 ③リスニング ④公式例文穴埋め）を全ステージでバランスよくシャッフル配置
-  // ※音を出せない環境向けにリスニング「ナシ」選択時は、①英→日 ②日→英 ④例文穴埋めの3形式で均等構成
   const defaultFormats: Exclude<QuestionFormat, "sentence_order">[] =
     includeListening
       ? shuffleArray([
@@ -395,14 +458,52 @@ export function generateBattleDeck(
           "sentence_fill",
         ]);
 
-  // === 新規ステージ：『ターゲット1800 全18ステージ（Lv.01〜10 / 2レベルまとめ / 5レベルまとめ / 総合FINAL）』 ===
+  // === 1. 新規最優先ステージ：『英検4級 全16ステージ（Stage 01〜12 / 分野別まとめ / 総合FINAL 全700語）』 ===
+  if (grade === "英検4級") {
+    const stageDef = EIKEN4_STAGES.find(
+      (s) => s.unitNumber === (stageOrTrack || 1)
+    );
+    const activeLevels = stageDef ? stageDef.levels : [1];
+    const stageWords = pool.eiken4Words.filter((w) =>
+      activeLevels.includes(w.unitNumber)
+    );
+    const stageSentences = pool.eiken4Sentences.filter((s) =>
+      activeLevels.includes(s.unitNumber)
+    );
+
+    const candidatePool =
+      stageWords.length >= 6 ? stageWords : pool.eiken4Words;
+
+    const selectedEiken4Words = prioritizeWordsByMastery(
+      candidatePool,
+      6,
+      wordMastery,
+      onlyWeakWords
+    );
+
+    const comboDeck = selectedEiken4Words.map((word, index) =>
+      buildWordQuestion(word, defaultFormats[index % defaultFormats.length])
+    );
+
+    const allOutQ = pickAllOutSentenceQuestion(
+      selectedEiken4Words,
+      stageSentences.length > 0 ? stageSentences : pool.eiken4Sentences
+    );
+
+    return allOutQ ? [...comboDeck, allOutQ] : comboDeck;
+  }
+
+  // === 2. 中学英単語ステージ：『ターゲット1800 全18ステージ（Lv.01〜10 / 2レベルまとめ / 5レベルまとめ / 総合FINAL）』 ===
   if (grade === "ターゲット1800") {
     const stageDef = TARGET1800_STAGES.find(
-      (s) => s.unitNumber === eiken1Track
+      (s) => s.unitNumber === (stageOrTrack || 1)
     );
     const activeLevels = stageDef ? stageDef.levels : [1];
     const stageWords = pool.target1800Words.filter((w) =>
       activeLevels.includes(w.unitNumber)
+    );
+    const stageSentences = pool.target1800Sentences.filter((s) =>
+      activeLevels.includes(s.unitNumber)
     );
 
     const candidatePool =
@@ -415,16 +516,23 @@ export function generateBattleDeck(
       onlyWeakWords
     );
 
-    return selectedTargetWords.map((word, index) =>
+    const comboDeck = selectedTargetWords.map((word, index) =>
       buildWordQuestion(word, defaultFormats[index % defaultFormats.length])
     );
+
+    const allOutQ = pickAllOutSentenceQuestion(
+      selectedTargetWords,
+      stageSentences.length > 0 ? stageSentences : pool.target1800Sentences
+    );
+
+    return allOutQ ? [...comboDeck, allOutQ] : comboDeck;
   }
 
-  // === 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
+  // === 3. 専用ステージ：『英検1級 Unit 01（0001〜0096）』 ===
   if (grade === "英検1級") {
     const trackWords =
-      eiken1Track > 0
-        ? pool.eiken1Words.filter((w) => w.track === eiken1Track)
+      stageOrTrack > 0
+        ? pool.eiken1Words.filter((w) => w.track === stageOrTrack)
         : pool.eiken1Words;
 
     const candidatePool =
@@ -442,7 +550,7 @@ export function generateBattleDeck(
     );
   }
 
-  // === 通常ステージ（中1 / 中2 / 中3 / 全学年MIX） ===
+  // === 4. 通常ステージ（中1 / 中2 / 中3 / 全学年MIX） ===
   let poolWords =
     grade === "ALL"
       ? pool.standardWords.filter((w) => w.grade !== "激ムズ")
@@ -452,7 +560,6 @@ export function generateBattleDeck(
     poolWords = pool.standardWords.filter((w) => w.grade !== "激ムズ");
   }
 
-  // 通常4〜6問（激ムズON時は4問通常 + 2問激ムズ = 6問、激ムズOFF時は6問通常）
   const normalWordCount = includeHardcoreHack ? 4 : 6;
   let selectedWords = prioritizeWordsByMastery(
     poolWords,
@@ -461,7 +568,6 @@ export function generateBattleDeck(
     onlyWeakWords
   );
 
-  // 高レベルスキル「激ムズ問題に挑戦できる権」がONの場合、激ムズ単語を2問乱入させる！
   if (includeHardcoreHack) {
     const hardcoreWords = prioritizeWordsByMastery(
       pool.standardWords.filter((w) => w.grade === "激ムズ"),
@@ -472,7 +578,6 @@ export function generateBattleDeck(
     selectedWords = [...selectedWords, ...hardcoreWords];
   }
 
-  // 全問4択（英→日、日→英、リスニング、文脈穴埋め）でテンポよく出題！
   return selectedWords.map((word, index) => {
     const format = defaultFormats[index % defaultFormats.length];
     return buildWordQuestion(word, format);

@@ -52,8 +52,20 @@ class SoundEngine {
     }
   }
 
+  /**
+   * 熟語表記に含まれる記号（[~], [to do], (back), ... 等）を音声読み上げ用に自然化する
+   */
+  private sanitizeForTts(text: string): string {
+    return text
+      .replace(/\[.*?\]/g, "")
+      .replace(/[()]/g, "")
+      .replace(/[~〜…]{1,3}/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   private normalizeKey(text: string, isSlow: boolean = false): string {
-    const base = text.trim().replace(/\s+/g, " ").toLowerCase();
+    const base = this.sanitizeForTts(text).toLowerCase();
     return isSlow ? `${base}__slow` : base;
   }
 
@@ -65,7 +77,7 @@ class SoundEngine {
     text: string,
     isSlow: boolean = false
   ): Promise<AudioBuffer | null> {
-    const clean = text.trim();
+    const clean = this.sanitizeForTts(text);
     if (!clean || typeof window === "undefined") return null;
 
     const key = this.normalizeKey(clean, isSlow);

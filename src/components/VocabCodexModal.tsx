@@ -7,38 +7,38 @@ import {
   Volume2,
   BookOpen,
   CheckCircle2,
-  Flame,
   Trophy,
   Search,
 } from "lucide-react";
 import { WordMasteryRecord } from "@/lib/types";
 import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
+import { EIKEN4_STAGES } from "@/lib/eiken4Data";
 import { TARGET1800_STAGES } from "@/lib/target1800Data";
 import { getActiveVocabPool } from "@/lib/vocabRepository";
 import { soundEngine } from "@/lib/soundEngine";
 
+export type CodexCategory = "英検4級" | "ターゲット1800" | "英検1級";
+
 interface VocabCodexModalProps {
-  category?: "ターゲット1800" | "英検1級";
+  category?: CodexCategory;
   wordMastery: Record<string, WordMasteryRecord>;
   initialTrack: number;
   onSelectTrackAndStart: (
     trackNumber: number,
     onlyWeak: boolean,
-    category: "ターゲット1800" | "英検1級"
+    category: CodexCategory
   ) => void;
   onClose: () => void;
 }
 
 export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
-  category = "ターゲット1800",
+  category = "英検4級",
   wordMastery,
   initialTrack,
   onSelectTrackAndStart,
   onClose,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<"ターゲット1800" | "英検1級">(
-    category
-  );
+  const [activeCategory, setActiveCategory] = useState<CodexCategory>(category);
   const [activeTrack, setActiveTrack] = useState<number>(initialTrack);
   const [filterMode, setFilterMode] = useState<"all" | "weak" | "unseen">(
     "all"
@@ -47,17 +47,32 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
   const [displayLimit, setDisplayLimit] = useState<number>(80);
 
   const pool = getActiveVocabPool();
+  const isEiken4 = activeCategory === "英検4級";
   const isTarget1800 = activeCategory === "ターゲット1800";
-  const allCategoryWords = isTarget1800
+
+  const allCategoryWords = isEiken4
+    ? pool.eiken4Words
+    : isTarget1800
     ? pool.target1800Words
     : pool.eiken1Words;
+
+  const currentEiken4Stage = isEiken4
+    ? EIKEN4_STAGES.find((s) => s.unitNumber === activeTrack) ||
+      EIKEN4_STAGES[0]
+    : null;
 
   const currentTargetStage = isTarget1800
     ? TARGET1800_STAGES.find((s) => s.unitNumber === activeTrack) ||
       TARGET1800_STAGES[0]
     : null;
 
-  const scopeWords = isTarget1800
+  const scopeWords = isEiken4
+    ? currentEiken4Stage
+      ? allCategoryWords.filter((w) =>
+          currentEiken4Stage.levels.includes(w.track || 1)
+        )
+      : allCategoryWords
+    : isTarget1800
     ? currentTargetStage
       ? allCategoryWords.filter((w) =>
           currentTargetStage.levels.includes(w.track || 1)
@@ -98,7 +113,9 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
 
   const visibleWords = filteredWords.slice(0, displayLimit);
 
-  const activeScopeLabel = isTarget1800
+  const activeScopeLabel = isEiken4
+    ? currentEiken4Stage?.label || "Stage 01"
+    : isTarget1800
     ? currentTargetStage?.label || "Lv.01"
     : activeTrack === 0
     ? "全96語"
@@ -115,13 +132,17 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
         <div className="bg-[#131720] p-3.5 flex items-center justify-between border-b-2 border-white">
           <div>
             <div className="text-[10px] font-black text-[#FACC15] tracking-widest">
-              {isTarget1800
+              {isEiken4
+                ? "EIKEN GRADE 4 CODEX // でる順パス単英検4級 全700語DB"
+                : isTarget1800
                 ? "JUNIOR HIGH CODEX // 中学英単語ターゲット1800 全1,800語DB"
                 : "EIKEN GRADE 1 CODEX // Unit 01 全96語データベース"}
             </div>
             <h2 className="text-lg font-black text-white flex items-center gap-1.5">
               <BookOpen className="w-5 h-5 text-[#FACC15]" />
-              {isTarget1800
+              {isEiken4
+                ? "英検4級ステージ 図鑑＆制覇率"
+                : isTarget1800
                 ? "中学英単語ステージ 図鑑＆制覇率"
                 : "英検1級 単語図鑑＆制覇ステータス"}
             </h2>
@@ -139,8 +160,24 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
 
         {/* 総合制覇プログレス＆フィルター */}
         <div className="p-3 bg-[#0B0D12] border-b border-[#262D3D] space-y-2.5">
-          {/* カテゴリ切り替え（中学英単語1800 vs 英検1級） */}
-          <div className="grid grid-cols-2 gap-1.5">
+          {/* カテゴリ切り替え（英検4級 vs 中学英単語1800 vs 英検1級） */}
+          <div className="grid grid-cols-3 gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playTap();
+                setActiveCategory("英検4級");
+                setActiveTrack(1);
+                setDisplayLimit(80);
+              }}
+              className={`py-1 px-1.5 text-[10px] font-black border transition ${
+                isEiken4
+                  ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                  : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:text-white"
+              }`}
+            >
+              📗 英検4級 (700語)
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -149,13 +186,13 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                 setActiveTrack(1);
                 setDisplayLimit(80);
               }}
-              className={`py-1 px-2 text-[11px] font-black border transition ${
+              className={`py-1 px-1.5 text-[10px] font-black border transition ${
                 isTarget1800
                   ? "bg-[#FACC15] text-[#0B0D12] border-white"
                   : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:text-white"
               }`}
             >
-              🎯 中学英単語 (全1,800語)
+              🎯 中学1800語
             </button>
             <button
               type="button"
@@ -165,13 +202,13 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                 setActiveTrack(0);
                 setDisplayLimit(80);
               }}
-              className={`py-1 px-2 text-[11px] font-black border transition ${
-                !isTarget1800
+              className={`py-1 px-1.5 text-[10px] font-black border transition ${
+                !isEiken4 && !isTarget1800
                   ? "bg-[#FACC15] text-[#0B0D12] border-white"
                   : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:text-white"
               }`}
             >
-              👑 英検1級 (全96語)
+              👑 英検1級 (96語)
             </button>
           </div>
 
@@ -205,7 +242,29 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
 
           {/* ステージ / トラック切り替えピル（選択中＝すべて黄色 #FACC15 に統一） */}
           <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {isTarget1800
+            {isEiken4
+              ? EIKEN4_STAGES.map((s) => {
+                  const isSelected = activeTrack === s.unitNumber;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playTap();
+                        setActiveTrack(s.unitNumber);
+                        setDisplayLimit(80);
+                      }}
+                      className={`px-2.5 py-1 text-[11px] font-black border shrink-0 transition ${
+                        isSelected
+                          ? "bg-[#FACC15] text-[#0B0D12] border-white"
+                          : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
+                      }`}
+                    >
+                      {s.label} ({s.rangeLabel})
+                    </button>
+                  );
+                })
+              : isTarget1800
               ? TARGET1800_STAGES.map((s) => {
                   const isSelected = activeTrack === s.unitNumber;
                   return (
@@ -322,7 +381,9 @@ export const VocabCodexModal: React.FC<VocabCodexModalProps> = ({
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[10px] font-black bg-[#131720] text-[#94A3B8] border border-[#262D3D] px-1.5 py-0.5">
                             #{w.num}{" "}
-                            {isTarget1800
+                            {isEiken4
+                              ? `(Stage ${String(w.track).padStart(2, "0")})`
+                              : isTarget1800
                               ? `(Lv.${String(w.track).padStart(2, "0")})`
                               : `(T00${w.track})`}
                           </span>
