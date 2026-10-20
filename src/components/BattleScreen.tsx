@@ -29,6 +29,14 @@ import {
 import { soundEngine } from "@/lib/soundEngine";
 import { PixelCharacter } from "./PixelCharacter";
 
+export interface RankingBattleStats {
+  timeMs: number;
+  score: number;
+  totalQuestions: number;
+  gamePoints: number;
+  maxCombo: number;
+}
+
 export interface BattleResultSummary {
   earnedExp: number;
   maxCombo: number;
@@ -37,6 +45,7 @@ export interface BattleResultSummary {
   statGains: Partial<FiveStats>;
   wordLogs: BattleWordLog[];
   masteryDeltas: Record<string, { cleared: number; missed: number }>;
+  rankingStats?: RankingBattleStats;
 }
 
 /**
@@ -77,6 +86,7 @@ interface BattleScreenProps {
   profile: PlayerProfile;
   onCompleteBattle: (summary: BattleResultSummary) => void;
   onAbort: () => void;
+  isRankingBattle?: boolean;
 }
 
 interface AnswerFeedbackModalState {
@@ -109,6 +119,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   profile,
   onCompleteBattle,
   onAbort,
+  isRankingBattle = false,
 }) => {
   const [deck, setDeck] = useState<GeneratedQuestion[]>(initialDeck);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -116,6 +127,26 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [maxCombo, setMaxCombo] = useState(0);
   const [earnedExp, setEarnedExp] = useState(0);
   const [revengeCount, setRevengeCount] = useState(0);
+
+  // ランキングバトル用タイマー
+  const startTimeRef = React.useRef<number>(Date.now());
+  const [elapsedTime, setElapsedTime] = useState<string>("00:00.0");
+
+  useEffect(() => {
+    if (!isRankingBattle) return;
+    startTimeRef.current = Date.now();
+    const timer = setInterval(() => {
+      const ms = Date.now() - startTimeRef.current;
+      const totalSec = Math.floor(ms / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      const d = Math.floor((ms % 1000) / 100);
+      setElapsedTime(
+        `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${d}`
+      );
+    }, 100);
+    return () => clearInterval(timer);
+  }, [isRankingBattle]);
 
   // 今回のバトルで出題された単語の戦績ログ＆習熟度差分
   const [wordLogs, setWordLogs] = useState<BattleWordLog[]>([]);
@@ -247,20 +278,36 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       setAnswerModal(null);
 
       if (currentIndex + 1 >= currentDeckSnapshot.length) {
+        const timeMs = Date.now() - startTimeRef.current;
+        const correctCount = updatedLogs.filter((l) => l.result !== "missed").length;
+        const basePts = correctCount * 500;
+        const comboPts = nextMaxCombo * 80;
+        const timeBonus = Math.max(0, 10000 - Math.floor(timeMs / 10));
+        const gamePoints = basePts + comboPts + timeBonus;
+
         onCompleteBattle({
           earnedExp: Math.round(nextExp),
           maxCombo: nextMaxCombo,
           revengeCount: nextRevengeCount,
-          wordsCleared: updatedLogs.filter((l) => l.result !== "missed").length || currentDeckSnapshot.length,
+          wordsCleared: correctCount || currentDeckSnapshot.length,
           statGains: updatedGains,
           wordLogs: updatedLogs,
           masteryDeltas: updatedDeltas,
+          rankingStats: isRankingBattle
+            ? {
+                timeMs,
+                score: correctCount,
+                totalQuestions: currentDeckSnapshot.length,
+                gamePoints,
+                maxCombo: nextMaxCombo,
+              }
+            : undefined,
         });
       } else {
         setCurrentIndex((prev) => prev + 1);
       }
     },
-    [currentIndex, onCompleteBattle]
+    [currentIndex, onCompleteBattle, isRankingBattle]
   );
 
   /**
@@ -672,6 +719,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
+            {/* ランキングバトル専用タイマー */}
+            {isRankingBattle && (
+              <div className="px-2.5 py-1 bg-amber-950/80 border border-amber-400 text-amber-300 font-mono font-black text-xs flex items-center gap-1 shadow-[0_0_10px_rgba(250,204,21,0.3)] -skew-x-6">
+                <span>⏱</span>
+                <span>{elapsedTime}</span>
+              </div>
+            )}
+
             <motion.div
               key={combo}
               initial={{ scale: 1.35 }}
@@ -711,14 +766,21 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         </div>
 
         <div className="flex items-center justify-between text-[11px] font-bold text-[#94A3B8]">
-          <span>
-            QUESTION:{" "}
-            <strong className="text-white">
-              {currentQuestion.phase === "STAGE2_ALLOUT"
-                ? "総攻撃フィニッシュ（文構築）"
-                : `${currentIndex + 1} / ${deck.length}`}
-            </strong>
-          </span>
+          <div className="flex items-center gap-1.5">
+            {isRankingBattle && (
+              <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-1.5 py-0.5 rounded text-[10px] font-black shadow-sm">
+                🏆 RANKING
+              </span>
+            )}
+            <span>
+              QUESTION:{" "}
+              <strong className="text-white">
+                {currentQuestion.phase === "STAGE2_ALLOUT"
+                  ? "総攻撃フィニッシュ（文構築）"
+                  : `${currentIndex + 1} / ${deck.length}`}
+              </strong>
+            </span>
+          </div>
           <div className="flex items-center gap-1.5">
             {currentQuestion.format === "sentence_fill" && (
               <span className={`px-1.5 py-0.5 text-[10px] font-black border ${

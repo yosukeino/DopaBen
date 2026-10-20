@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Play,
   Headphones,
+  Swords,
 } from "lucide-react";
 import {
   CharacterGender,
@@ -37,7 +38,7 @@ import {
 import { EIKEN1_TRACK_STAGES } from "@/lib/eiken1Data";
 import { EIKEN4_STAGES } from "@/lib/eiken4Data";
 import { TARGET1800_STAGES } from "@/lib/target1800Data";
-import { generateBattleDeck } from "@/lib/questionGenerator";
+import { generateBattleDeck, generateRankingDeck } from "@/lib/questionGenerator";
 import {
   getActiveVocabPool,
   loadVocabPoolFromSupabase,
@@ -52,6 +53,12 @@ import { SkillHackModal } from "@/components/SkillHackModal";
 import { StatusModal } from "@/components/StatusModal";
 import { CodexCategory, VocabCodexModal } from "@/components/VocabCodexModal";
 import { CharacterCustomizeModal } from "@/components/CharacterCustomizeModal";
+import { RankingBoardModal } from "@/components/RankingBoardModal";
+import {
+  getSavedPlayerName,
+  RankingRecord,
+  submitRankingScore,
+} from "@/lib/rankingService";
 import {
   BOY_HAIR_DEFS,
   getCharacterEvolutionTitle,
@@ -449,6 +456,13 @@ export default function DopaBenApp() {
   const [injectionNotice, setInjectionNotice] = useState<string | null>(null);
   const [includeListening, setIncludeListening] = useState<boolean>(true);
 
+  // ランキングバトル用ステート
+  const [isRankingBattle, setIsRankingBattle] = useState(false);
+  const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
+  const [rankingPlayerName, setRankingPlayerName] = useState(() => getSavedPlayerName());
+  const [rankingSubmittedRecord, setRankingSubmittedRecord] = useState<RankingRecord | null>(null);
+  const [isSubmittingScore, setIsSubmittingScore] = useState(false);
+
   // ローカルストレージから復元 ＆ 旧セーブデータのマイグレーション ＆ Supabaseから問題プールを取得
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -645,12 +659,71 @@ export default function DopaBenApp() {
     soundEngine.preloadTexts(preloadList);
 
     setIsCodexModalOpen(false);
+    setIsRankingBattle(false);
     setRecentInjectedGains(undefined);
     setInjectionNotice(null);
     triggerSlashTransition(() => {
       setBattleDeck(deck);
       setScreen("battle");
     });
+  };
+
+  /**
+   * 🏆 全国ランキングバトル開始（英検4級 全20問）
+   */
+  const handleStartRankingBattle = () => {
+    soundEngine.playStageVictory();
+    const deck = generateRankingDeck(20, includeListening);
+
+    const preloadList: string[] = [];
+    deck.forEach((q) => {
+      if (q.audioText) preloadList.push(q.audioText);
+      if (q.word?.english) preloadList.push(q.word.english);
+      if (q.word?.exampleSentenceEn) preloadList.push(q.word.exampleSentenceEn);
+    });
+    soundEngine.preloadTexts(preloadList);
+
+    setIsRankingBattle(true);
+    setRankingSubmittedRecord(null);
+    setIsRankingModalOpen(false);
+    setRecentInjectedGains(undefined);
+    setInjectionNotice(null);
+
+    triggerSlashTransition(() => {
+      setBattleDeck(deck);
+      setScreen("battle");
+    });
+  };
+
+  /**
+   * ランキングスコアを送信
+   */
+  const handleSubmitRankingScore = async () => {
+    if (!lastResult?.summary.rankingStats) return;
+    const name = rankingPlayerName.trim();
+    if (!name) {
+      alert("ランキングに登録する名前を入力してください！");
+      return;
+    }
+    setIsSubmittingScore(true);
+    soundEngine.playTap();
+
+    const stats = lastResult.summary.rankingStats;
+    const res = await submitRankingScore({
+      playerName: name,
+      score: stats.score,
+      totalQuestions: stats.totalQuestions,
+      timeMs: stats.timeMs,
+      gamePoints: stats.gamePoints,
+      maxCombo: stats.maxCombo,
+      course: "eiken4",
+    });
+
+    setIsSubmittingScore(false);
+    if (res.success) {
+      soundEngine.playStageVictory();
+      setRankingSubmittedRecord(res.record);
+    }
   };
 
   /**
@@ -1072,6 +1145,7 @@ export default function DopaBenApp() {
           initialDeck={battleDeck}
           profile={profile}
           onCompleteBattle={handleCompleteBattle}
+          isRankingBattle={isRankingBattle}
           onAbort={() =>
             triggerSlashTransition(() => {
               setScreen("home");
@@ -1207,6 +1281,93 @@ export default function DopaBenApp() {
               </div>
             </div>
 
+            {/* 🏆 ランキングバトル結果＆名前登録セクション */}
+            {lastResult.summary.rankingStats && (
+              <div className="bg-gradient-to-b from-amber-950/80 to-slate-900 border-2 border-amber-400 p-4 space-y-3.5 shadow-xl rounded-2xl">
+                <div className="flex items-center justify-between border-b border-amber-500/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🏆</span>
+                    <div>
+                      <div className="font-black text-sm text-white">
+                        全国ランキングバトル 結果
+                      </div>
+                      <div className="text-[10px] text-amber-300 font-bold">
+                        英検4級 全20問 スピードアタック
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">
+                    FINISH!
+                  </span>
+                </div>
+
+                {/* スコア概要 */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-slate-950/80 border border-amber-500/30 p-2 rounded-xl">
+                    <div className="text-[10px] text-slate-400 font-bold">正解数</div>
+                    <div className="text-lg font-black text-emerald-400 font-mono">
+                      {lastResult.summary.rankingStats.score}/{lastResult.summary.rankingStats.totalQuestions}
+                    </div>
+                  </div>
+                  <div className="bg-slate-950/80 border border-amber-500/30 p-2 rounded-xl">
+                    <div className="text-[10px] text-slate-400 font-bold">クリアタイム</div>
+                    <div className="text-lg font-black text-cyan-300 font-mono">
+                      {(lastResult.summary.rankingStats.timeMs / 1000).toFixed(2)}s
+                    </div>
+                  </div>
+                  <div className="bg-slate-950/80 border border-amber-500/30 p-2 rounded-xl">
+                    <div className="text-[10px] text-slate-400 font-bold">総合スコア</div>
+                    <div className="text-lg font-black text-amber-400 font-mono">
+                      {lastResult.summary.rankingStats.gamePoints.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 名前入力＆送信フォーム（アカウント登録不要！） */}
+                {rankingSubmittedRecord ? (
+                  <div className="p-3 bg-emerald-950/70 border border-emerald-400/80 rounded-xl space-y-2 text-center">
+                    <div className="text-xs font-black text-emerald-300 flex items-center justify-center gap-1.5">
+                      <span>🎉</span>
+                      <span>「{rankingSubmittedRecord.playerName}」でランキング登録完了！</span>
+                    </div>
+                    <button
+                      onClick={() => setIsRankingModalOpen(true)}
+                      className="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md inline-flex items-center gap-1.5 active:scale-95 transition"
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      <span>全国ランキング一覧を見る</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    <label className="text-xs font-bold text-slate-200 block">
+                      任意の名前（ニックネーム）を入力してランキングに登録！
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={rankingPlayerName}
+                        onChange={(e) => setRankingPlayerName(e.target.value)}
+                        placeholder="名前（例: たろう / 勇者）"
+                        maxLength={15}
+                        className="flex-1 bg-slate-950 border border-amber-400/60 px-3 py-2 rounded-xl text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <button
+                        onClick={handleSubmitRankingScore}
+                        disabled={isSubmittingScore}
+                        className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-md active:scale-95 transition shrink-0 flex items-center gap-1.5"
+                      >
+                        {isSubmittingScore ? "送信中..." : "ランキング送信 🚀"}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      ※アカウント登録不要。任意の名前で何度でも挑戦＆自己ベスト更新できます。
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 📝 今回の出撃ワード戦績（タップで発音再生＆復習） */}
             {lastResult.summary.wordLogs &&
               lastResult.summary.wordLogs.length > 0 && (
@@ -1281,13 +1442,23 @@ export default function DopaBenApp() {
               <Zap className="w-5 h-5 fill-[#0B0D12]" />
               拠点（トップページ）でLXPを注入・強化する
             </button>
-            <button
-              onClick={() => handleStartBattle()}
-              className="w-full py-3.5 bg-[#EF4444] hover:brightness-110 text-white font-black text-base border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
-            >
-              <Flame className="w-5 h-5 fill-[#FACC15] text-[#FACC15]" />
-              このままもう1戦突入してLXPを貯める！
-            </button>
+            {lastResult.summary.rankingStats ? (
+              <button
+                onClick={() => handleStartRankingBattle()}
+                className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-base border-2 border-white -skew-x-6 shadow-[4px_4px_0_#FACC15] flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                <Trophy className="w-5 h-5 fill-slate-950" />
+                もう一度ランキングバトルに挑戦 (全20問)
+              </button>
+            ) : (
+              <button
+                onClick={() => handleStartBattle()}
+                className="w-full py-3.5 bg-[#EF4444] hover:brightness-110 text-white font-black text-base border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 active:scale-95 transition"
+              >
+                <Flame className="w-5 h-5 fill-[#FACC15] text-[#FACC15]" />
+                このままもう1戦突入してLXPを貯める！
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1753,6 +1924,64 @@ export default function DopaBenApp() {
               </div>
             </div>
 
+            {/* 🏆 全国ランキングバトル カード（英検4級 全20問スピードアタック） */}
+            <div className={`border-2 p-3 relative overflow-hidden transition ${
+              isGirl
+                ? "bg-gradient-to-r from-[#1D1229] via-[#2A133A] to-[#1D1229] border-[#F43F5E]/60 shadow-[0_0_15px_rgba(244,63,94,0.2)]"
+                : "bg-gradient-to-r from-[#131720] via-[#1a2335] to-[#131720] border-[#FACC15]/60 shadow-[0_0_15px_rgba(250,204,21,0.2)]"
+            }`}>
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-black text-lg sm:text-xl shrink-0 shadow-md ${
+                    isGirl
+                      ? "bg-gradient-to-br from-[#F43F5E] to-[#DB2777] text-white shadow-pink-500/30"
+                      : "bg-gradient-to-br from-[#FACC15] to-[#EAB308] text-slate-950 shadow-amber-400/30"
+                  }`}>
+                    🏆
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-black text-xs sm:text-sm text-white">
+                        全国ランキングバトル
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                        英検4級 全20問
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                      全700問からランダム20問の最速スピードアタック！
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playTap();
+                      setIsRankingModalOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[11px] active:scale-95 transition"
+                    title="ランキング一覧を見る"
+                  >
+                    順位表
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStartRankingBattle}
+                    className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1 shadow-md active:scale-95 transition ${
+                      isGirl
+                        ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-pink-500/30"
+                        : "bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-amber-400/30"
+                    }`}
+                  >
+                    <Swords className="w-3.5 h-3.5" />
+                    <span>挑戦 (20問)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* 6. 選択中ステージのユニット一覧＆図鑑 */}
             <div className={`border-2 p-2.5 space-y-2 ${
               isGirl ? "bg-[#1D1229] border-[#3D2752]" : "bg-[#131720] border-[#262D3D]"
@@ -1989,6 +2218,16 @@ export default function DopaBenApp() {
               console.error("Failed to save profile:", e);
             }
           }}
+        />
+      )}
+
+      {/* 🏆 全国ランキングボードモーダル */}
+      {isRankingModalOpen && (
+        <RankingBoardModal
+          isOpen={isRankingModalOpen}
+          onClose={() => setIsRankingModalOpen(false)}
+          onStartRankingBattle={handleStartRankingBattle}
+          course="eiken4"
         />
       )}
     </div>
