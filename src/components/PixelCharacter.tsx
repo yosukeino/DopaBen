@@ -424,77 +424,71 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   rectPx(16, armY + 4, 2, 1, c2);
 
   // =========================================================================
-  // LAYER 5: 頭部・顔・瞳 (Fairune 2 スタイル：つぶらで澄んだレトロRPG瞳)
+  // LAYER 5: 頭部・顔・瞳 (Fairune 2 原作完全準拠：縦2ドット黒目 ＋ あいた赤口)
   // =========================================================================
   rectPx(8, 6 + bobY, 8, 6, c2); // 顔の肌
-  rectPx(9, 11 + bobY, 6, 1, c1); // 顎下のやわらかな影
+  rectPx(9, 11 + bobY, 6, 1, c1); // 顎下の影
   setPx(7, 8 + bobY, c2); // 耳
   setPx(16, 8 + bobY, c2);
 
-  // ほっぺ（女子はフェアルーン特有の愛らしい1ドットの桜色チーク、男子はすっきり素肌）
-  if (isGirl) {
-    setPx(8, 10 + bobY, "#FDA4AF");
-    setPx(15, 10 + bobY, "#FDA4AF");
-  }
+  // おでこ中央の肌の抜け（フェアルーン2主人公特有のヘアスタイル）
+  setPx(11, 5 + bobY, c2);
+  setPx(12, 5 + bobY, c2);
 
-  // 瞳の描画（【フェアルーン2】直系のシンプルで澄んだ2×2つぶら瞳：左上純白光 ＋ 濃色瞳）
-  const eyeStyle = effectiveLoadout.eyeStyle;
-
+  // 瞳の描画（【フェアルーン2】完全準拠：縦2ドット×横1ドットの黒スリット目）
+  // まつ毛やハイライト等の余計な装飾を排した、原作そのままの愛らしくつぶらな縦長瞳！
   if (isBlink) {
-    // 瞬き（フェアルーン流の横2ドットまばたき線）
-    rectPx(9, 9 + bobY, 2, 1, c1);
-    rectPx(13, 9 + bobY, 2, 1, c1);
+    // 瞬き（1ドットのまばたき線）
+    setPx(9, 9 + bobY, c1);
+    setPx(14, 9 + bobY, c1);
   } else if (mood === "happy" || mood === "evolve") {
-    // 満面の笑顔（フェアルーンのキュートなニッコリ目 ^ ^）
+    // ニッコリ笑顔
     setPx(9, 8 + bobY, c1);
-    setPx(10, 8 + bobY, c1);
-    setPx(13, 8 + bobY, c1);
     setPx(14, 8 + bobY, c1);
   } else {
-    // 通常・戦闘時の瞳（フェアルーン2の王道スタイル：まつ毛やゴチャついた線は一切排し、
-    // 左上にポツンと澄んだ白ハイライト、残り3ドットが瞳本体）
-    // --- 左目 (x=9..10, y=8..9) ---
-    setPx(9, 8 + bobY, "#FFFFFF"); // 左上：光沢ハイライト
-    setPx(10, 8 + bobY, c1);
+    // --- 左目 (x=9, y=8..9) ---
+    setPx(9, 8 + bobY, c1);
     setPx(9, 9 + bobY, c1);
-    setPx(10, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c1);
 
-    // --- 右目 (x=13..14, y=8..9) ---
-    setPx(13, 8 + bobY, "#FFFFFF"); // 左上：光沢ハイライト
+    // --- 右目 (x=14, y=8..9) ---
     setPx(14, 8 + bobY, c1);
-    setPx(13, 9 + bobY, c1);
-    setPx(14, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c1);
+    setPx(14, 9 + bobY, c1);
 
-    // 男子の眉（凛々しい少年勇者の眉）
-    if (!isGirl || eyeStyle === "eye_determined") {
+    // 男子の眉（目の1ドット上に小さな黒ドット）
+    if (!isGirl) {
       setPx(9, 7 + bobY, c1);
       setPx(14, 7 + bobY, c1);
     }
   }
 
-  // 口元（フェアルーン風の控えめで愛らしい1ドット、笑顔時はオープンマウス）
+  // 口元（【フェアルーン2】象徴的な愛らしく開いた横2ドットのお口！）
+  // 目の下2行あけた中央(x=11..12, y=11)にちょこんと開く赤いお口
   if (mood === "happy" || mood === "evolve") {
-    setPx(11, 10 + bobY, isGirl ? "#F43F5E" : c1);
-    setPx(12, 10 + bobY, isGirl ? "#F43F5E" : c1);
+    rectPx(11, 10 + bobY, 2, 2, isGirl ? "#F43F5E" : c4);
   } else {
-    setPx(11, 10 + bobY, c1);
+    setPx(11, 11 + bobY, isGirl ? "#F43F5E" : c4);
+    setPx(12, 11 + bobY, isGirl ? "#F43F5E" : c4);
   }
 
   // =========================================================================
-  // LAYER 6: 前髪・サイドヘア（触覚） (HairStyle)
+  // LAYER 6: 前髪・ヘアスタイル (HairStyle)
   // =========================================================================
-  rectPx(7, 4 + bobY, 10, 2, c3);
-  rectPx(8, 3 + bobY, 8, 1, c3);
+  rectPx(7, 3 + bobY, 10, 3, c3);
+  rectPx(6, 4 + bobY, 12, 2, c3);
 
-  // 女子専用：顔まわりを華やかに包むサイドの触覚ヘア（もみあげ後れ毛）
+  // おでこ中央の肌抜け（フェアルーン2主人公特有のセンター分け前髪）
+  if (isGirl || hairStyle === "hair_center") {
+    setPx(11, 5 + bobY, c2);
+    setPx(12, 5 + bobY, c2);
+  }
+
+  // 女子専用：顔まわりをふんわり包むサイドボブヘア
   if (isGirl) {
-    rectPx(6, 6 + bobY, 1, 5, c3); // 左サイド触覚
-    rectPx(17, 6 + bobY, 1, 5, c3); // 右サイド触覚
-    setPx(6, 11 + bobY, c1);
-    setPx(17, 11 + bobY, c1);
-    // 天使の輪（前髪の光沢ハイライト）
-    rectPx(9, 3 + bobY, 6, 1, c2);
-    // 前髪の自然な毛先
+    rectPx(5, 6 + bobY, 2, 6, c3); // 左サイド髪
+    rectPx(17, 6 + bobY, 2, 6, c3); // 右サイド髪
+    setPx(6, 12 + bobY, c1);
+    setPx(17, 12 + bobY, c1);
+    // 前髪の毛先
     setPx(8, 6 + bobY, c3);
     setPx(10, 6 + bobY, c3);
     setPx(13, 6 + bobY, c3);
