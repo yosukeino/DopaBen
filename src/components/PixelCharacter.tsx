@@ -64,7 +64,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   // 現在の有効ロードアウトを決定（カスタム or 五角形ステータス連動オート進化）
   const activeBranch = loadout?.forcedBranch || detectStatBranch(stats);
   const autoLoadout = resolveAutoLoadout(gender, clampedStage, activeBranch);
-  const effectiveLoadout: CharacterPartLoadout =
+  let effectiveLoadout: CharacterPartLoadout =
     loadout && loadout.mode === "custom"
       ? {
           ...autoLoadout,
@@ -73,6 +73,15 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
       : loadout?.forcedBranch
       ? resolveAutoLoadout(gender, clampedStage, loadout.forcedBranch)
       : autoLoadout;
+
+  // 女子選択時でパレットが男子用のクラシックネイビーのままの場合、華やかな女子用パレットへ切り替え
+  if (gender === "girl" && (!effectiveLoadout.palette || effectiveLoadout.palette === "pal_classic_navy")) {
+    effectiveLoadout = { ...effectiveLoadout, palette: "pal_berry_rose" };
+  }
+  // 女子選択時で男子短髪（hair_spiky）のままの場合、可愛い女子ボブへ切り替え
+  if (gender === "girl" && (!effectiveLoadout.hairStyle || effectiveLoadout.hairStyle === "hair_spiky")) {
+    effectiveLoadout = { ...effectiveLoadout, hairStyle: "hair_bob" };
+  }
 
   // 4色パレット解決（厳密に4色のみ使用！）
   const palettePool = [...PRESET_4COLOR_PALETTES, ...customPalettes];
@@ -205,29 +214,60 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   }
 
   // =========================================================================
-  // LAYER 2: 後ろ髪（ツインテ、ポニーテール、ロール等）
+  // LAYER 2: 後ろ髪（ツインテ、ボブ、ポニーテール、ロール等）
   // =========================================================================
   const hairStyle = effectiveLoadout.hairStyle;
+  const isGirl = gender === "girl";
 
-  if (hairStyle === "hair_twintail") {
-    rectPx(5 - hairSway, 7 + bobY, 2, 7, c3);
-    rectPx(17 + hairSway, 7 + bobY, 2, 7, c3);
-    setPx(5 - hairSway, 13 + bobY, c4);
-    setPx(18 + hairSway, 13 + bobY, c4);
+  // 女子の場合は頭の後ろに豊かな後ろ髪ベースを描画（角刈り感を完全に防ぐ）
+  if (isGirl) {
+    rectPx(6, 4 + bobY, 12, 7, c3);
+    rectPx(7, 3 + bobY, 10, 2, c3);
+  }
+
+  if (hairStyle === "hair_bob" || (isGirl && hairStyle === "hair_spiky")) {
+    // ふんわり内巻きスクールボブ（女子Lv.1定番！両肩にふんわり下がる）
+    rectPx(5, 6 + bobY, 2, 6, c3);
+    rectPx(17, 6 + bobY, 2, 6, c3);
+    setPx(6, 12 + bobY, c1);
+    setPx(17, 12 + bobY, c1);
+    setPx(5, 9 + bobY, c2); // 光沢ハイライト
+    setPx(18, 9 + bobY, c2);
+  } else if (hairStyle === "hair_twintail") {
+    // 王道スクールツインテール（ふんわりボリューム＆リボン留め＆スイング）
+    // 結び目リボン
+    rectPx(4 - hairSway, 5 + bobY, 2, 2, isGirl ? "#F43F5E" : c4);
+    rectPx(18 + hairSway, 5 + bobY, 2, 2, isGirl ? "#F43F5E" : c4);
+    // ツインテ本体（幅3pxでふんわり）
+    rectPx(4 - hairSway, 7 + bobY, 3, 7, c3);
+    rectPx(17 + hairSway, 7 + bobY, 3, 7, c3);
+    // 毛先のハネ
+    setPx(3 - hairSway, 13 + bobY, c3);
+    setPx(20 + hairSway, 13 + bobY, c3);
+    setPx(5 - hairSway, 14 + bobY, c1);
+    setPx(18 + hairSway, 14 + bobY, c1);
   } else if (hairStyle === "hair_ponytail") {
-    rectPx(16, 6 + bobY - hairSway, 4, 3, c3);
-    rectPx(18, 8 + bobY - hairSway, 3, 3, c3);
-    setPx(16, 7 + bobY - hairSway, c4);
+    // 疾風ポニーテール（高め結び ＋ リボン留め ＋ 右後ろになびく）
+    rectPx(15, 4 + bobY - hairSway, 2, 2, isGirl ? "#F43F5E" : c4); // リボン
+    rectPx(16, 5 + bobY - hairSway, 4, 4, c3);
+    rectPx(18, 8 + bobY - hairSway, 3, 4, c3);
+    setPx(20, 11 + bobY - hairSway, c1);
   } else if (hairStyle === "hair_drill") {
-    rectPx(5, 7 + bobY, 3, 8, c3);
-    rectPx(16, 7 + bobY, 3, 8, c3);
-    setPx(6, 9 + bobY, c2);
-    setPx(17, 9 + bobY, c2);
+    // お嬢様ツインロール
+    rectPx(5, 6 + bobY, 3, 8, c3);
+    rectPx(16, 6 + bobY, 3, 8, c3);
+    setPx(6, 8 + bobY, c2);
+    setPx(17, 8 + bobY, c2);
+    setPx(6, 11 + bobY, c2);
+    setPx(17, 11 + bobY, c2);
   } else if (hairStyle === "hair_odango") {
-    rectPx(5, 4 + bobY, 3, 3, c3);
-    rectPx(16, 4 + bobY, 3, 3, c3);
-    setPx(5, 4 + bobY, c4);
-    setPx(18, 4 + bobY, c4);
+    // ポップお団子ツイン（両サイドのお団子＋ヘアピンリボン）
+    rectPx(4, 3 + bobY, 3, 3, c3);
+    rectPx(17, 3 + bobY, 3, 3, c3);
+    setPx(5, 3 + bobY, isGirl ? "#F43F5E" : c4);
+    setPx(18, 3 + bobY, isGirl ? "#F43F5E" : c4);
+    setPx(4, 2 + bobY, c2);
+    setPx(19, 2 + bobY, c2);
   }
 
   // =========================================================================
@@ -235,21 +275,46 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   // =========================================================================
   const outfit = effectiveLoadout.outfit;
 
-  if (
-    gender === "girl" &&
-    (outfit === "outfit_uniform" ||
-      outfit === "outfit_sailor_gakuran" ||
-      outfit === "outfit_cardigan" ||
-      outfit === "outfit_idol_stage")
-  ) {
-    // スカート ＋ ハイソックス ＋ ローファー
-    rectPx(8, 17 + bobY, 8, 2, c3);
-    rectPx(9, 19, 2, 1, c2); // 生足部分
-    rectPx(13, 19, 2, 1, c2);
-    rectPx(9, 20, 2, 2, c1); // ソックス＆ローファー
-    rectPx(13, 20, 2, 2, c1);
+  if (isGirl) {
+    if (outfit === "outfit_jersey") {
+      // 女子Lv.1：スポーティ短パンジャージ ＋ すらっと美脚 ＋ 白ソックス＆スニーカー
+      rectPx(8, 16 + bobY, 8, 2, c3); // 短パン
+      setPx(8, 16 + bobY, c2); // 白サイドライン
+      setPx(15, 16 + bobY, c2);
+      rectPx(9, 18, 2, 2, c2); // すらっとした健康的な生足
+      rectPx(13, 18, 2, 2, c2);
+      rectPx(9, 20, 2, 1, "#FFFFFF"); // 清潔な白ソックス
+      rectPx(13, 20, 2, 1, "#FFFFFF");
+      rectPx(8, 21, 3, 1, c1); // スニーカー
+      rectPx(13, 21, 3, 1, c1);
+      setPx(8, 21, "#F43F5E"); // スニーカー差し色
+      setPx(15, 21, "#F43F5E");
+    } else {
+      // 女子制服：ふわっと広がるAラインプリーツスカート ＋ ニーハイ/ハイソックス ＋ ローファー
+      rectPx(8, 15 + bobY, 8, 1, c1); // ウエストベルトライン（キュッと細身）
+      rectPx(7, 16 + bobY, 10, 1, c3); // スカート上部
+      rectPx(6, 17 + bobY, 12, 1, c3); // ふわっと広がるスカート裾（幅12px！）
+      // プリーツの陰影
+      setPx(8, 17 + bobY, c1);
+      setPx(11, 17 + bobY, c1);
+      setPx(14, 17 + bobY, c1);
+      // 裾の愛らしいライン
+      setPx(6, 17 + bobY, c4);
+      setPx(17, 17 + bobY, c4);
+      // すらっとした生足（絶対領域）
+      rectPx(9, 18, 2, 1, c2);
+      rectPx(13, 18, 2, 1, c2);
+      // ニーハイソックス / 紺ハイソックス
+      rectPx(9, 19, 2, 2, c1);
+      rectPx(13, 19, 2, 2, c1);
+      // 上品な学生ローファー
+      rectPx(8, 21, 3, 1, c1);
+      rectPx(13, 21, 3, 1, c1);
+      setPx(9, 21, c3);
+      setPx(14, 21, c3);
+    }
   } else {
-    // スラックスズボン ＋ スクールスニーカー
+    // 男子：スラックスズボン ＋ スクールスニーカー
     rectPx(9, 18, 2, 2, c3);
     rectPx(13, 18, 2, 2, c3);
     rectPx(8, 20, 3, 2, c1); // 靴
@@ -264,31 +329,53 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   rectPx(8, 12 + bobY, 8, 6, c3);
 
   if (outfit === "outfit_jersey") {
-    // 部屋着ジャージ（胸に白ライン）
-    rectPx(8, 12 + bobY, 1, 6, c2);
-    rectPx(15, 12 + bobY, 1, 6, c2);
-    rectPx(11, 12 + bobY, 2, 3, c1);
+    if (isGirl) {
+      // 女子ジャージ（襟元を少し開けて可愛いインナーチラ見せ）
+      rectPx(8, 12 + bobY, 1, 4, c2);
+      rectPx(15, 12 + bobY, 1, 4, c2);
+      rectPx(11, 12 + bobY, 2, 3, c2); // 白インナー
+      setPx(11, 13 + bobY, "#F43F5E"); // チェリーチャーム
+    } else {
+      // 男子部屋着ジャージ（胸に白ライン）
+      rectPx(8, 12 + bobY, 1, 6, c2);
+      rectPx(15, 12 + bobY, 1, 6, c2);
+      rectPx(11, 12 + bobY, 2, 3, c1);
+    }
   } else if (outfit === "outfit_uniform") {
-    // 学園ブレザー制服（白シャツ ＋ ネクタイ/リボン ＋ 金ボタン）
-    rectPx(10, 12 + bobY, 4, 3, c2);
-    rectPx(11, 13 + bobY, 2, 3, c4);
-    setPx(10, 15 + bobY, c4);
+    // 学園ブレザー制服
+    if (isGirl) {
+      // 女子ブレザー：白シャツ ＋ 大きな可愛い蝶結びリボン ＋ 金ボタン
+      rectPx(10, 12 + bobY, 4, 3, c2);
+      rectPx(10, 13 + bobY, 4, 2, "#F43F5E"); // 大きめチェリーリボン
+      setPx(11, 13 + bobY, "#FFFFFF"); // リボンの結び目光沢
+      setPx(9, 14 + bobY, c4); // 金ボタン
+    } else {
+      rectPx(10, 12 + bobY, 4, 3, c2);
+      rectPx(11, 13 + bobY, 2, 3, c4);
+      setPx(10, 15 + bobY, c4);
+    }
   } else if (outfit === "outfit_sailor_gakuran") {
-    // セーラー / 学ラン
-    if (gender === "boy") {
+    if (isGirl) {
+      // 伝統セーラー服（大きな白襟 ＋ スカーフリボン）
+      rectPx(8, 12 + bobY, 8, 2, c2); // セーラー白襟
+      rectPx(10, 13 + bobY, 4, 2, "#F43F5E"); // 三角スカーフリボン
+      setPx(11, 14 + bobY, "#FFFFFF");
+    } else {
       // 学ラン（詰襟ゴールドボタン）
       rectPx(11, 12 + bobY, 2, 1, c2);
       setPx(11, 13 + bobY, c4);
       setPx(11, 15 + bobY, c4);
-    } else {
-      // セーラー服（白襟＋三角スカーフ）
-      rectPx(9, 12 + bobY, 6, 2, c2);
-      rectPx(11, 13 + bobY, 2, 3, c4);
     }
   } else if (outfit === "outfit_cardigan") {
     // 放課後スクールカーディガン
-    rectPx(10, 12 + bobY, 4, 4, c2);
-    rectPx(11, 13 + bobY, 2, 2, c4);
+    if (isGirl) {
+      rectPx(10, 12 + bobY, 4, 4, c2);
+      rectPx(10, 13 + bobY, 4, 2, "#F43F5E"); // リボン
+      setPx(11, 13 + bobY, "#FFFFFF");
+    } else {
+      rectPx(10, 12 + bobY, 4, 4, c2);
+      rectPx(11, 13 + bobY, 2, 2, c4);
+    }
   } else if (outfit === "outfit_hoodie") {
     // パーカー制服
     rectPx(9, 12 + bobY, 6, 2, c4);
@@ -310,12 +397,12 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   } else if (outfit === "outfit_council_blazer") {
     // 生徒会特注エンブレム制服
     rectPx(10, 12 + bobY, 4, 3, c2);
-    rectPx(11, 13 + bobY, 2, 3, c4);
+    rectPx(11, 13 + bobY, 2, 3, isGirl ? "#F43F5E" : c4);
     rectPx(9, 14 + bobY, 2, 2, c4); // 胸の特注エンブレム
   } else if (outfit === "outfit_ace_blazer") {
     // 学園英語選抜エースブレザー
     rectPx(10, 12 + bobY, 4, 3, c2);
-    rectPx(11, 13 + bobY, 2, 3, c4);
+    rectPx(11, 13 + bobY, 2, 3, isGirl ? "#F43F5E" : c4);
     rectPx(7, 12 + bobY, 2, 2, c4); // 肩章
     rectPx(15, 12 + bobY, 2, 2, c4);
   } else if (outfit === "outfit_brave_dopaeng") {
@@ -323,7 +410,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
     rectPx(7, 12 + bobY, 2, 3, c4);
     rectPx(15, 12 + bobY, 2, 3, c4);
     rectPx(10, 12 + bobY, 4, 6, c2);
-    rectPx(11, 13 + bobY, 2, 4, c4);
+    rectPx(11, 13 + bobY, 2, 4, isGirl ? "#F43F5E" : c4);
   }
 
   // 両腕＆手（happy時はバンザイ！）
@@ -342,54 +429,106 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   setPx(7, 8 + bobY, c2); // 耳
   setPx(16, 8 + bobY, c2);
 
-  // ほっぺ（アクセントカラー c4 の薄ドット）
-  setPx(8, 10 + bobY, c4);
-  setPx(15, 10 + bobY, c4);
-
-  // 瞳の描画（isBlink時は横1本の細線）
-  const eyeStyle = effectiveLoadout.eyeStyle;
-  if (isBlink) {
-    rectPx(9, 9 + bobY, 2, 1, c1);
-    rectPx(13, 9 + bobY, 2, 1, c1);
-  } else if (mood === "happy" || mood === "evolve") {
-    // ニッコリ目
-    setPx(9, 8 + bobY, c1);
-    setPx(10, 9 + bobY, c1);
-    setPx(14, 8 + bobY, c1);
-    setPx(13, 9 + bobY, c1);
+  // ほっぺ（女子は愛らしい桜色ピンク、男子はパレットアクセント）
+  if (isGirl) {
+    setPx(8, 10 + bobY, "#FB7185");
+    setPx(15, 10 + bobY, "#FB7185");
   } else {
-    rectPx(9, 8 + bobY, 2, 2, c1);
-    rectPx(13, 8 + bobY, 2, 2, c1);
-    // 瞳のハイライト
-    setPx(9, 8 + bobY, c2);
-    setPx(13, 8 + bobY, c2);
+    setPx(8, 10 + bobY, c4);
+    setPx(15, 10 + bobY, c4);
+  }
 
-    if (eyeStyle === "eye_determined") {
-      setPx(9, 7 + bobY, c3); // 眉毛
-      setPx(14, 7 + bobY, c3);
-    } else if (eyeStyle === "eye_brave") {
-      // 勇者の瞳（アクセントカラーが宿る）
-      setPx(10, 9 + bobY, c4);
-      setPx(14, 9 + bobY, c4);
+  // 瞳の描画（女子＝ぱっちり大きな瞳＋上まつ毛＋純白ハイライト）
+  const eyeStyle = effectiveLoadout.eyeStyle;
+
+  if (isGirl) {
+    if (isBlink) {
+      // 瞬き：女の子らしい長いまつ毛がちょこんと閉じる
+      rectPx(8, 9 + bobY, 3, 1, c1);
+      rectPx(13, 9 + bobY, 3, 1, c1);
+    } else if (mood === "happy" || mood === "evolve") {
+      // とびきりキュートな笑顔（にっこり目 ⌒ ⌒）
+      setPx(8, 9 + bobY, c1);
+      rectPx(9, 8 + bobY, 2, 1, c1);
+      setPx(13, 8 + bobY, c1);
+      setPx(14, 8 + bobY, c1);
+      setPx(15, 9 + bobY, c1);
+    } else {
+      // ぱっちり美少女アイ（目尻の上まつ毛アイライン ＋ 澄んだ純白ハイライト）
+      rectPx(8, 7 + bobY, 3, 1, c1); // 上まつ毛アイライン（目尻ハネ）
+      rectPx(13, 7 + bobY, 3, 1, c1);
+      rectPx(9, 8 + bobY, 2, 2, c1); // 瞳本体
+      rectPx(13, 8 + bobY, 2, 2, c1);
+      // 純白ハイライト（左上）
+      setPx(9, 8 + bobY, "#FFFFFF");
+      setPx(13, 8 + bobY, "#FFFFFF");
+      // 瞳の下部にアクセントの潤み
+      setPx(10, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c4);
+      setPx(14, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c4);
+    }
+  } else {
+    // 男子アイ
+    if (isBlink) {
+      rectPx(9, 9 + bobY, 2, 1, c1);
+      rectPx(13, 9 + bobY, 2, 1, c1);
+    } else if (mood === "happy" || mood === "evolve") {
+      setPx(9, 8 + bobY, c1);
+      setPx(10, 9 + bobY, c1);
+      setPx(14, 8 + bobY, c1);
+      setPx(13, 9 + bobY, c1);
+    } else {
+      rectPx(9, 8 + bobY, 2, 2, c1);
+      rectPx(13, 8 + bobY, 2, 2, c1);
+      setPx(9, 8 + bobY, c2);
+      setPx(13, 8 + bobY, c2);
+
+      if (eyeStyle === "eye_determined") {
+        setPx(9, 7 + bobY, c3);
+        setPx(14, 7 + bobY, c3);
+      } else if (eyeStyle === "eye_brave") {
+        setPx(10, 9 + bobY, c4);
+        setPx(14, 9 + bobY, c4);
+      }
     }
   }
 
-  // 口元
-  setPx(11, 10 + bobY, c1);
-  setPx(12, 10 + bobY, c1);
+  // 口元（女子happy時はキュートなチェリーオープンマウス）
+  if (isGirl && mood === "happy") {
+    setPx(11, 10 + bobY, "#F43F5E");
+    setPx(12, 10 + bobY, "#F43F5E");
+  } else {
+    setPx(11, 10 + bobY, c1);
+    setPx(12, 10 + bobY, c1);
+  }
 
   // =========================================================================
-  // LAYER 6: 前髪・ヘアスタイル (HairStyle)
+  // LAYER 6: 前髪・サイドヘア（触覚） (HairStyle)
   // =========================================================================
   rectPx(7, 4 + bobY, 10, 2, c3);
   rectPx(8, 3 + bobY, 8, 1, c3);
-  // 前髪サイド
-  setPx(7, 6 + bobY, c3);
-  setPx(16, 6 + bobY, c3);
-  setPx(9, 6 + bobY, c3);
-  setPx(11, 6 + bobY, c3);
-  setPx(12, 6 + bobY, c3);
-  setPx(14, 6 + bobY, c3);
+
+  // 女子専用：顔まわりを華やかに包むサイドの触覚ヘア（もみあげ後れ毛）
+  if (isGirl) {
+    rectPx(6, 6 + bobY, 1, 5, c3); // 左サイド触覚
+    rectPx(17, 6 + bobY, 1, 5, c3); // 右サイド触覚
+    setPx(6, 11 + bobY, c1);
+    setPx(17, 11 + bobY, c1);
+    // 天使の輪（前髪の光沢ハイライト）
+    rectPx(9, 3 + bobY, 6, 1, c2);
+    // 前髪の自然な毛先
+    setPx(8, 6 + bobY, c3);
+    setPx(10, 6 + bobY, c3);
+    setPx(13, 6 + bobY, c3);
+    setPx(15, 6 + bobY, c3);
+  } else {
+    // 男子前髪サイド
+    setPx(7, 6 + bobY, c3);
+    setPx(16, 6 + bobY, c3);
+    setPx(9, 6 + bobY, c3);
+    setPx(11, 6 + bobY, c3);
+    setPx(12, 6 + bobY, c3);
+    setPx(14, 6 + bobY, c3);
+  }
 
   if (hairStyle === "hair_spiky") {
     setPx(7, 3 + bobY, c3);
@@ -423,8 +562,11 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
     setPx(12 + hairSway, 1 + bobY, c3);
     setPx(13 + hairSway, 1 + bobY, c3);
   } else if (headgear === "head_ribbon") {
-    rectPx(5, 5 + bobY, 2, 2, c4);
-    rectPx(17, 5 + bobY, 2, 2, c4);
+    // 愛らしい制服ビッグヘアリボン
+    rectPx(10, 1 + bobY, 4, 2, isGirl ? "#F43F5E" : c4);
+    rectPx(8, 0 + bobY, 2, 2, isGirl ? "#F43F5E" : c4);
+    rectPx(14, 0 + bobY, 2, 2, isGirl ? "#F43F5E" : c4);
+    setPx(11, 1 + bobY, "#FFFFFF");
   } else if (headgear === "head_glasses") {
     rectPx(8, 8 + bobY, 4, 1, c1);
     rectPx(12, 8 + bobY, 4, 1, c1);

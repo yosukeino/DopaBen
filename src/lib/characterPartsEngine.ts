@@ -292,6 +292,24 @@ export const PRESET_4COLOR_PALETTES: FourColorPalette[] = [
     c4: "#FACC15", // 花粉ゴールド
   },
   {
+    id: "pal_berry_rose",
+    name: "放課後チェリーローズ",
+    badge: "人気",
+    c1: "#1E1229", // 深みショコラライン
+    c2: "#FFF0F5", // 透き通るミルキー美肌
+    c3: "#831843", // 上品なディープチェリー
+    c4: "#F43F5E", // 華やかチェリーローズリボン
+  },
+  {
+    id: "pal_sweet_caramel",
+    name: "ミルクティーラテ",
+    badge: "キュート",
+    c1: "#29150B", // ビターショコラ
+    c2: "#FFF7ED", // やわらか白肌
+    c3: "#9A3412", // ふんわりミルクティー
+    c4: "#2DD4BF", // スパークルミントリボン
+  },
+  {
     id: "pal_cyber_academy",
     name: "電脳アカデミー",
     badge: "SF",
@@ -665,7 +683,7 @@ export function resolveAutoLoadout(
         weaponRight: wpR[lv - 1],
         weaponLeft: wpL[lv - 1],
         backGear: backs[lv - 1],
-        palette: "pal_classic_navy",
+        palette: gender === "girl" ? "pal_berry_rose" : "pal_classic_navy",
       };
     }
   }
