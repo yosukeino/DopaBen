@@ -219,9 +219,12 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   const hairStyle = effectiveLoadout.hairStyle;
   const isGirl = gender === "girl";
 
-  // 女子の場合は頭の後ろに豊かな後ろ髪ベースを描画（角刈り感を完全に防ぐ）
+  // フェアルーン2風のコロンと丸みのある頭部ベース
   if (isGirl) {
     rectPx(6, 4 + bobY, 12, 7, c3);
+    rectPx(7, 3 + bobY, 10, 2, c3);
+  } else {
+    rectPx(6, 4 + bobY, 12, 4, c3);
     rectPx(7, 3 + bobY, 10, 2, c3);
   }
 
@@ -421,84 +424,60 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
   rectPx(16, armY + 4, 2, 1, c2);
 
   // =========================================================================
-  // LAYER 5: 頭部・顔・瞳 (EyeStyle)
+  // LAYER 5: 頭部・顔・瞳 (Fairune 2 スタイル：つぶらで澄んだレトロRPG瞳)
   // =========================================================================
   rectPx(8, 6 + bobY, 8, 6, c2); // 顔の肌
-  // 輪郭影
-  rectPx(9, 11 + bobY, 6, 1, c1);
+  rectPx(9, 11 + bobY, 6, 1, c1); // 顎下のやわらかな影
   setPx(7, 8 + bobY, c2); // 耳
   setPx(16, 8 + bobY, c2);
 
-  // ほっぺ（女子は愛らしい桜色ピンク、男子はパレットアクセント）
+  // ほっぺ（女子はフェアルーン特有の愛らしい1ドットの桜色チーク、男子はすっきり素肌）
   if (isGirl) {
-    setPx(8, 10 + bobY, "#FB7185");
-    setPx(15, 10 + bobY, "#FB7185");
-  } else {
-    setPx(8, 10 + bobY, c4);
-    setPx(15, 10 + bobY, c4);
+    setPx(8, 10 + bobY, "#FDA4AF");
+    setPx(15, 10 + bobY, "#FDA4AF");
   }
 
-  // 瞳の描画（女子＝ぱっちり大きな瞳＋上まつ毛＋純白ハイライト）
+  // 瞳の描画（【フェアルーン2】直系のシンプルで澄んだ2×2つぶら瞳：左上純白光 ＋ 濃色瞳）
   const eyeStyle = effectiveLoadout.eyeStyle;
 
-  if (isGirl) {
-    if (isBlink) {
-      // 瞬き：女の子らしい長いまつ毛がちょこんと閉じる
-      rectPx(8, 9 + bobY, 3, 1, c1);
-      rectPx(13, 9 + bobY, 3, 1, c1);
-    } else if (mood === "happy" || mood === "evolve") {
-      // とびきりキュートな笑顔（にっこり目 ⌒ ⌒）
-      setPx(8, 9 + bobY, c1);
-      rectPx(9, 8 + bobY, 2, 1, c1);
-      setPx(13, 8 + bobY, c1);
-      setPx(14, 8 + bobY, c1);
-      setPx(15, 9 + bobY, c1);
-    } else {
-      // ぱっちり美少女アイ（目尻の上まつ毛アイライン ＋ 澄んだ純白ハイライト）
-      rectPx(8, 7 + bobY, 3, 1, c1); // 上まつ毛アイライン（目尻ハネ）
-      rectPx(13, 7 + bobY, 3, 1, c1);
-      rectPx(9, 8 + bobY, 2, 2, c1); // 瞳本体
-      rectPx(13, 8 + bobY, 2, 2, c1);
-      // 純白ハイライト（左上）
-      setPx(9, 8 + bobY, "#FFFFFF");
-      setPx(13, 8 + bobY, "#FFFFFF");
-      // 瞳の下部にアクセントの潤み
-      setPx(10, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c4);
-      setPx(14, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c4);
-    }
+  if (isBlink) {
+    // 瞬き（フェアルーン流の横2ドットまばたき線）
+    rectPx(9, 9 + bobY, 2, 1, c1);
+    rectPx(13, 9 + bobY, 2, 1, c1);
+  } else if (mood === "happy" || mood === "evolve") {
+    // 満面の笑顔（フェアルーンのキュートなニッコリ目 ^ ^）
+    setPx(9, 8 + bobY, c1);
+    setPx(10, 8 + bobY, c1);
+    setPx(13, 8 + bobY, c1);
+    setPx(14, 8 + bobY, c1);
   } else {
-    // 男子アイ
-    if (isBlink) {
-      rectPx(9, 9 + bobY, 2, 1, c1);
-      rectPx(13, 9 + bobY, 2, 1, c1);
-    } else if (mood === "happy" || mood === "evolve") {
-      setPx(9, 8 + bobY, c1);
-      setPx(10, 9 + bobY, c1);
-      setPx(14, 8 + bobY, c1);
-      setPx(13, 9 + bobY, c1);
-    } else {
-      rectPx(9, 8 + bobY, 2, 2, c1);
-      rectPx(13, 8 + bobY, 2, 2, c1);
-      setPx(9, 8 + bobY, c2);
-      setPx(13, 8 + bobY, c2);
+    // 通常・戦闘時の瞳（フェアルーン2の王道スタイル：まつ毛やゴチャついた線は一切排し、
+    // 左上にポツンと澄んだ白ハイライト、残り3ドットが瞳本体）
+    // --- 左目 (x=9..10, y=8..9) ---
+    setPx(9, 8 + bobY, "#FFFFFF"); // 左上：光沢ハイライト
+    setPx(10, 8 + bobY, c1);
+    setPx(9, 9 + bobY, c1);
+    setPx(10, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c1);
 
-      if (eyeStyle === "eye_determined") {
-        setPx(9, 7 + bobY, c3);
-        setPx(14, 7 + bobY, c3);
-      } else if (eyeStyle === "eye_brave") {
-        setPx(10, 9 + bobY, c4);
-        setPx(14, 9 + bobY, c4);
-      }
+    // --- 右目 (x=13..14, y=8..9) ---
+    setPx(13, 8 + bobY, "#FFFFFF"); // 左上：光沢ハイライト
+    setPx(14, 8 + bobY, c1);
+    setPx(13, 9 + bobY, c1);
+    setPx(14, 9 + bobY, eyeStyle === "eye_brave" ? "#F43F5E" : c1);
+
+    // 男子の眉（凛々しい少年勇者の眉）
+    if (!isGirl || eyeStyle === "eye_determined") {
+      setPx(9, 7 + bobY, c1);
+      setPx(14, 7 + bobY, c1);
     }
   }
 
-  // 口元（女子happy時はキュートなチェリーオープンマウス）
-  if (isGirl && mood === "happy") {
-    setPx(11, 10 + bobY, "#F43F5E");
-    setPx(12, 10 + bobY, "#F43F5E");
+  // 口元（フェアルーン風の控えめで愛らしい1ドット、笑顔時はオープンマウス）
+  if (mood === "happy" || mood === "evolve") {
+    setPx(11, 10 + bobY, isGirl ? "#F43F5E" : c1);
+    setPx(12, 10 + bobY, isGirl ? "#F43F5E" : c1);
   } else {
     setPx(11, 10 + bobY, c1);
-    setPx(12, 10 + bobY, c1);
   }
 
   // =========================================================================
