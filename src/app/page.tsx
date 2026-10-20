@@ -169,6 +169,70 @@ const LOGO_TWINKLE_PARTICLES: TwinkleParticle[] = [
   },
 ];
 
+// スタートカード内の再生マーク（Play）アイコン周辺でパラパラと弾け舞うトゥインクル粒子
+const PLAY_ICON_TWINKLE_PARTICLES: TwinkleParticle[] = [
+  {
+    id: 201,
+    symbol: "✦",
+    top: "-8px",
+    left: "-8px",
+    color: "text-[#FACC15] drop-shadow-[0_0_8px_rgba(250,204,21,1)]",
+    size: "text-xs",
+    delay: "0s",
+    dur: "1.8s",
+    tx: "-8px",
+    ty: "-8px",
+  },
+  {
+    id: 202,
+    symbol: "★",
+    top: "-10px",
+    right: "-8px",
+    color: "text-[#EC4899] drop-shadow-[0_0_8px_rgba(236,72,153,1)]",
+    size: "text-xs",
+    delay: "0.4s",
+    dur: "2.1s",
+    tx: "8px",
+    ty: "-8px",
+  },
+  {
+    id: 203,
+    symbol: "✦",
+    bottom: "-6px",
+    left: "-8px",
+    color: "text-[#06B6D4] drop-shadow-[0_0_8px_rgba(6,182,212,1)]",
+    size: "text-xs",
+    delay: "0.8s",
+    dur: "1.9s",
+    tx: "-8px",
+    ty: "8px",
+  },
+  {
+    id: 204,
+    symbol: "✦",
+    bottom: "-8px",
+    right: "-6px",
+    color: "text-[#10B981] drop-shadow-[0_0_8px_rgba(16,185,129,1)]",
+    size: "text-xs",
+    delay: "1.2s",
+    dur: "2.3s",
+    tx: "8px",
+    ty: "8px",
+  },
+  {
+    id: 205,
+    symbol: "⚡",
+    top: "-14px",
+    left: "32%",
+    color: "text-[#FACC15] drop-shadow-[0_0_10px_rgba(250,204,21,1)]",
+    size: "text-[11px]",
+    delay: "0.6s",
+    dur: "2.0s",
+    tx: "0px",
+    ty: "-10px",
+  },
+];
+
 // 出撃ボタン（BATTLE START）周辺で舞うトゥインクル・スパークル粒子
 const CTA_TWINKLE_PARTICLES: TwinkleParticle[] = [
   {
@@ -1114,6 +1178,11 @@ export default function DopaBenApp() {
       {/* === 3. ホーム拠点（アジト）画面（大迫力キャラクター ＆ 洗練ワンビュー） === */}
       {screen === "home" && (() => {
         const stageBattleInfo = getActiveBattleStageInfo();
+        const isResume =
+          selectedGrade === lastPlayed.grade &&
+          (selectedGrade === "英検4級"
+            ? selectedEiken4Stage === lastPlayed.stage
+            : selectedTargetStage === lastPlayed.stage);
 
         return (
           <div
@@ -1382,38 +1451,93 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* 5. 正式なメインスタートボタン【出撃 // BATTLE START】（エメラルド・サイバーパルス ＆ ハートビート拍動） */}
+            {/* 5. 正式なメインスタートボタン（デフォルト「続きから」⇔ 新規選択時「出撃」動的切替 ＆ 虹色オーラ＋Twinkle粒子） */}
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => {
                 soundEngine.playTap();
                 handleStartBattle(stageBattleInfo.stage, false, stageBattleInfo.grade as CodexCategory);
               }}
-              className="w-full bg-gradient-to-r from-[#0B0D12] via-[#064E3B] to-[#0B0D12] border-2 border-[#10B981] p-3 animate-pulse-glow-emerald flex items-center justify-between gap-3 text-left active:scale-[0.98] transition group relative overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.5)]"
+              className={`w-full p-3 flex items-center justify-between gap-3 text-left active:scale-[0.98] transition group relative overflow-hidden border-2 ${
+                isResume
+                  ? "bg-gradient-to-r from-[#0B0D12] via-[#064E3B] to-[#0B0D12] border-[#10B981] animate-pulse-glow-emerald shadow-[0_0_20px_rgba(16,185,129,0.5)]"
+                  : "bg-gradient-to-r from-[#0B0D12] via-[#78350F] to-[#0B0D12] border-[#FACC15] animate-pulse-glow-yellow shadow-[0_0_22px_rgba(250,204,21,0.6)]"
+              }`}
             >
-              <div className="flex items-center gap-3 min-w-0 relative z-10">
-                {/* ハートビート拍動するPlayアイコン */}
-                <div className="w-10 h-10 bg-[#10B981] text-[#0B0D12] flex items-center justify-center shrink-0 border-2 border-white font-black shadow-[3px_3px_0_#0B0D12] animate-heartbeat">
-                  <Play className="w-5 h-5 fill-[#0B0D12] ml-0.5" />
+              <div className="flex items-center gap-3.5 min-w-0 relative z-10">
+                {/* ファーストビューの主役！虹色オーラ ＆ Twinkle粒子 ＆ ハートビート拍動Playアイコン */}
+                <div className="relative shrink-0 flex items-center justify-center">
+                  {/* 1. 虹色ネオンオーラ（ブラー＆呼吸発光） */}
+                  <div className="pointer-events-none absolute -inset-2 rounded-lg bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-dopa-aura blur-md opacity-85" />
+
+                  {/* 2. 周囲にパラパラと弾け舞うトゥインクル粒子 (✦ / ★ / ⚡) */}
+                  <div className="pointer-events-none absolute -inset-3 overflow-visible z-20">
+                    {PLAY_ICON_TWINKLE_PARTICLES.map((p) => (
+                      <span
+                        key={p.id}
+                        className={`absolute animate-twinkle font-black select-none pointer-events-none ${p.color} ${p.size}`}
+                        style={{
+                          top: p.top,
+                          bottom: p.bottom,
+                          left: p.left,
+                          right: p.right,
+                          animationDelay: p.delay,
+                          ["--tw-dur" as string]: p.dur,
+                          ["--tw-x" as string]: p.tx,
+                          ["--tw-y" as string]: p.ty,
+                        }}
+                      >
+                        {p.symbol}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* 3. 虹色グラデーション＆ハートビート拍動するPlayアイコン本体 */}
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-[#EF4444] via-[#FACC15] via-[#10B981] to-[#06B6D4] text-[#0B0D12] flex items-center justify-center border-2 border-white font-black shadow-[0_0_16px_rgba(250,204,21,0.9),3px_3px_0_#0B0D12] animate-heartbeat overflow-hidden z-10 group-hover:scale-110 transition">
+                    {/* 斜めに走る光沢スイープ */}
+                    <span className="pointer-events-none absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/85 to-transparent animate-glint-sweep" />
+                    <Play className="w-6 h-6 fill-[#0B0D12] text-[#0B0D12] ml-0.5 drop-shadow-sm relative z-10" />
+                  </div>
                 </div>
+
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="bg-[#10B981] text-[#0B0D12] text-[10px] font-black px-2 py-0.5 -skew-x-6 shadow-sm">
-                      BATTLE START
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 -skew-x-6 shadow-sm transition ${
+                        isResume
+                          ? "bg-[#10B981] text-[#0B0D12]"
+                          : "bg-[#FACC15] text-[#0B0D12] animate-pulse shadow-[0_0_8px_#FACC15]"
+                      }`}
+                    >
+                      {isResume ? "続きから" : "出撃"}
                     </span>
                     <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
                       {stageBattleInfo.label}
                     </span>
                   </div>
-                  <div className="text-[10px] sm:text-[11px] text-[#10B981] font-bold truncate mt-0.5">
+                  <div
+                    className={`text-[10px] sm:text-[11px] font-bold truncate mt-0.5 ${
+                      isResume ? "text-[#10B981]" : "text-[#FACC15]"
+                    }`}
+                  >
                     {stageBattleInfo.sub}・{stageBattleInfo.progress}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-[#10B981] hover:brightness-110 text-[#0B0D12] font-black text-sm px-4 py-2 -skew-x-6 shrink-0 border-2 border-white shadow-[3px_3px_0_#0B0D12] relative z-10 group-hover:scale-105 transition">
-                <span>出撃</span>
-                <Zap className="w-4 h-4 fill-[#0B0D12]" />
+              <div
+                className={`flex items-center gap-1.5 font-black text-sm px-3.5 sm:px-4 py-2 -skew-x-6 shrink-0 border-2 border-white shadow-[3px_3px_0_#0B0D12] relative z-10 group-hover:scale-105 transition ${
+                  isResume
+                    ? "bg-[#10B981] text-[#0B0D12] hover:brightness-110"
+                    : "bg-[#FACC15] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.6)]"
+                }`}
+              >
+                <span>{isResume ? "続きから" : "出撃"}</span>
+                {isResume ? (
+                  <Play className="w-4 h-4 fill-[#0B0D12]" />
+                ) : (
+                  <Zap className="w-4 h-4 fill-[#0B0D12]" />
+                )}
               </div>
             </motion.button>
 
