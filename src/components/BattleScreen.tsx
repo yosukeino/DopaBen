@@ -646,8 +646,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     ? currentIndex + 1 >= answerModal.nextSnapshot.deck.length
     : currentIndex + 1 >= deck.length;
 
+  const isGirl = profile.gender === "girl";
+
   return (
-    <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0B0D12] bg-halftone p-3.5 pb-6 relative overflow-x-hidden">
+    <div
+      className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-between p-3.5 pb-6 relative overflow-x-hidden transition-colors duration-300 ${
+        isGirl ? "bg-[#13091B] bg-halftone-girl" : "bg-[#0B0D12] bg-halftone"
+      }`}
+    >
       {/* 上部ステータス＆進捗バー */}
       <div className="relative z-20 space-y-2">
         <div className="flex items-center justify-between">
@@ -656,9 +662,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               soundEngine.playTap();
               onAbort();
             }}
-            className="bg-[#131720] border border-[#262D3D] px-2.5 py-1 text-xs font-black flex items-center gap-1 hover:border-[#FACC15]"
+            className={`border px-2.5 py-1 text-xs font-black flex items-center gap-1 transition ${
+              isGirl
+                ? "bg-[#1D1229] border-[#3D2752] hover:border-[#F43F5E]"
+                : "bg-[#131720] border-[#262D3D] hover:border-[#FACC15]"
+            }`}
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-[#FACC15]" /> 拠点へ
+            <ArrowLeft className={`w-3.5 h-3.5 ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`} /> 拠点へ
           </button>
 
           <div className="flex items-center gap-2">
@@ -666,9 +676,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               key={combo}
               initial={{ scale: 1.35 }}
               animate={{ scale: 1 }}
-              className="bg-[#131720] text-white px-2.5 py-1 font-black text-xs -skew-x-12 border border-white flex items-center gap-1"
+              className={`text-white px-2.5 py-1 font-black text-xs -skew-x-12 border border-white flex items-center gap-1 ${
+                isGirl ? "bg-[#1D1229]" : "bg-[#131720]"
+              }`}
             >
-              <Flame className="w-3.5 h-3.5 fill-[#FACC15] text-[#FACC15]" />
+              <Flame className={`w-3.5 h-3.5 fill-[#FACC15] ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`} />
               {combo} CHAIN
             </motion.div>
 
@@ -676,17 +688,23 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               key={earnedExp}
               initial={{ scale: 1.25 }}
               animate={{ scale: 1 }}
-              className="bg-[#FACC15] text-[#0B0D12] px-2.5 py-1 font-black text-xs -skew-x-12 border border-[#0B0D12]"
+              className={`px-2.5 py-1 font-black text-xs -skew-x-12 border ${
+                isGirl
+                  ? "bg-[#F43F5E] text-white border-white"
+                  : "bg-[#FACC15] text-[#0B0D12] border-[#0B0D12]"
+              }`}
             >
               +{earnedExp} LXP
             </motion.div>
           </div>
         </div>
 
-        {/* 斜めプログレスバー（制覇・進行＝エメラルドグリーン） */}
-        <div className="w-full h-3 bg-[#131720] border border-[#262D3D] -skew-x-12 overflow-hidden p-0.5">
+        {/* 斜めプログレスバー */}
+        <div className={`w-full h-3 border -skew-x-12 overflow-hidden p-0.5 ${
+          isGirl ? "bg-[#1D1229] border-[#3D2752]" : "bg-[#131720] border-[#262D3D]"
+        }`}>
           <motion.div
-            className="h-full bg-[#10B981]"
+            className={`h-full ${isGirl ? "bg-[#2DD4BF]" : "bg-[#10B981]"}`}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -703,7 +721,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           </span>
           <div className="flex items-center gap-1.5">
             {currentQuestion.format === "sentence_fill" && (
-              <span className="bg-[#131720] text-[#FACC15] border border-[#FACC15] px-1.5 py-0.5 text-[10px] font-black">
+              <span className={`px-1.5 py-0.5 text-[10px] font-black border ${
+                isGirl
+                  ? "bg-[#1D1229] text-[#FB7185] border-[#FB7185]"
+                  : "bg-[#131720] text-[#FACC15] border-[#FACC15]"
+              }`}>
                 文脈穴埋め
               </span>
             )}
@@ -713,7 +735,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               </span>
             )}
             {hasOverclockAudio && (
-              <span className="bg-[#131720] text-[#FACC15] border border-[#FACC15] px-1.5 py-0.5 text-[10px] font-black">
+              <span className={`px-1.5 py-0.5 text-[10px] font-black border ${
+                isGirl
+                  ? "bg-[#1D1229] text-[#FB7185] border-[#FB7185]"
+                  : "bg-[#131720] text-[#FACC15] border-[#FACC15]"
+              }`}>
                 1.35x倍速
               </span>
             )}
@@ -774,9 +800,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
             {/* ターゲット問題パネル */}
             <div
-              className={`p-4 sm:p-5 border-2 relative bg-gradient-to-br from-[#131720] via-[#1a202c] to-[#0B0D12] ${
+              className={`p-4 sm:p-5 border-2 relative ${
+                isGirl
+                  ? "bg-gradient-to-br from-[#1D1229] via-[#2A173B] to-[#13091B]"
+                  : "bg-gradient-to-br from-[#131720] via-[#1a202c] to-[#0B0D12]"
+              } ${
                 currentQuestion.isRevengeBounty
                   ? "border-[#EF4444] shadow-[4px_4px_0_#EF4444]"
+                  : isGirl
+                  ? "border-white shadow-[4px_4px_0_#F43F5E]"
                   : "border-white shadow-[4px_4px_0_#FACC15]"
               }`}
             >
@@ -958,8 +990,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     const isSelectedChoice =
                       answerModal?.selectedChoiceId === choice.id;
 
-                    let choiceStyle =
-                      "bg-gradient-to-r from-[#131720] to-[#1a202c] border-white text-white shadow-[3px_3px_0_#0B0D12] hover:border-[#FACC15] hover:shadow-[3px_3px_0_#FACC15]";
+                    let choiceStyle = isGirl
+                      ? "bg-gradient-to-r from-[#1D1229] to-[#2A173B] border-white text-white shadow-[3px_3px_0_#13091B] hover:border-[#F43F5E] hover:shadow-[3px_3px_0_#F43F5E]"
+                      : "bg-gradient-to-r from-[#131720] to-[#1a202c] border-white text-white shadow-[3px_3px_0_#0B0D12] hover:border-[#FACC15] hover:shadow-[3px_3px_0_#FACC15]";
                     if (isAnswered) {
                       if (choice.isCorrect) {
                         choiceStyle =
@@ -968,8 +1001,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                         choiceStyle =
                           "bg-gradient-to-r from-[#7F1D1D] to-[#131720] border-[#EF4444] shadow-[3px_3px_0_#EF4444] text-white";
                       } else {
-                        choiceStyle =
-                          "bg-[#0B0D12]/70 border-[#262D3D] opacity-40 text-[#94A3B8]";
+                        choiceStyle = isGirl
+                          ? "bg-[#13091B]/70 border-[#3D2752] opacity-40 text-[#94A3B8]"
+                          : "bg-[#0B0D12]/70 border-[#262D3D] opacity-40 text-[#94A3B8]";
                       }
                     }
 
@@ -990,6 +1024,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                                   ? "bg-[#10B981] text-[#0B0D12] border-white shadow-[0_0_10px_#10B981]"
                                   : isAnswered && isSelectedChoice && !choice.isCorrect
                                   ? "bg-[#EF4444] text-white border-white shadow-[0_0_10px_#EF4444]"
+                                  : isGirl
+                                  ? "bg-[#13091B] text-[#FB7185] border-[#FB7185]/80 group-hover:border-white group-hover:bg-[#F43F5E] group-hover:text-white"
                                   : "bg-[#0B0D12] text-[#FACC15] border-[#FACC15]/80 group-hover:border-white group-hover:bg-[#FACC15] group-hover:text-[#0B0D12]"
                               }`}
                             >
@@ -1001,7 +1037,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
                           {/* 選択肢テキスト */}
                           <div className="min-w-0">
-                            <div className="font-black text-base sm:text-lg text-white group-hover:text-[#FACC15] tracking-wide truncate transition-colors">
+                            <div className={`font-black text-base sm:text-lg text-white tracking-wide truncate transition-colors ${
+                              isGirl ? "group-hover:text-[#FB7185]" : "group-hover:text-[#FACC15]"
+                            }`}>
                               {choice.label}
                             </div>
                             {choice.subLabel && (

@@ -44,11 +44,11 @@ body {
   background-size: 12px 12px;
 }
 
-/* Vibrant pink halftone dot background when Girl is selected on Home screen */
+/* Elegant Midnight Plum & Rose Dot background when Girl is selected */
 .bg-halftone-girl {
-  background-color: #EC4899;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1.4px, transparent 1.4px),
-    radial-gradient(rgba(11, 13, 18, 0.14) 1px, transparent 1px);
+  background-color: #13091B;
+  background-image: radial-gradient(rgba(244, 63, 94, 0.18) 1.2px, transparent 1.2px),
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 18px 18px, 9px 9px;
   background-position: 0 0, 4.5px 4.5px;
 }
@@ -204,6 +204,21 @@ body {
   animation: pulseGlowEmerald 2.2s ease-in-out infinite;
 }
 
+@keyframes pulseGlowRose {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.4), 0 0 2px rgba(244, 63, 94, 0.7);
+    border-color: #F43F5E;
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(244, 63, 94, 0.85), 0 0 35px rgba(251, 113, 133, 0.5), inset 0 0 10px rgba(244, 63, 94, 0.35);
+    border-color: #FFFFFF;
+  }
+}
+
+.animate-pulse-glow-rose {
+  animation: pulseGlowRose 2.0s ease-in-out infinite;
+}
+
 @keyframes heartbeatPulse {
   0%, 100% {
     transform: scale(1);
@@ -268,6 +283,21 @@ body {
   animation: stagePulseBorder 1.6s ease-in-out infinite;
 }
 
+@keyframes stagePulseBorderGirl {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(244, 63, 94, 0.6);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 18px rgba(244, 63, 94, 0.95), 0 0 28px rgba(251, 113, 133, 0.5);
+  }
+}
+
+.animate-stage-selected-girl {
+  animation: stagePulseBorderGirl 1.6s ease-in-out infinite;
+}
+
 @keyframes levelPulseGlow {
   0%, 100% {
     transform: scale(1);
@@ -281,6 +311,22 @@ body {
 
 .animate-level-badge {
   animation: levelPulseGlow 2.2s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes levelPulseGlowGirl {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.7)) drop-shadow(2px 2px 0 #13091B);
+  }
+  50% {
+    transform: scale(1.08) translateY(-1px);
+    filter: drop-shadow(0 0 16px rgba(251, 113, 133, 0.95)) drop-shadow(2px 2px 0 #13091B);
+  }
+}
+
+.animate-level-badge-girl {
+  animation: levelPulseGlowGirl 2.2s ease-in-out infinite;
   display: inline-block;
 }
 

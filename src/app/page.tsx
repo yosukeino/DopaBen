@@ -1030,12 +1030,12 @@ export default function DopaBenApp() {
     isHardcoreUnlocked &&
     profile.activeSkillHacks.includes("hardcore_challenge");
 
-  const isGirlHome = screen === "home" && profile.gender === "girl";
+  const isGirl = profile.gender === "girl";
 
   return (
     <div
       className={`min-h-screen text-white relative overflow-x-clip touch-pan-y transition-colors duration-300 ${
-        isGirlHome ? "bg-[#EC4899] bg-halftone-girl" : "bg-[#0B0D12]"
+        isGirl ? "bg-[#13091B] bg-halftone-girl" : "bg-[#0B0D12] bg-halftone"
       }`}
     >
       {/* 斜めスラッシュ画面遷移エフェクト */}
@@ -1046,9 +1046,15 @@ export default function DopaBenApp() {
             animate={{ x: "0%", skewX: -18 }}
             exit={{ x: "120%", skewX: -18 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 bg-[#FACC15] border-x-8 border-white flex items-center justify-center pointer-events-none"
+            className={`fixed inset-0 z-50 border-x-8 border-white flex items-center justify-center pointer-events-none ${
+              isGirl ? "bg-[#F43F5E]" : "bg-[#FACC15]"
+            }`}
           >
-            <div className="bg-[#0B0D12] text-[#FACC15] font-black text-3xl px-8 py-3 -skew-x-12 border-4 border-white shadow-[6px_6px_0_#10B981] tracking-widest">
+            <div className={`font-black text-3xl px-8 py-3 -skew-x-12 border-4 border-white tracking-widest ${
+              isGirl
+                ? "bg-[#13091B] text-[#FB7185] shadow-[6px_6px_0_#2DD4BF]"
+                : "bg-[#0B0D12] text-[#FACC15] shadow-[6px_6px_0_#10B981]"
+            }`}>
               DOPABEN // OVERDRIVE
             </div>
           </motion.div>
@@ -1071,12 +1077,18 @@ export default function DopaBenApp() {
 
       {/* === 2. リザルト画面（LXP獲得＆ストック演出） === */}
       {screen === "result" && lastResult && (
-        <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between bg-[#0B0D12] bg-halftone p-4">
+        <div className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-between p-4 ${
+          isGirl ? "bg-[#13091B] bg-halftone-girl" : "bg-[#0B0D12] bg-halftone"
+        }`}>
           <div className="space-y-4">
             <motion.div
               initial={{ scale: 0.85, rotate: -3 }}
               animate={{ scale: 1, rotate: -1 }}
-              className="bg-[#10B981] border-2 border-white p-3.5 text-center shadow-p5-yellow clip-p5-banner"
+              className={`border-2 border-white p-3.5 text-center ${
+                isGirl
+                  ? "bg-[#F43F5E] shadow-[4px_4px_0_#2DD4BF]"
+                  : "bg-[#10B981] shadow-p5-yellow clip-p5-banner"
+              }`}
             >
               <div className="text-xs font-black text-[#0B0D12] tracking-widest">
                 LEARNING EXPERIENCE HARVEST // 学習経験値ストック完了
@@ -1087,7 +1099,11 @@ export default function DopaBenApp() {
             </motion.div>
 
             {/* 所持LXP（消費可能ストック）＆ 累積LXP（総学習量）カード */}
-            <div className="bg-[#131720] border-2 border-white p-4 shadow-p5-yellow space-y-3">
+            <div className={`border-2 border-white p-4 space-y-3 ${
+              isGirl
+                ? "bg-[#1D1229] shadow-[4px_4px_0_#F43F5E]"
+                : "bg-[#131720] shadow-p5-yellow"
+            }`}>
               <div className="flex items-center gap-3.5">
                 <div className="bg-[#0B0D12] border-2 border-[#FACC15] p-1 shrink-0">
                   <PixelCharacter
@@ -1283,24 +1299,32 @@ export default function DopaBenApp() {
         return (
           <div
             className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-start p-3.5 space-y-3 touch-pan-y transition-colors duration-300 select-none ${
-              profile.gender === "girl"
-                ? "bg-[#EC4899] bg-halftone-girl"
+              isGirl
+                ? "bg-[#13091B] bg-halftone-girl"
                 : "bg-[#0B0D12] bg-halftone"
             }`}
           >
             {/* 1. ヘッダー（ロゴ ＋ 性別切替 ＋ 音声切替） */}
-            <header className="flex items-center justify-between pb-1.5 pt-0.5 border-b border-[#262D3D]">
+            <header className={`flex items-center justify-between pb-1.5 pt-0.5 border-b ${
+              isGirl ? "border-[#3D2752]" : "border-[#262D3D]"
+            }`}>
               <div className="relative flex items-center">
                 <img
                   src="/dopaben-logo.png"
                   alt="ドパベン"
                   draggable={false}
-                  className="h-8 sm:h-9 w-auto object-contain select-none pointer-events-none drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)]"
+                  className={`h-8 sm:h-9 w-auto object-contain select-none pointer-events-none ${
+                    isGirl
+                      ? "drop-shadow-[0_2px_12px_rgba(244,63,94,0.5)]"
+                      : "drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)]"
+                  }`}
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex bg-[#131720] border border-[#262D3D] p-0.5 shadow-sm">
+                <div className={`flex border p-0.5 shadow-sm ${
+                  isGirl ? "bg-[#1D1229] border-[#3D2752]" : "bg-[#131720] border-[#262D3D]"
+                }`}>
                   <button
                     onClick={() => handleToggleGender("boy")}
                     className={`px-2.5 py-1 text-[11px] font-black transition ${
@@ -1315,7 +1339,7 @@ export default function DopaBenApp() {
                     onClick={() => handleToggleGender("girl")}
                     className={`px-2.5 py-1 text-[11px] font-black transition ${
                       profile.gender === "girl"
-                        ? "bg-[#FACC15] text-[#0B0D12]"
+                        ? "bg-[#F43F5E] text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]"
                         : "text-[#94A3B8] hover:text-white"
                     }`}
                   >
@@ -1329,13 +1353,17 @@ export default function DopaBenApp() {
                     setIsMuted(nextMute);
                     soundEngine.setMuted(nextMute);
                   }}
-                  className="p-1.5 bg-[#131720] border border-[#262D3D] text-white hover:border-[#FACC15] transition"
+                  className={`p-1.5 border transition ${
+                    isGirl
+                      ? "bg-[#1D1229] border-[#3D2752] text-white hover:border-[#F43F5E]"
+                      : "bg-[#131720] border-[#262D3D] text-white hover:border-[#FACC15]"
+                  }`}
                   title="音声ON/OFF"
                 >
                   {isMuted ? (
                     <VolumeX className="w-4 h-4 text-[#EF4444]" />
                   ) : (
-                    <Volume2 className="w-4 h-4 text-[#FACC15]" />
+                    <Volume2 className={`w-4 h-4 ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`} />
                   )}
                 </button>
               </div>
@@ -1347,15 +1375,29 @@ export default function DopaBenApp() {
                 soundEngine.playTap();
                 setIsStatusModalOpen(true);
               }}
-              className="bg-gradient-to-br from-[#131720] via-[#1a202c] to-[#0B0D12] border-2 border-white p-3.5 shadow-p5-yellow cursor-pointer hover:border-[#FACC15] active:scale-[0.99] transition relative overflow-hidden select-none group"
+              className={`border-2 border-white p-3.5 cursor-pointer active:scale-[0.99] transition relative overflow-hidden select-none group ${
+                isGirl
+                  ? "bg-gradient-to-br from-[#1D1229] via-[#2A173B] to-[#13091B] shadow-[4px_4px_0_#F43F5E] hover:border-[#FB7185]"
+                  : "bg-gradient-to-br from-[#131720] via-[#1a202c] to-[#0B0D12] shadow-p5-yellow hover:border-[#FACC15]"
+              }`}
             >
               {/* 背景の幾何学スライス装飾 */}
-              <div className="absolute -top-8 -right-8 w-28 h-28 bg-[#FACC15]/10 rotate-45 pointer-events-none" />
+              <div className={`absolute -top-8 -right-8 w-28 h-28 rotate-45 pointer-events-none ${
+                isGirl ? "bg-[#F43F5E]/10" : "bg-[#FACC15]/10"
+              }`} />
 
               <div className="flex items-center gap-3.5 relative z-10">
                 {/* 大迫力ピクセルキャラクター（size 96）＋ 呼吸オーラ */}
-                <div className="relative bg-[#0B0D12] border-2 border-white p-1.5 shrink-0 shadow-[4px_4px_0_#FACC15] group-hover:scale-105 transition">
-                  <div className="pointer-events-none absolute -inset-1 rounded bg-gradient-to-r from-[#FACC15]/30 to-[#10B981]/30 animate-dopa-aura" />
+                <div className={`relative border-2 border-white p-1.5 shrink-0 group-hover:scale-105 transition ${
+                  isGirl
+                    ? "bg-[#13091B] shadow-[4px_4px_0_#F43F5E]"
+                    : "bg-[#0B0D12] shadow-[4px_4px_0_#FACC15]"
+                }`}>
+                  <div className={`pointer-events-none absolute -inset-1 rounded animate-dopa-aura ${
+                    isGirl
+                      ? "bg-gradient-to-r from-[#F43F5E]/30 to-[#2DD4BF]/30"
+                      : "bg-gradient-to-r from-[#FACC15]/30 to-[#10B981]/30"
+                  }`} />
 
                   <PixelCharacter
                     gender={profile.gender}
@@ -1372,8 +1414,12 @@ export default function DopaBenApp() {
                 <div className="flex-1 min-w-0 space-y-2">
                   <div>
                     <div className="flex items-baseline justify-between gap-1 flex-wrap">
-                      {/* アニメーションでゴールドに輝く Lv.X */}
-                      <span className="text-3xl font-black italic text-[#FACC15] animate-level-badge">
+                      {/* アニメーションでゴールドまたはローズに輝く Lv.X */}
+                      <span className={`text-3xl font-black italic ${
+                        isGirl
+                          ? "text-[#FB7185] animate-level-badge-girl"
+                          : "text-[#FACC15] animate-level-badge"
+                      }`}>
                         Lv.{profile.level}
                       </span>
                       <div className="flex items-center gap-2">
@@ -1384,7 +1430,11 @@ export default function DopaBenApp() {
                             soundEngine.playTap();
                             setIsCustomizeModalOpen(true);
                           }}
-                          className="px-2 py-0.5 rounded bg-[#FACC15] hover:bg-[#FFE600] active:scale-95 text-black font-black text-[10px] flex items-center gap-1 shadow-sm transition"
+                          className={`px-2 py-0.5 rounded active:scale-95 font-black text-[10px] flex items-center gap-1 shadow-sm transition ${
+                            isGirl
+                              ? "bg-[#F43F5E] hover:bg-[#FB7185] text-white"
+                              : "bg-[#FACC15] hover:bg-[#FFE600] text-black"
+                          }`}
                         >
                           <span>🎨 着せ替え・図鑑</span>
                         </button>
@@ -1402,7 +1452,11 @@ export default function DopaBenApp() {
                       );
                       return (
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40 shrink-0">
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-black border shrink-0 ${
+                            isGirl
+                              ? "bg-[#2DD4BF]/20 text-[#2DD4BF] border-[#2DD4BF]/40"
+                              : "bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40"
+                          }`}>
                             {evo.branchBadge}
                           </span>
                           <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
@@ -1414,13 +1468,17 @@ export default function DopaBenApp() {
                   </div>
 
                   {/* ハイテク NEXT EVOLUTION ゲージデザイン */}
-                  <div className="bg-[#0B0D12]/90 border border-[#262D3D] p-2 space-y-1.5 shadow-inner">
+                  <div className={`border p-2 space-y-1.5 shadow-inner ${
+                    isGirl
+                      ? "bg-[#13091B]/90 border-[#3D2752]"
+                      : "bg-[#0B0D12]/90 border-[#262D3D]"
+                  }`}>
                     <div className="flex justify-between items-center text-[10px] font-black">
                       <span className="text-[#94A3B8] flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-[#FACC15] fill-[#FACC15]" />
+                        <Zap className={`w-3 h-3 ${isGirl ? "text-[#FB7185] fill-[#FB7185]" : "text-[#FACC15] fill-[#FACC15]"}`} />
                         <span>NEXT EVOLUTION</span>
                       </span>
-                      <span className={canEvolveLevel ? "text-[#10B981] animate-pulse" : "text-[#FACC15]"}>
+                      <span className={canEvolveLevel ? (isGirl ? "text-[#2DD4BF] animate-pulse" : "text-[#10B981] animate-pulse") : (isGirl ? "text-[#FB7185]" : "text-[#FACC15]")}>
                         {profile.level >= 10
                           ? "MAX LEVEL"
                           : canEvolveLevel
@@ -1434,11 +1492,17 @@ export default function DopaBenApp() {
                     </div>
 
                     {/* 斜めスライス＆シマー付きネオングラデーションバー（左から右へググッと伸びるアニメーション） */}
-                    <div className="relative w-full h-2.5 bg-[#131720] border border-white/60 -skew-x-12 p-0.5 overflow-hidden shadow-inner">
+                    <div className={`relative w-full h-2.5 border border-white/60 -skew-x-12 p-0.5 overflow-hidden shadow-inner ${
+                      isGirl ? "bg-[#1D1229]" : "bg-[#131720]"
+                    }`}>
                       <motion.div
                         className={`h-full relative overflow-hidden ${
                           canEvolveLevel
-                            ? "bg-[#10B981] shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                            ? isGirl
+                              ? "bg-[#2DD4BF] shadow-[0_0_12px_rgba(45,212,191,0.8)]"
+                              : "bg-[#10B981] shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+                            : isGirl
+                            ? "bg-gradient-to-r from-[#F43F5E] via-[#A855F7] to-[#2DD4BF] shadow-[0_0_10px_rgba(244,63,94,0.6)]"
                             : "bg-gradient-to-r from-[#10B981] via-[#06B6D4] to-[#FACC15] shadow-[0_0_10px_rgba(250,204,21,0.6)]"
                         }`}
                         initial={{ width: "0%" }}
@@ -1461,7 +1525,9 @@ export default function DopaBenApp() {
                       e.stopPropagation();
                       handleTriggerLevelEvolution();
                     }}
-                    className="w-full py-1.5 px-3 bg-[#10B981] hover:brightness-110 text-white font-black text-xs border-2 border-white -skew-x-6 flex items-center justify-center gap-1.5 shadow-[3px_3px_0_#0B0D12] animate-pulse active:scale-95 transition"
+                    className={`w-full py-1.5 px-3 hover:brightness-110 text-white font-black text-xs border-2 border-white -skew-x-6 flex items-center justify-center gap-1.5 shadow-[3px_3px_0_#0B0D12] animate-pulse active:scale-95 transition ${
+                      isGirl ? "bg-[#F43F5E]" : "bg-[#10B981]"
+                    }`}
                   >
                     <Sparkles className="w-4 h-4 fill-white" />
                     <span>🎉 累積LXP達成！タップして Lv.{profile.level + 1} へ進化する！</span>
@@ -1481,7 +1547,11 @@ export default function DopaBenApp() {
                 }}
                 className={`relative overflow-hidden py-2.5 px-3 font-black text-center border-2 -skew-x-6 transition flex items-center justify-center gap-2 ${
                   selectedGrade === "英検4級"
-                    ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981] animate-pulse-glow-yellow -translate-y-0.5"
+                    ? isGirl
+                      ? "bg-[#F43F5E] text-white border-white shadow-[4px_4px_0_#2DD4BF] animate-pulse-glow-rose -translate-y-0.5"
+                      : "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981] animate-pulse-glow-yellow -translate-y-0.5"
+                    : isGirl
+                    ? "bg-[#1D1229] text-[#C4B5FD] border-[#3D2752] hover:border-[#F43F5E] hover:text-white"
                     : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
                 }`}
               >
@@ -1491,7 +1561,7 @@ export default function DopaBenApp() {
                 <BookOpen className="w-4 h-4 shrink-0 relative z-10" />
                 <span className="text-xs sm:text-sm tracking-wide relative z-10">英検４級</span>
                 {selectedGrade === "英検4級" && (
-                  <span className="text-[10px] text-[#0B0D12] font-black relative z-10 animate-ping">✦</span>
+                  <span className={`text-[10px] font-black relative z-10 animate-ping ${isGirl ? "text-white" : "text-[#0B0D12]"}`}>✦</span>
                 )}
               </button>
 
@@ -1504,7 +1574,11 @@ export default function DopaBenApp() {
                 }}
                 className={`relative overflow-hidden py-2.5 px-3 font-black text-center border-2 -skew-x-6 transition flex items-center justify-center gap-2 ${
                   selectedGrade === "ターゲット1800"
-                    ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981] animate-pulse-glow-yellow -translate-y-0.5"
+                    ? isGirl
+                      ? "bg-[#F43F5E] text-white border-white shadow-[4px_4px_0_#2DD4BF] animate-pulse-glow-rose -translate-y-0.5"
+                      : "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981] animate-pulse-glow-yellow -translate-y-0.5"
+                    : isGirl
+                    ? "bg-[#1D1229] text-[#C4B5FD] border-[#3D2752] hover:border-[#F43F5E] hover:text-white"
                     : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
                 }`}
               >
@@ -1514,7 +1588,7 @@ export default function DopaBenApp() {
                 <Trophy className="w-4 h-4 shrink-0 relative z-10" />
                 <span className="text-xs sm:text-sm tracking-wide relative z-10">中学英単語1800</span>
                 {selectedGrade === "ターゲット1800" && (
-                  <span className="text-[10px] text-[#0B0D12] font-black relative z-10 animate-ping">✦</span>
+                  <span className={`text-[10px] font-black relative z-10 animate-ping ${isGirl ? "text-white" : "text-[#0B0D12]"}`}>✦</span>
                 )}
               </button>
             </div>
@@ -1522,13 +1596,21 @@ export default function DopaBenApp() {
             {/* 4. リスニング問題 ON/OFF（「出撃」カードの直上に移動 ＆ 音波エフェクトで目立たせる！） */}
             <div className={`border-2 p-2 flex items-center justify-between transition-colors ${
               includeListening
-                ? "bg-[#131720] border-[#FACC15] shadow-[0_0_12px_rgba(250,204,21,0.35)]"
+                ? isGirl
+                  ? "bg-[#1D1229] border-[#F43F5E] shadow-[0_0_12px_rgba(244,63,94,0.35)]"
+                  : "bg-[#131720] border-[#FACC15] shadow-[0_0_12px_rgba(250,204,21,0.35)]"
+                : isGirl
+                ? "bg-[#1D1229]/80 border-[#3D2752]"
                 : "bg-[#131720]/80 border-[#262D3D]"
             }`}>
               <div className="flex items-center gap-2">
                 <div className={`p-1 border ${
                   includeListening
-                    ? "bg-[#FACC15] text-[#0B0D12] border-white animate-audio-wave shadow-[0_0_8px_#FACC15]"
+                    ? isGirl
+                      ? "bg-[#F43F5E] text-white border-white animate-audio-wave shadow-[0_0_8px_#F43F5E]"
+                      : "bg-[#FACC15] text-[#0B0D12] border-white animate-audio-wave shadow-[0_0_8px_#FACC15]"
+                    : isGirl
+                    ? "bg-[#13091B] text-[#94A3B8] border-[#3D2752]"
                     : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D]"
                 }`}>
                   <Headphones className="w-3.5 h-3.5" />
@@ -1537,7 +1619,9 @@ export default function DopaBenApp() {
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-black text-white">リスニング問題</span>
                     {includeListening && (
-                      <span className="bg-[#FACC15] text-[#0B0D12] text-[8px] font-black px-1 py-0.2 -skew-x-6">
+                      <span className={`text-[8px] font-black px-1 py-0.2 -skew-x-6 ${
+                        isGirl ? "bg-[#F43F5E] text-white" : "bg-[#FACC15] text-[#0B0D12]"
+                      }`}>
                         ACTIVE
                       </span>
                     )}
@@ -1548,7 +1632,9 @@ export default function DopaBenApp() {
                 </div>
               </div>
 
-              <div className="flex bg-[#0B0D12] border border-[#262D3D] p-0.5 shrink-0">
+              <div className={`flex border p-0.5 shrink-0 ${
+                isGirl ? "bg-[#13091B] border-[#3D2752]" : "bg-[#0B0D12] border-[#262D3D]"
+              }`}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1557,7 +1643,9 @@ export default function DopaBenApp() {
                   }}
                   className={`px-3 py-1 text-[11px] font-black transition flex items-center gap-1 ${
                     includeListening
-                      ? "bg-[#FACC15] text-[#0B0D12] shadow-[0_0_10px_rgba(250,204,21,0.6)]"
+                      ? isGirl
+                        ? "bg-[#F43F5E] text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]"
+                        : "bg-[#FACC15] text-[#0B0D12] shadow-[0_0_10px_rgba(250,204,21,0.6)]"
                       : "text-[#94A3B8] hover:text-white"
                   }`}
                 >
@@ -1572,7 +1660,9 @@ export default function DopaBenApp() {
                   }}
                   className={`px-3 py-1 text-[11px] font-black transition flex items-center gap-1 ${
                     !includeListening
-                      ? "bg-[#FACC15] text-[#0B0D12]"
+                      ? isGirl
+                        ? "bg-[#F43F5E] text-white"
+                        : "bg-[#FACC15] text-[#0B0D12]"
                       : "text-[#94A3B8] hover:text-white"
                   }`}
                 >
@@ -1607,7 +1697,9 @@ export default function DopaBenApp() {
                     soundEngine.playTap();
                     handleStartBattle(stageBattleInfo.stage, false, stageBattleInfo.grade as CodexCategory);
                   }}
-                  className="w-full p-3 flex items-center justify-between gap-3 text-left active:scale-[0.98] transition bg-[#131720] relative"
+                  className={`w-full p-3 flex items-center justify-between gap-3 text-left active:scale-[0.98] transition relative ${
+                    isGirl ? "bg-[#1D1229]" : "bg-[#131720]"
+                  }`}
                 >
                   <div className="flex items-center gap-3.5 min-w-0 relative z-10">
                     {/* ファーストビューの主役！虹色オーラ ＆ Twinkle粒子 ＆ ハートビート拍動Playアイコン */}
@@ -1648,8 +1740,16 @@ export default function DopaBenApp() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         {/* 控えめでスタイリッシュなサイバーHUDバッジ */}
-                        <span className="bg-[#0B0D12] text-[#94A3B8] text-[10px] font-bold px-2 py-0.5 -skew-x-6 border border-[#262D3D] flex items-center gap-1 shrink-0">
-                          <span className={`w-1.5 h-1.5 rounded-full ${isResume ? "bg-[#10B981]" : "bg-[#FACC15]"}`} />
+                        <span className={`text-[10px] font-bold px-2 py-0.5 -skew-x-6 border flex items-center gap-1 shrink-0 ${
+                          isGirl
+                            ? "bg-[#13091B] text-[#C4B5FD] border-[#3D2752]"
+                            : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D]"
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            isResume
+                              ? (isGirl ? "bg-[#2DD4BF]" : "bg-[#10B981]")
+                              : (isGirl ? "bg-[#FB7185]" : "bg-[#FACC15]")
+                          }`} />
                           <span>{isResume ? "続きから" : "出撃"}</span>
                         </span>
                         <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
@@ -1665,12 +1765,16 @@ export default function DopaBenApp() {
                   </div>
 
                   {/* 控えめで上品な右側アクションボタン */}
-                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#E2E8F0] group-hover:text-white bg-[#0B0D12] border border-[#262D3D] group-hover:border-[#FACC15] px-3 py-1.5 -skew-x-6 shadow-[2px_2px_0_#0B0D12] shrink-0 transition">
+                  <div className={`flex items-center gap-1.5 text-xs sm:text-sm font-bold -skew-x-6 shadow-[2px_2px_0_#0B0D12] shrink-0 transition px-3 py-1.5 border ${
+                    isGirl
+                      ? "text-[#E2E8F0] group-hover:text-white bg-[#13091B] border-[#3D2752] group-hover:border-[#F43F5E]"
+                      : "text-[#E2E8F0] group-hover:text-white bg-[#0B0D12] border-[#262D3D] group-hover:border-[#FACC15]"
+                  }`}>
                     <span>{isResume ? "続きから" : "出撃"}</span>
                     {isResume ? (
-                      <Play className="w-3.5 h-3.5 fill-[#FACC15] text-[#FACC15] ml-0.5" />
+                      <Play className={`w-3.5 h-3.5 ml-0.5 ${isGirl ? "fill-[#FB7185] text-[#FB7185]" : "fill-[#FACC15] text-[#FACC15]"}`} />
                     ) : (
-                      <Zap className="w-3.5 h-3.5 fill-[#FACC15] text-[#FACC15]" />
+                      <Zap className={`w-3.5 h-3.5 ${isGirl ? "fill-[#FB7185] text-[#FB7185]" : "fill-[#FACC15] text-[#FACC15]"}`} />
                     )}
                   </div>
                 </motion.button>
@@ -1678,11 +1782,13 @@ export default function DopaBenApp() {
             </div>
 
             {/* 6. 選択中ステージのユニット一覧＆図鑑 */}
-            <div className="bg-[#131720] border-2 border-[#262D3D] p-2.5 space-y-2">
+            <div className={`border-2 p-2.5 space-y-2 ${
+              isGirl ? "bg-[#1D1229] border-[#3D2752]" : "bg-[#131720] border-[#262D3D]"
+            }`}>
               {/* ユニットヘッダー */}
               <div className="flex items-center justify-between text-[11px] font-black">
                 <span className="text-white flex items-center gap-1.5">
-                  <span className="text-[#FACC15] animate-ping">●</span>
+                  <span className={`animate-ping ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`}>●</span>
                   <span>{selectedGrade === "英検4級" ? "ステージ選択" : "レベル選択"}</span>
                 </span>
                 <button
@@ -1692,14 +1798,18 @@ export default function DopaBenApp() {
                     setCodexCategory(selectedGrade === "英検4級" ? "英検4級" : "ターゲット1800");
                     setIsCodexModalOpen(true);
                   }}
-                  className="text-[#FACC15] hover:text-white bg-[#0B0D12] border border-[#262D3D] hover:border-[#FACC15] px-2 py-0.5 flex items-center gap-1 transition"
+                  className={`px-2 py-0.5 flex items-center gap-1 transition border ${
+                    isGirl
+                      ? "text-[#FB7185] hover:text-white bg-[#13091B] border-[#3D2752] hover:border-[#FB7185]"
+                      : "text-[#FACC15] hover:text-white bg-[#0B0D12] border-[#262D3D] hover:border-[#FACC15]"
+                  }`}
                 >
                   <BookOpen className="w-3 h-3" />
                   <span>図鑑・制覇率</span>
                 </button>
               </div>
 
-              {/* 英検4級ステージグリッド（選択中のカードは animate-stage-selected で拡大鼓動＆ゴールドオーラ！） */}
+              {/* 英検4級ステージグリッド（選択中のカードは拡大鼓動＆オーラ！） */}
               {selectedGrade === "英検4級" && (
                 <div className="grid grid-cols-4 gap-1.5">
                   {EIKEN4_STAGES.filter((s) => s.group === "stage12").map((s) => {
@@ -1724,7 +1834,11 @@ export default function DopaBenApp() {
                         }}
                         className={`py-1.5 px-1 text-center border-2 transition relative ${
                           isSelected
-                            ? "bg-[#FACC15] text-[#0B0D12] border-white font-black z-20 animate-stage-selected"
+                            ? isGirl
+                              ? "bg-[#F43F5E] text-white border-white font-black z-20 animate-stage-selected-girl"
+                              : "bg-[#FACC15] text-[#0B0D12] border-white font-black z-20 animate-stage-selected"
+                            : isGirl
+                            ? "bg-[#13091B] text-[#C4B5FD] border-[#3D2752] hover:border-[#F43F5E] hover:text-white font-bold"
                             : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white font-bold"
                         }`}
                       >
@@ -1732,7 +1846,7 @@ export default function DopaBenApp() {
                           {isComplete && (
                             <CheckCircle2
                               className={`w-3 h-3 shrink-0 ${
-                                isSelected ? "text-[#0B0D12]" : "text-[#10B981]"
+                                isSelected ? (isGirl ? "text-white" : "text-[#0B0D12]") : (isGirl ? "text-[#2DD4BF]" : "text-[#10B981]")
                               }`}
                             />
                           )}
@@ -1740,11 +1854,13 @@ export default function DopaBenApp() {
                         </div>
                         <div
                           className={`w-full h-1 mt-1 ${
-                            isSelected ? "bg-[#0B0D12]/30" : "bg-[#131720]"
+                            isSelected
+                              ? (isGirl ? "bg-white/30" : "bg-[#0B0D12]/30")
+                              : (isGirl ? "bg-[#1D1229]" : "bg-[#131720]")
                           }`}
                         >
                           <div
-                            className="h-full bg-[#10B981] transition-all"
+                            className={`h-full transition-all ${isGirl ? "bg-[#2DD4BF]" : "bg-[#10B981]"}`}
                             style={{
                               width: `${Math.min(
                                 100,
@@ -1759,7 +1875,7 @@ export default function DopaBenApp() {
                 </div>
               )}
 
-              {/* 中学英単語1800レベルグリッド（選択中のカードは animate-stage-selected で拡大鼓動＆ゴールドオーラ！） */}
+              {/* 中学英単語1800レベルグリッド（選択中のカードは拡大鼓動＆オーラ！） */}
               {selectedGrade === "ターゲット1800" && (
                 <div className="grid grid-cols-5 gap-1.5">
                   {TARGET1800_STAGES.filter((s) => s.group === "level10").map((s) => {
@@ -1784,7 +1900,11 @@ export default function DopaBenApp() {
                         }}
                         className={`py-1.5 px-1 text-center border-2 transition relative ${
                           isSelected
-                            ? "bg-[#FACC15] text-[#0B0D12] border-white font-black z-20 animate-stage-selected"
+                            ? isGirl
+                              ? "bg-[#F43F5E] text-white border-white font-black z-20 animate-stage-selected-girl"
+                              : "bg-[#FACC15] text-[#0B0D12] border-white font-black z-20 animate-stage-selected"
+                            : isGirl
+                            ? "bg-[#13091B] text-[#C4B5FD] border-[#3D2752] hover:border-[#F43F5E] hover:text-white font-bold"
                             : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white font-bold"
                         }`}
                       >
@@ -1792,7 +1912,7 @@ export default function DopaBenApp() {
                           {isComplete && (
                             <CheckCircle2
                               className={`w-3 h-3 shrink-0 ${
-                                isSelected ? "text-[#0B0D12]" : "text-[#10B981]"
+                                isSelected ? (isGirl ? "text-white" : "text-[#0B0D12]") : (isGirl ? "text-[#2DD4BF]" : "text-[#10B981]")
                               }`}
                             />
                           )}
@@ -1800,11 +1920,13 @@ export default function DopaBenApp() {
                         </div>
                         <div
                           className={`w-full h-1 mt-1 ${
-                            isSelected ? "bg-[#0B0D12]/30" : "bg-[#131720]"
+                            isSelected
+                              ? (isGirl ? "bg-white/30" : "bg-[#0B0D12]/30")
+                              : (isGirl ? "bg-[#1D1229]" : "bg-[#131720]")
                           }`}
                         >
                           <div
-                            className="h-full bg-[#10B981] transition-all"
+                            className={`h-full transition-all ${isGirl ? "bg-[#2DD4BF]" : "bg-[#10B981]"}`}
                             style={{
                               width: `${Math.min(
                                 100,
