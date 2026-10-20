@@ -39,6 +39,35 @@ export interface BattleResultSummary {
   masteryDeltas: Record<string, { cleared: number; missed: number }>;
 }
 
+/**
+ * スマホ端末の触覚フィードバック（バイブレーション）
+ * - Android等の対応ブラウザで小気味よく振動（iOS Safariでは無害にスルー）
+ */
+const triggerHapticFeedback = (type: "light" | "medium" | "heavy" | "success" | "error" = "light") => {
+  if (typeof window === "undefined" || !("vibrate" in navigator)) return;
+  try {
+    switch (type) {
+      case "light":
+        navigator.vibrate(28);
+        break;
+      case "medium":
+        navigator.vibrate(45);
+        break;
+      case "heavy":
+        navigator.vibrate(70);
+        break;
+      case "success":
+        navigator.vibrate([28, 35, 40]);
+        break;
+      case "error":
+        navigator.vibrate([45, 50, 45]);
+        break;
+    }
+  } catch {
+    // ignore
+  }
+};
+
 interface BattleScreenProps {
   initialDeck: GeneratedQuestion[];
   profile: PlayerProfile;
@@ -327,6 +356,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         };
         setStatGains(nextGains);
 
+        triggerHapticFeedback(isRevenge ? "success" : "light");
         soundEngine.playWeakHit(newCombo, isRevenge);
         // プリロード済みの Google TTS (Web Audio API) で例文（なければ英単語）の発音を即座に再生
         const speechAudio = targetWord?.exampleSentenceEn || targetAudio;
@@ -364,6 +394,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           },
         });
       } else {
+        triggerHapticFeedback("error");
         soundEngine.playBountyLock();
         const mult = hasBountyOverdrive ? 3.5 : 2.5;
         const nextCombo = Math.max(1, Math.floor(combo / 2));
@@ -548,6 +579,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setEarnedExp(nextExp);
         setStatGains(nextGains);
 
+        triggerHapticFeedback("success");
         soundEngine.playEvolutionFanfare();
         soundEngine.speakEnglish(answer, 1.0);
         setBannerType("allout");
@@ -573,6 +605,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           },
         });
       } else {
+        triggerHapticFeedback("error");
         soundEngine.playBountyLock();
         setStatGains((prev) => ({ ...prev, guts: prev.guts + 2 }));
         setBannerType("bounty");
@@ -773,26 +806,43 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                   )}
                 </div>
 
-                {currentQuestion.promptSub && (
-                  <div
-                    className={`text-xs font-bold ${
-                      currentQuestion.format === "sentence_fill"
-                        ? "text-[#94A3B8] text-left border-t border-[#262D3D] pt-1.5"
-                        : "text-[#FACC15]"
-                    }`}
-                  >
-                    {currentQuestion.promptSub}
-                  </div>
-                )}
+                {currentQuestion.promptSub && (() => {
+                  if (currentQuestion.format === "sentence_fill") {
+                    const match =
+                      currentQuestion.promptSub.match(/^(.*?)\s*(\(#[0-9]+.*?\))$/) ||
+                      currentQuestion.promptSub.match(/^(.*?)\s*(\(.*?\))$/);
+                    if (match) {
+                      const mainText = match[1].trim();
+                      const metaText = match[2].trim();
+                      return (
+                        <div className="text-left border-t border-[#262D3D] pt-2 flex items-baseline justify-between gap-2 flex-wrap">
+                          <span className="text-[#E2E8F0] font-bold text-xs sm:text-sm leading-snug">
+                            {mainText}
+                          </span>
+                          <span className="text-[10px] text-[#64748B] font-mono shrink-0">
+                            {metaText}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-xs font-bold text-[#E2E8F0] text-left border-t border-[#262D3D] pt-2">
+                        {currentQuestion.promptSub}
+                      </div>
+                    );
+                  }
 
-                {/* 音声ボタン：答えが英語の形式（ja_to_en / sentence_fill）では回答前に答えがバレないようロック表示 */}
-                <div className="pt-1.5 flex items-center justify-center gap-2.5 flex-wrap">
-                  {currentQuestion.hideAudioBeforeAnswer && !answerModal ? (
-                    <div className="text-[11px] font-bold text-[#94A3B8] bg-[#0B0D12] border border-[#262D3D] px-3 py-1.5 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-[#FACC15]" />
-                      選択すると英単語の発音が再生されます
+                  return (
+                    <div className="text-xs font-bold text-[#FACC15]">
+                      {currentQuestion.promptSub}
                     </div>
-                  ) : currentQuestion.format === "listening" ? (
+                  );
+                })()}
+
+                {/* 音声ボタン（listening問題時は再生ボタン、回答前に音声非表示の問題では何も表示しない） */}
+                {(!currentQuestion.hideAudioBeforeAnswer || Boolean(answerModal)) && (
+                  <div className="pt-1.5 flex items-center justify-center gap-2.5 flex-wrap">
+                    {currentQuestion.format === "listening" ? (
                     <div className="w-full flex items-center justify-center gap-2.5">
                       <button
                         onClick={() =>
@@ -858,8 +908,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     </>
                   )}
                 </div>
-              </div>
+              )}
             </div>
+          </div>
 
             {/* Stage 1: 4択ボタン */}
             {currentQuestion.phase === "STAGE1_COMBO" &&
