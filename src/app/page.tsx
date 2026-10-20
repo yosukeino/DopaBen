@@ -1110,36 +1110,36 @@ export default function DopaBenApp() {
         </div>
       )}
 
-      {/* === 3. ホーム拠点（アジト）画面（ワンビューでステージ選択〜出撃まで完結） === */}
+      {/* === 3. ホーム拠点（アジト）画面（大迫力キャラクター ＆ リッチエフェクト） === */}
       {screen === "home" && (() => {
         const resumeInfo = getResumeInfo();
 
         return (
           <div
-            className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-between p-3 space-y-2 touch-pan-y transition-colors duration-300 select-none ${
+            className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-between p-3.5 space-y-3 touch-pan-y transition-colors duration-300 select-none ${
               profile.gender === "girl"
                 ? "bg-[#EC4899] bg-halftone-girl"
                 : "bg-[#0B0D12] bg-halftone"
             }`}
           >
-            {/* 上部ブロック（ヘッダー・キャラカード・ステージ切替・続きから・ステージ一覧） */}
-            <div className="space-y-2">
-              {/* 1. コンパクトヘッダー（ロゴ ＋ 男子/女子 ＋ 音声） */}
-              <header className="flex items-center justify-between pb-1 pt-0.5 border-b border-[#262D3D]">
+            {/* 上部メインコンテンツエリア */}
+            <div className="space-y-3">
+              {/* 1. ヘッダー（ロゴ ＋ 性別切替 ＋ 音声切替） */}
+              <header className="flex items-center justify-between pb-1.5 pt-0.5 border-b border-[#262D3D]">
                 <div className="relative flex items-center">
                   <img
                     src="/dopaben-logo.png"
                     alt="ドパベン"
                     draggable={false}
-                    className="h-7 sm:h-8 w-auto object-contain select-none pointer-events-none drop-shadow-[0_2px_10px_rgba(250,204,21,0.4)]"
+                    className="h-8 sm:h-9 w-auto object-contain select-none pointer-events-none drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)]"
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <div className="flex bg-[#131720] border border-[#262D3D] p-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex bg-[#131720] border border-[#262D3D] p-0.5 shadow-sm">
                     <button
                       onClick={() => handleToggleGender("boy")}
-                      className={`px-2 py-0.5 text-[10px] font-black transition ${
+                      className={`px-2.5 py-1 text-[11px] font-black transition ${
                         profile.gender === "boy"
                           ? "bg-[#FACC15] text-[#0B0D12]"
                           : "text-[#94A3B8] hover:text-white"
@@ -1149,7 +1149,7 @@ export default function DopaBenApp() {
                     </button>
                     <button
                       onClick={() => handleToggleGender("girl")}
-                      className={`px-2 py-0.5 text-[10px] font-black transition ${
+                      className={`px-2.5 py-1 text-[11px] font-black transition ${
                         profile.gender === "girl"
                           ? "bg-[#FACC15] text-[#0B0D12]"
                           : "text-[#94A3B8] hover:text-white"
@@ -1165,64 +1165,89 @@ export default function DopaBenApp() {
                       setIsMuted(nextMute);
                       soundEngine.setMuted(nextMute);
                     }}
-                    className="p-1 bg-[#131720] border border-[#262D3D] text-white hover:border-[#FACC15] transition"
+                    className="p-1.5 bg-[#131720] border border-[#262D3D] text-white hover:border-[#FACC15] transition"
                     title="音声ON/OFF"
                   >
                     {isMuted ? (
-                      <VolumeX className="w-3.5 h-3.5 text-[#EF4444]" />
+                      <VolumeX className="w-4 h-4 text-[#EF4444]" />
                     ) : (
-                      <Volume2 className="w-3.5 h-3.5 text-[#FACC15]" />
+                      <Volume2 className="w-4 h-4 text-[#FACC15]" />
                     )}
                   </button>
                 </div>
               </header>
 
-              {/* 2. 一番上のキャラクターカード（タップでステータス画面モーダル） */}
+              {/* 2. 大迫力キャラクターカード（画面の約20%を占める育成の主役！タップでステータス画面） */}
               <div
                 onClick={() => {
                   soundEngine.playTap();
                   setIsStatusModalOpen(true);
                 }}
-                className="bg-[#131720] border-2 border-white p-2.5 shadow-p5-yellow cursor-pointer hover:border-[#FACC15] active:scale-[0.99] transition relative overflow-hidden select-none group"
+                className="bg-gradient-to-br from-[#131720] via-[#1a202c] to-[#0B0D12] border-2 border-white p-3.5 shadow-p5-yellow cursor-pointer hover:border-[#FACC15] active:scale-[0.99] transition relative overflow-hidden select-none group"
               >
-                <div className="flex items-center gap-3">
-                  <div className="relative bg-[#0B0D12] border-2 border-white p-1 shrink-0 shadow-[2px_2px_0_#FACC15] group-hover:scale-105 transition">
+                {/* 背景の幾何学スライス装飾 */}
+                <div className="absolute -top-8 -right-8 w-28 h-28 bg-[#FACC15]/10 rotate-45 pointer-events-none" />
+
+                <div className="flex items-center gap-3.5 relative z-10">
+                  {/* 大迫力ピクセルキャラクター（面積4倍 = size 96）＋ 呼吸オーラ ＋ STATUSバッジ */}
+                  <div className="relative bg-[#0B0D12] border-2 border-white p-1.5 shrink-0 shadow-[4px_4px_0_#FACC15] group-hover:scale-105 transition">
+                    {/* 背後のネオン呼吸オーラ */}
+                    <div className="pointer-events-none absolute -inset-1 rounded bg-gradient-to-r from-[#FACC15]/30 to-[#10B981]/30 animate-dopa-aura" />
+
                     <PixelCharacter
                       gender={profile.gender}
                       stage={profile.level}
-                      size={50}
+                      size={96}
                       mood={canEvolveLevel ? "happy" : "idle"}
                     />
-                    <div className="absolute -bottom-1 -right-1 bg-[#FACC15] text-[#0B0D12] text-[8px] font-black px-1 border border-[#0B0D12]">
-                      STATUS
+
+                    {/* STATUS タップ誘導バッジ */}
+                    <div className="absolute -bottom-2 -right-1 bg-[#FACC15] text-[#0B0D12] text-[9px] font-black px-1.5 py-0.5 border border-white shadow-[2px_2px_0_#0B0D12] flex items-center gap-0.5 animate-pulse">
+                      <span>STATUS</span>
+                      <span>👆</span>
                     </div>
                   </div>
 
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-baseline justify-between gap-1">
-                      <span className="text-lg font-black italic text-[#FACC15] drop-shadow-[1px_1px_0_#0B0D12]">
-                        Lv.{profile.level}
-                      </span>
-                      <span className="text-[11px] font-black text-[#94A3B8]">
-                        累積: <span className="text-white">{totalLxp.toLocaleString()} LXP</span>
+                  {/* 右側：Lv、称号、累積LXP、NEXT EVOLUTIONゲージ */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div>
+                      <div className="flex items-baseline justify-between gap-1 flex-wrap">
+                        <span className="text-2xl sm:text-3xl font-black italic text-[#FACC15] drop-shadow-[2px_2px_0_#0B0D12]">
+                          Lv.{profile.level}
+                        </span>
+                        <span className="text-[11px] font-bold text-[#94A3B8]">
+                          {profile.level >= 10 ? "MAX EVOLUTION" : "10段階進化"}
+                        </span>
+                      </div>
+                      <div className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
+                        {profile.gender === "boy"
+                          ? currentStageInfo.titleBoy
+                          : currentStageInfo.titleGirl}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#0B0D12]/80 border border-[#262D3D] px-2 py-1 flex items-center justify-between text-[11px] font-black">
+                      <span className="text-[#94A3B8]">累積LXP</span>
+                      <span className="text-[#FACC15] tracking-wide">
+                        {totalLxp.toLocaleString()} <span className="text-[9px] text-[#94A3B8]">LXP</span>
                       </span>
                     </div>
 
-                    <div className="space-y-0.5">
-                      <div className="flex justify-between text-[9px] font-black">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[9px] sm:text-[10px] font-black">
                         <span className="text-[#94A3B8]">NEXT EVOLUTION</span>
-                        <span className={canEvolveLevel ? "text-[#10B981]" : "text-[#FACC15]"}>
+                        <span className={canEvolveLevel ? "text-[#10B981] animate-pulse" : "text-[#FACC15]"}>
                           {profile.level >= 10
-                            ? "MAX"
+                            ? "MAX LEVEL"
                             : canEvolveLevel
                             ? "🎉 進化可能！"
                             : `${totalLxp.toLocaleString()} / ${nextLevelTargetLxp.toLocaleString()}`}
                         </span>
                       </div>
-                      <div className="w-full h-1.5 bg-[#0B0D12] border border-white/60 -skew-x-12 p-0.5">
+                      <div className="w-full h-2 bg-[#0B0D12] border border-white/70 -skew-x-12 p-0.5 shadow-inner">
                         <motion.div
                           className={`h-full ${
-                            canEvolveLevel ? "bg-[#10B981]" : "bg-[#FACC15]"
+                            canEvolveLevel ? "bg-[#10B981]" : "bg-gradient-to-r from-[#FACC15] to-[#F59E0B]"
                           }`}
                           animate={{ width: `${cumulativeLxpPercent}%` }}
                         />
@@ -1232,100 +1257,117 @@ export default function DopaBenApp() {
                 </div>
 
                 {canEvolveLevel && (
-                  <div className="mt-1.5 pt-1.5 border-t border-white/20">
+                  <div className="mt-2.5 pt-2 border-t border-white/25">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleTriggerLevelEvolution();
                       }}
-                      className="w-full py-1 px-2 bg-[#10B981] hover:brightness-110 text-white font-black text-[11px] border border-white -skew-x-6 flex items-center justify-center gap-1 animate-pulse"
+                      className="w-full py-1.5 px-3 bg-[#10B981] hover:brightness-110 text-white font-black text-xs border-2 border-white -skew-x-6 flex items-center justify-center gap-1.5 shadow-[3px_3px_0_#0B0D12] animate-pulse active:scale-95 transition"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>🎉 Lv.{profile.level + 1} へ進化する！</span>
+                      <Sparkles className="w-4 h-4 fill-white" />
+                      <span>🎉 累積LXP達成！タップして Lv.{profile.level + 1} へ進化する！</span>
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* 3. ステージ選択（シンプルに「英検４級」と「中学英単語1800」） */}
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-2 gap-2">
+              {/* 3. ステージ選択（「英検４級」 vs 「中学英単語1800」） */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {/* 英検４級 タブ（選択時はゴールド・グレースイープ ＆ ネオン呼吸） */}
                   <button
                     type="button"
                     onClick={() => {
                       soundEngine.playTap();
                       setSelectedGrade("英検4級");
                     }}
-                    className={`py-2 px-2 font-black text-center border-2 -skew-x-6 transition flex items-center justify-center gap-1.5 ${
+                    className={`relative overflow-hidden py-2.5 px-3 font-black text-center border-2 -skew-x-6 transition flex items-center justify-center gap-2 ${
                       selectedGrade === "英検4級"
-                        ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[3px_3px_0_#10B981]"
+                        ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981] animate-pulse-glow-yellow -translate-y-0.5"
                         : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
                     }`}
                   >
-                    <BookOpen className="w-4 h-4 shrink-0" />
-                    <span className="text-xs sm:text-sm">英検４級</span>
+                    {/* 選択中に走る斜め光沢グレア */}
+                    {selectedGrade === "英検4級" && (
+                      <span className="pointer-events-none absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-glint-sweep" />
+                    )}
+                    <BookOpen className="w-4 h-4 shrink-0 relative z-10" />
+                    <span className="text-xs sm:text-sm tracking-wide relative z-10">英検４級</span>
+                    {selectedGrade === "英検4級" && (
+                      <span className="text-[10px] text-[#0B0D12] font-black relative z-10 animate-ping">✦</span>
+                    )}
                   </button>
 
+                  {/* 中学英単語1800 タブ（選択時はゴールド・グレースイープ ＆ ネオン呼吸） */}
                   <button
                     type="button"
                     onClick={() => {
                       soundEngine.playTap();
                       setSelectedGrade("ターゲット1800");
                     }}
-                    className={`py-2 px-2 font-black text-center border-2 -skew-x-6 transition flex items-center justify-center gap-1.5 ${
+                    className={`relative overflow-hidden py-2.5 px-3 font-black text-center border-2 -skew-x-6 transition flex items-center justify-center gap-2 ${
                       selectedGrade === "ターゲット1800"
-                        ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[3px_3px_0_#10B981]"
+                        ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[4px_4px_0_#10B981] animate-pulse-glow-yellow -translate-y-0.5"
                         : "bg-[#131720] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white"
                     }`}
                   >
-                    <Trophy className="w-4 h-4 shrink-0" />
-                    <span className="text-xs sm:text-sm">中学英単語1800</span>
+                    {/* 選択中に走る斜め光沢グレア */}
+                    {selectedGrade === "ターゲット1800" && (
+                      <span className="pointer-events-none absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-glint-sweep" />
+                    )}
+                    <Trophy className="w-4 h-4 shrink-0 relative z-10" />
+                    <span className="text-xs sm:text-sm tracking-wide relative z-10">中学英単語1800</span>
+                    {selectedGrade === "ターゲット1800" && (
+                      <span className="text-[10px] text-[#0B0D12] font-black relative z-10 animate-ping">✦</span>
+                    )}
                   </button>
                 </div>
 
-                {/* 4. ステージ選択直下：「続きから」クイック出撃バナー */}
+                {/* 4. ステージ選択直下：「続きから」クイック出撃バナー（エメラルド・サイバーパルス ＆ ハートビート拍動） */}
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     soundEngine.playTap();
                     handleStartBattle(resumeInfo.stage, false, resumeInfo.grade as CodexCategory);
                   }}
-                  className="w-full bg-gradient-to-r from-[#131720] via-[#1c2433] to-[#131720] border-2 border-[#10B981] p-2 shadow-[0_0_12px_rgba(16,185,129,0.3)] flex items-center justify-between gap-2.5 text-left active:scale-[0.98] transition group"
+                  className="w-full bg-gradient-to-r from-[#0B0D12] via-[#064E3B]/70 to-[#0B0D12] border-2 border-[#10B981] p-2.5 animate-pulse-glow-emerald flex items-center justify-between gap-3 text-left active:scale-[0.98] transition group relative overflow-hidden"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 bg-[#10B981] text-[#0B0D12] flex items-center justify-center shrink-0 border border-white font-black shadow-[2px_2px_0_#0B0D12] group-hover:scale-105 transition">
+                  <div className="flex items-center gap-3 min-w-0 relative z-10">
+                    {/* ハートビート拍動するPlayアイコン */}
+                    <div className="w-9 h-9 bg-[#10B981] text-[#0B0D12] flex items-center justify-center shrink-0 border border-white font-black shadow-[2px_2px_0_#0B0D12] animate-heartbeat">
                       <Play className="w-4 h-4 fill-[#0B0D12] ml-0.5" />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-[#10B981] text-[#0B0D12] text-[9px] font-black px-1.5 py-0.2 -skew-x-6">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-[#10B981] text-[#0B0D12] text-[10px] font-black px-2 py-0.5 -skew-x-6 shadow-sm">
                           続きから
                         </span>
-                        <span className="text-xs font-black text-white truncate">
+                        <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
                           {resumeInfo.label}
                         </span>
                       </div>
-                      <div className="text-[10px] text-[#94A3B8] font-bold truncate mt-0.5">
+                      <div className="text-[10px] sm:text-[11px] text-[#10B981] font-bold truncate mt-0.5">
                         {resumeInfo.sub}・{resumeInfo.progress}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-[#10B981] text-[#0B0D12] font-black text-[11px] px-2.5 py-1 -skew-x-6 shrink-0 border border-white shadow-[2px_2px_0_#0B0D12]">
+                  <div className="flex items-center gap-1.5 bg-[#10B981] hover:brightness-110 text-[#0B0D12] font-black text-xs px-3 py-1.5 -skew-x-6 shrink-0 border border-white shadow-[2px_2px_0_#0B0D12] relative z-10 group-hover:scale-105 transition">
                     <span>出撃</span>
-                    <Zap className="w-3 h-3 fill-[#0B0D12]" />
+                    <Zap className="w-3.5 h-3.5 fill-[#0B0D12]" />
                   </div>
                 </motion.button>
               </div>
 
               {/* 5. 選択中ステージのユニット一覧＆図鑑 */}
-              <div className="bg-[#131720] border border-[#262D3D] p-2 space-y-1.5">
+              <div className="bg-[#131720] border-2 border-[#262D3D] p-2.5 space-y-2">
                 {/* ユニットヘッダー */}
-                <div className="flex items-center justify-between text-[10px] font-black">
-                  <span className="text-[#94A3B8] flex items-center gap-1">
-                    <span className="text-[#FACC15]">●</span>
-                    {selectedGrade === "英検4級" ? "ステージ選択" : "レベル選択"}
+                <div className="flex items-center justify-between text-[11px] font-black">
+                  <span className="text-white flex items-center gap-1.5">
+                    <span className="text-[#FACC15] animate-ping">●</span>
+                    <span>{selectedGrade === "英検4級" ? "ステージ選択" : "レベル選択"}</span>
                   </span>
                   <button
                     type="button"
@@ -1334,16 +1376,16 @@ export default function DopaBenApp() {
                       setCodexCategory(selectedGrade === "英検4級" ? "英検4級" : "ターゲット1800");
                       setIsCodexModalOpen(true);
                     }}
-                    className="text-[#94A3B8] hover:text-[#FACC15] flex items-center gap-1 transition"
+                    className="text-[#FACC15] hover:text-white bg-[#0B0D12] border border-[#262D3D] hover:border-[#FACC15] px-2 py-0.5 flex items-center gap-1 transition"
                   >
                     <BookOpen className="w-3 h-3" />
-                    <span>図鑑</span>
+                    <span>図鑑・制覇率</span>
                   </button>
                 </div>
 
-                {/* 英検4級ステージグリッド */}
+                {/* 英検4級ステージグリッド（選択中のカードは animate-stage-selected で拡大鼓動＆ゴールドオーラ！） */}
                 {selectedGrade === "英検4級" && (
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {EIKEN4_STAGES.filter((s) => s.group === "stage12").map((s) => {
                       const isSelected = selectedEiken4Stage === s.unitNumber;
                       const poolWords = getActiveVocabPool().eiken4Words;
@@ -1364,16 +1406,16 @@ export default function DopaBenApp() {
                             soundEngine.playTap();
                             setSelectedEiken4Stage(s.unitNumber);
                           }}
-                          className={`py-1 px-1 text-center border transition relative ${
+                          className={`py-1.5 px-1 text-center border-2 transition relative ${
                             isSelected
-                              ? "bg-[#FACC15] text-[#0B0D12] border-white font-black shadow-[2px_2px_0_#10B981]"
+                              ? "bg-[#FACC15] text-[#0B0D12] border-white font-black z-20 animate-stage-selected"
                               : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white font-bold"
                           }`}
                         >
-                          <div className="text-[10px] leading-tight flex items-center justify-center gap-0.5">
+                          <div className="text-[11px] leading-tight flex items-center justify-center gap-0.5">
                             {isComplete && (
                               <CheckCircle2
-                                className={`w-2.5 h-2.5 shrink-0 ${
+                                className={`w-3 h-3 shrink-0 ${
                                   isSelected ? "text-[#0B0D12]" : "text-[#10B981]"
                                 }`}
                               />
@@ -1382,7 +1424,7 @@ export default function DopaBenApp() {
                           </div>
                           <div
                             className={`w-full h-1 mt-1 ${
-                              isSelected ? "bg-[#0B0D12]/25" : "bg-[#131720]"
+                              isSelected ? "bg-[#0B0D12]/30" : "bg-[#131720]"
                             }`}
                           >
                             <div
@@ -1401,9 +1443,9 @@ export default function DopaBenApp() {
                   </div>
                 )}
 
-                {/* 中学英単語1800レベルグリッド */}
+                {/* 中学英単語1800レベルグリッド（選択中のカードは animate-stage-selected で拡大鼓動＆ゴールドオーラ！） */}
                 {selectedGrade === "ターゲット1800" && (
-                  <div className="grid grid-cols-5 gap-1">
+                  <div className="grid grid-cols-5 gap-1.5">
                     {TARGET1800_STAGES.filter((s) => s.group === "level10").map((s) => {
                       const isSelected = selectedTargetStage === s.unitNumber;
                       const poolWords = getActiveVocabPool().target1800Words;
@@ -1424,16 +1466,16 @@ export default function DopaBenApp() {
                             soundEngine.playTap();
                             setSelectedTargetStage(s.unitNumber);
                           }}
-                          className={`py-1 px-1 text-center border transition relative ${
+                          className={`py-1.5 px-1 text-center border-2 transition relative ${
                             isSelected
-                              ? "bg-[#FACC15] text-[#0B0D12] border-white font-black shadow-[2px_2px_0_#10B981]"
+                              ? "bg-[#FACC15] text-[#0B0D12] border-white font-black z-20 animate-stage-selected"
                               : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D] hover:border-[#FACC15] hover:text-white font-bold"
                           }`}
                         >
-                          <div className="text-[10px] leading-tight flex items-center justify-center gap-0.5">
+                          <div className="text-[11px] leading-tight flex items-center justify-center gap-0.5">
                             {isComplete && (
                               <CheckCircle2
-                                className={`w-2.5 h-2.5 shrink-0 ${
+                                className={`w-3 h-3 shrink-0 ${
                                   isSelected ? "text-[#0B0D12]" : "text-[#10B981]"
                                 }`}
                               />
@@ -1442,7 +1484,7 @@ export default function DopaBenApp() {
                           </div>
                           <div
                             className={`w-full h-1 mt-1 ${
-                              isSelected ? "bg-[#0B0D12]/25" : "bg-[#131720]"
+                              isSelected ? "bg-[#0B0D12]/30" : "bg-[#131720]"
                             }`}
                           >
                             <div
@@ -1463,16 +1505,16 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* 6. 最下部出撃コントロール（リスニング切替 ＋ BATTLE STARTボタン） */}
-            <div className="space-y-1.5 pt-1 select-none">
+            {/* 最下部出撃コントロール（リスニング切替 ＋ ド迫力 BATTLE STARTボタン） */}
+            <div className="space-y-2 pt-2 pb-1 select-none">
               <div className="flex items-center justify-between text-[11px] px-1">
-                <div className="flex items-center gap-1 text-[#94A3B8] font-bold">
+                <div className="flex items-center gap-1.5 text-[#94A3B8] font-bold">
                   {includeListening ? (
-                    <Volume2 className="w-3.5 h-3.5 text-[#FACC15]" />
+                    <Volume2 className="w-4 h-4 text-[#FACC15]" />
                   ) : (
-                    <VolumeX className="w-3.5 h-3.5 text-[#94A3B8]" />
+                    <VolumeX className="w-4 h-4 text-[#94A3B8]" />
                   )}
-                  <span>リスニング問題</span>
+                  <span className="text-white font-black">リスニング問題</span>
                 </div>
 
                 <div className="flex bg-[#131720] border border-[#262D3D] p-0.5">
@@ -1482,7 +1524,7 @@ export default function DopaBenApp() {
                       soundEngine.playTap();
                       setIncludeListening(true);
                     }}
-                    className={`px-2 py-0.5 text-[10px] font-black transition ${
+                    className={`px-3 py-1 text-[11px] font-black transition ${
                       includeListening
                         ? "bg-[#FACC15] text-[#0B0D12]"
                         : "text-[#94A3B8] hover:text-white"
@@ -1496,7 +1538,7 @@ export default function DopaBenApp() {
                       soundEngine.playTap();
                       setIncludeListening(false);
                     }}
-                    className={`px-2 py-0.5 text-[10px] font-black transition ${
+                    className={`px-3 py-1 text-[11px] font-black transition ${
                       !includeListening
                         ? "bg-[#FACC15] text-[#0B0D12]"
                         : "text-[#94A3B8] hover:text-white"
@@ -1507,16 +1549,16 @@ export default function DopaBenApp() {
                 </div>
               </div>
 
-              {/* BATTLE START ボタン */}
+              {/* BATTLE START ボタン本体（斜め光沢スイープ ＋ P5クリップボタンスタイル） */}
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleStartBattle()}
-                className="w-full py-3 bg-[#EF4444] hover:brightness-110 text-white font-black text-lg tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2 relative overflow-hidden group transition z-10"
+                className="w-full py-4 bg-[#EF4444] hover:brightness-110 text-white font-black text-xl tracking-wider border-2 border-white clip-p5-btn shadow-p5-yellow flex items-center justify-center gap-2.5 relative overflow-hidden group transition z-10"
               >
                 <span className="pointer-events-none absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/45 to-transparent animate-glint-sweep" />
-                <Zap className="w-5 h-5 fill-[#FACC15] text-[#FACC15] group-hover:scale-125 transition relative z-10" />
+                <Zap className="w-6 h-6 fill-[#FACC15] text-[#FACC15] group-hover:scale-125 transition relative z-10" />
                 <span className="relative z-10">BATTLE START // 出撃する</span>
-                <Sparkles className="w-4 h-4 text-[#FACC15] relative z-10" />
+                <Sparkles className="w-5 h-5 text-[#FACC15] relative z-10" />
               </motion.button>
             </div>
           </div>
