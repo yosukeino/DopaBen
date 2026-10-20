@@ -27,6 +27,73 @@ export interface RankingRecord {
 const LOCAL_STORAGE_KEY = "dopaben_local_rankings";
 const DEVICE_UUID_KEY = "dopaben_device_uuid";
 const PLAYER_NAME_KEY = "dopaben_ranking_player_name";
+const LAST_PLAYED_KEY = "dopaben_last_ranking_played_at";
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24時間
+
+/**
+ * 24時間制限のチェック
+ */
+export function getRankingCooldownStatus(): {
+  canPlay: boolean;
+  remainingMs: number;
+  remainingHours: number;
+  remainingMinutes: number;
+  lastPlayedAt: number | null;
+} {
+  if (typeof window === "undefined") {
+    return { canPlay: true, remainingMs: 0, remainingHours: 0, remainingMinutes: 0, lastPlayedAt: null };
+  }
+  try {
+    const raw = localStorage.getItem(LAST_PLAYED_KEY);
+    if (!raw) {
+      return { canPlay: true, remainingMs: 0, remainingHours: 0, remainingMinutes: 0, lastPlayedAt: null };
+    }
+    const lastPlayedAt = parseInt(raw, 10);
+    if (isNaN(lastPlayedAt)) {
+      return { canPlay: true, remainingMs: 0, remainingHours: 0, remainingMinutes: 0, lastPlayedAt: null };
+    }
+    const diff = Date.now() - lastPlayedAt;
+    if (diff >= COOLDOWN_MS) {
+      return { canPlay: true, remainingMs: 0, remainingHours: 0, remainingMinutes: 0, lastPlayedAt };
+    }
+    const remainingMs = COOLDOWN_MS - diff;
+    const remainingHours = Math.floor(remainingMs / (60 * 60 * 1000));
+    const remainingMinutes = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+    return {
+      canPlay: false,
+      remainingMs,
+      remainingHours,
+      remainingMinutes,
+      lastPlayedAt,
+    };
+  } catch {
+    return { canPlay: true, remainingMs: 0, remainingHours: 0, remainingMinutes: 0, lastPlayedAt: null };
+  }
+}
+
+/**
+ * ランキングバトル挑戦時刻を記録
+ */
+export function recordRankingPlayed(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LAST_PLAYED_KEY, Date.now().toString());
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * テスト・デバッグ用：クールダウンリセット
+ */
+export function resetRankingCooldown(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(LAST_PLAYED_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 /**
  * 端末固有の匿名UUID（ログイン不要で同一端末判定）
