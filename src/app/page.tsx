@@ -1497,99 +1497,111 @@ export default function DopaBenApp() {
             </div>
 
             {/* 5. 正式なメインスタートボタン（デフォルト「続きから」⇔ 新規選択時「出撃」動的切替 ＆ 虹色オーラ＋Twinkle粒子） */}
-            <div
-              className={`p-[2px] transition group relative overflow-hidden shadow-[0_0_24px_rgba(250,204,21,0.35)] ${
-                isResume
-                  ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-dopa-aura"
-                  : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15] animate-pulse"
-              }`}
-            >
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  soundEngine.playTap();
-                  handleStartBattle(stageBattleInfo.stage, false, stageBattleInfo.grade as CodexCategory);
-                }}
-                className="w-full p-3 flex items-center justify-between gap-3 text-left active:scale-[0.98] transition bg-gradient-to-r from-[#0B0D12] via-[#131720] to-[#0B0D12] relative overflow-hidden"
+            <div className="relative group">
+              {/* 背後で呼吸する虹色グローオーラ */}
+              <div
+                className={`pointer-events-none absolute -inset-1 blur-md opacity-70 transition ${
+                  isResume
+                    ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-pulse"
+                    : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15] animate-pulse"
+                }`}
+              />
+
+              {/* 虹色グラデーション枠コンテナ（ブラーなし、中身がハッキリくっきり！） */}
+              <div
+                className={`relative p-[2.5px] transition shadow-[0_4px_20px_rgba(0,0,0,0.5)] ${
+                  isResume
+                    ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899]"
+                    : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15]"
+                }`}
               >
-                <div className="flex items-center gap-3.5 min-w-0 relative z-10">
-                  {/* ファーストビューの主役！虹色オーラ ＆ Twinkle粒子 ＆ ハートビート拍動Playアイコン */}
-                  <div className="relative shrink-0 flex items-center justify-center">
-                    {/* 1. 虹色ネオンオーラ（ブラー＆呼吸発光） */}
-                    <div className="pointer-events-none absolute -inset-2 rounded-lg bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-dopa-aura blur-md opacity-85" />
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    soundEngine.playTap();
+                    handleStartBattle(stageBattleInfo.stage, false, stageBattleInfo.grade as CodexCategory);
+                  }}
+                  className="w-full p-3 flex items-center justify-between gap-3 text-left active:scale-[0.98] transition bg-[#131720] relative"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0 relative z-10">
+                    {/* ファーストビューの主役！虹色オーラ ＆ Twinkle粒子 ＆ ハートビート拍動Playアイコン */}
+                    <div className="relative shrink-0 flex items-center justify-center">
+                      {/* 1. 虹色ネオンオーラ（ブラー＆呼吸発光） */}
+                      <div className="pointer-events-none absolute -inset-2 rounded-lg bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-dopa-aura blur-md opacity-85" />
 
-                    {/* 2. 周囲にパラパラと弾け舞うトゥインクル粒子 (✦ / ★ / ⚡) */}
-                    <div className="pointer-events-none absolute -inset-3 overflow-visible z-20">
-                      {PLAY_ICON_TWINKLE_PARTICLES.map((p) => (
+                      {/* 2. 周囲にパラパラと弾け舞うトゥインクル粒子 (✦ / ★ / ⚡) */}
+                      <div className="pointer-events-none absolute -inset-3 overflow-visible z-20">
+                        {PLAY_ICON_TWINKLE_PARTICLES.map((p) => (
+                          <span
+                            key={p.id}
+                            className={`absolute animate-twinkle font-black select-none pointer-events-none ${p.color} ${p.size}`}
+                            style={{
+                              top: p.top,
+                              bottom: p.bottom,
+                              left: p.left,
+                              right: p.right,
+                              animationDelay: p.delay,
+                              ["--tw-dur" as string]: p.dur,
+                              ["--tw-x" as string]: p.tx,
+                              ["--tw-y" as string]: p.ty,
+                            }}
+                          >
+                            {p.symbol}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* 3. 虹色グラデーション＆ハートビート拍動するPlayアイコン本体 */}
+                      <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-[#EF4444] via-[#FACC15] via-[#10B981] to-[#06B6D4] text-[#0B0D12] flex items-center justify-center border-2 border-white font-black shadow-[0_0_16px_rgba(250,204,21,0.9),3px_3px_0_#0B0D12] animate-heartbeat overflow-hidden z-10 group-hover:scale-110 transition">
+                        {/* 斜めに走る光沢スイープ */}
+                        <span className="pointer-events-none absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/85 to-transparent animate-glint-sweep" />
+                        <Play className="w-6 h-6 fill-[#0B0D12] text-[#0B0D12] ml-0.5 drop-shadow-sm relative z-10" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
                         <span
-                          key={p.id}
-                          className={`absolute animate-twinkle font-black select-none pointer-events-none ${p.color} ${p.size}`}
-                          style={{
-                            top: p.top,
-                            bottom: p.bottom,
-                            left: p.left,
-                            right: p.right,
-                            animationDelay: p.delay,
-                            ["--tw-dur" as string]: p.dur,
-                            ["--tw-x" as string]: p.tx,
-                            ["--tw-y" as string]: p.ty,
-                          }}
+                          className={`text-[10px] font-black px-2 py-0.5 -skew-x-6 shadow-sm transition ${
+                            isResume
+                              ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#10B981] text-[#0B0D12] shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+                              : "bg-[#FACC15] text-[#0B0D12] animate-pulse shadow-[0_0_8px_#FACC15]"
+                          }`}
                         >
-                          {p.symbol}
+                          {isResume ? "続きから" : "出撃"}
                         </span>
-                      ))}
-                    </div>
-
-                    {/* 3. 虹色グラデーション＆ハートビート拍動するPlayアイコン本体 */}
-                    <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-[#EF4444] via-[#FACC15] via-[#10B981] to-[#06B6D4] text-[#0B0D12] flex items-center justify-center border-2 border-white font-black shadow-[0_0_16px_rgba(250,204,21,0.9),3px_3px_0_#0B0D12] animate-heartbeat overflow-hidden z-10 group-hover:scale-110 transition">
-                      {/* 斜めに走る光沢スイープ */}
-                      <span className="pointer-events-none absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/85 to-transparent animate-glint-sweep" />
-                      <Play className="w-6 h-6 fill-[#0B0D12] text-[#0B0D12] ml-0.5 drop-shadow-sm relative z-10" />
-                    </div>
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-black px-2 py-0.5 -skew-x-6 shadow-sm transition ${
+                        <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
+                          {stageBattleInfo.label}
+                        </span>
+                      </div>
+                      <div
+                        className={`text-[10px] sm:text-[11px] font-black truncate mt-0.5 ${
                           isResume
-                            ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#10B981] text-[#0B0D12] shadow-[0_0_10px_rgba(250,204,21,0.5)]"
-                            : "bg-[#FACC15] text-[#0B0D12] animate-pulse shadow-[0_0_8px_#FACC15]"
+                            ? "bg-gradient-to-r from-[#FACC15] via-[#10B981] to-[#06B6D4] bg-clip-text text-transparent"
+                            : "text-[#FACC15]"
                         }`}
                       >
-                        {isResume ? "続きから" : "出撃"}
-                      </span>
-                      <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
-                        {stageBattleInfo.label}
-                      </span>
-                    </div>
-                    <div
-                      className={`text-[10px] sm:text-[11px] font-black truncate mt-0.5 ${
-                        isResume
-                          ? "bg-gradient-to-r from-[#FACC15] via-[#10B981] to-[#06B6D4] bg-clip-text text-transparent"
-                          : "text-[#FACC15]"
-                      }`}
-                    >
-                      {stageBattleInfo.sub}・{stageBattleInfo.progress}
+                        {stageBattleInfo.sub}・{stageBattleInfo.progress}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div
-                  className={`flex items-center gap-1.5 font-black text-sm px-3.5 sm:px-4 py-2 -skew-x-6 shrink-0 border-2 border-white shadow-[3px_3px_0_#0B0D12] relative z-10 group-hover:scale-105 transition ${
-                    isResume
-                      ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#10B981] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.5)]"
-                      : "bg-[#FACC15] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.6)]"
-                  }`}
-                >
-                  <span>{isResume ? "続きから" : "出撃"}</span>
-                  {isResume ? (
-                    <Play className="w-4 h-4 fill-[#0B0D12]" />
-                  ) : (
-                    <Zap className="w-4 h-4 fill-[#0B0D12]" />
-                  )}
-                </div>
-              </motion.button>
+                  <div
+                    className={`flex items-center gap-1.5 font-black text-sm px-3.5 sm:px-4 py-2 -skew-x-6 shrink-0 border-2 border-white shadow-[3px_3px_0_#0B0D12] relative z-10 group-hover:scale-105 transition ${
+                      isResume
+                        ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#10B981] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.5)]"
+                        : "bg-[#FACC15] text-[#0B0D12] hover:brightness-110 shadow-[0_0_12px_rgba(250,204,21,0.6)]"
+                    }`}
+                  >
+                    <span>{isResume ? "続きから" : "出撃"}</span>
+                    {isResume ? (
+                      <Play className="w-4 h-4 fill-[#0B0D12]" />
+                    ) : (
+                      <Zap className="w-4 h-4 fill-[#0B0D12]" />
+                    )}
+                  </div>
+                </motion.button>
+              </div>
             </div>
 
             {/* 6. 選択中ステージのユニット一覧＆図鑑 */}
