@@ -9,39 +9,23 @@ import {
   Lock,
   RotateCcw,
   Dice5,
-  Palette,
-  BookOpen,
-  Sword,
-  Shield,
-  Zap,
-  Eye,
   Shirt,
-  Crown,
-  Plus,
+  Flame,
+  Award,
 } from "lucide-react";
 import {
-  CharacterGender,
   CharacterPartLoadout,
   PlayerProfile,
-  StatBranchType,
 } from "@/lib/types";
 import {
-  ALL_CHARACTER_PARTS,
-  BACK_GEAR_PARTS,
-  detectStatBranch,
-  EYE_STYLES,
-  FourColorPalette,
-  generateRandom4ColorPalette,
+  AURA_LEVEL_DEFS,
+  AuraLevelDef,
+  BOY_HAIR_DEFS,
   getCharacterEvolutionTitle,
-  HAIR_STYLES,
-  HEADGEAR_PARTS,
-  OUTFIT_PARTS,
-  PartItemDef,
-  PRESET_4COLOR_PALETTES,
-  resolveAutoLoadout,
-  STAT_BRANCH_INFO,
-  WEAPON_LEFT_PARTS,
-  WEAPON_RIGHT_PARTS,
+  GIRL_HAIR_DEFS,
+  HairDef,
+  UNIFORM_DEFS,
+  UniformDef,
 } from "@/lib/characterPartsEngine";
 import { PixelCharacter } from "./PixelCharacter";
 import { soundEngine } from "@/lib/soundEngine";
@@ -53,26 +37,7 @@ interface CharacterCustomizeModalProps {
   onSave: (updatedProfile: PlayerProfile) => void;
 }
 
-type SlotKey =
-  | "palette"
-  | "outfit"
-  | "hairStyle"
-  | "headgear"
-  | "weaponRight"
-  | "weaponLeft"
-  | "backGear"
-  | "eyeStyle";
-
-const SLOT_TABS: { key: SlotKey; label: string; icon: React.ReactNode }[] = [
-  { key: "palette", label: "4色パレット", icon: <Palette className="w-4 h-4" /> },
-  { key: "outfit", label: "制服・衣装", icon: <Shirt className="w-4 h-4" /> },
-  { key: "hairStyle", label: "髪型", icon: <Sparkles className="w-4 h-4" /> },
-  { key: "headgear", label: "頭・メガネ", icon: <Crown className="w-4 h-4" /> },
-  { key: "weaponRight", label: "右手文具", icon: <Sword className="w-4 h-4" /> },
-  { key: "weaponLeft", label: "左手装備", icon: <Shield className="w-4 h-4" /> },
-  { key: "backGear", label: "背面・リュック", icon: <Zap className="w-4 h-4" /> },
-  { key: "eyeStyle", label: "瞳", icon: <Eye className="w-4 h-4" /> },
-];
+type MainTab = "aura" | "uniform" | "hair";
 
 export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = ({
   isOpen,
@@ -80,24 +45,24 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
   profile,
   onSave,
 }) => {
-  const [mainTab, setMainTab] = useState<"customize" | "codex">("customize");
-  const [activeSlot, setActiveSlot] = useState<SlotKey>("palette");
+  const [activeTab, setActiveTab] = useState<MainTab>("uniform");
   const [previewMood, setPreviewMood] = useState<"idle" | "attack" | "happy">("idle");
-  const [selectedBranch, setSelectedBranch] = useState<StatBranchType>(
-    detectStatBranch(profile.stats)
-  );
 
-  // パレット一覧（プリセット ＋ ユーザーが生成したパレット）
-  const [palettes, setPalettes] = useState<FourColorPalette[]>(PRESET_4COLOR_PALETTES);
+  const isGirl = profile.gender === "girl";
+  const hairList = isGirl ? GIRL_HAIR_DEFS : BOY_HAIR_DEFS;
 
-  // 一時ロードアウト
-  const currentBranch = detectStatBranch(profile.stats);
-  const defaultAuto = resolveAutoLoadout(profile.gender, profile.level, currentBranch);
-  const [loadout, setLoadout] = useState<CharacterPartLoadout>(
-    profile.characterLoadout || defaultAuto
-  );
+  // 初期ロードアウト解決
+  const [loadout, setLoadout] = useState<CharacterPartLoadout>(() => {
+    const existing = profile.characterLoadout;
+    const defaultAura = Math.max(1, Math.min(5, Math.ceil(profile.level / 2)));
+    return {
+      mode: "custom",
+      hairId: existing?.hairId || hairList[0].id,
+      uniformId: existing?.uniformId || UNIFORM_DEFS[0].id,
+      auraLevel: existing?.auraLevel ?? defaultAura,
+    };
+  });
 
-  // 解放済みパーツ一覧
   const [unlockedParts, setUnlockedParts] = useState<string[]>(
     profile.unlockedParts || []
   );
@@ -105,437 +70,542 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
 
   if (!isOpen) return null;
 
-  // パーツが解放されているか判定
-  const isPartUnlocked = (part: PartItemDef) => {
-    if (part.lxpCost === 0) return true;
-    if (unlockedParts.includes(part.id)) return true;
-    if (profile.level >= part.unlockLevel && part.lxpCost <= 0) return true;
-    return false;
-  };
-
-  // スロットごとのパーツリスト取得
-  const getSlotParts = (slot: SlotKey): PartItemDef[] => {
-    switch (slot) {
-      case "hairStyle":
-        return HAIR_STYLES;
-      case "headgear":
-        return HEADGEAR_PARTS;
-      case "eyeStyle":
-        return EYE_STYLES;
-      case "outfit":
-        return OUTFIT_PARTS;
-      case "weaponRight":
-        return WEAPON_RIGHT_PARTS;
-      case "weaponLeft":
-        return WEAPON_LEFT_PARTS;
-      case "backGear":
-        return BACK_GEAR_PARTS;
-      default:
-        return [];
-    }
-  };
-
-  // パーツ装備
-  const handleEquipPart = (part: PartItemDef) => {
-    soundEngine.playTap();
-    const updated: CharacterPartLoadout = {
-      ...loadout,
-      mode: "custom",
-      [part.slot]: part.id,
-    };
-    setLoadout(updated);
-    onSave({
-      ...profile,
-      characterLoadout: updated,
-      unlockedParts,
-      exp: currentExp,
-    });
-  };
-
-  // パレット装備
-  const handleEquipPalette = (paletteId: string) => {
-    soundEngine.playTap();
-    const updated: CharacterPartLoadout = {
-      ...loadout,
-      mode: "custom",
-      palette: paletteId,
-    };
-    setLoadout(updated);
-    onSave({
-      ...profile,
-      characterLoadout: updated,
-      unlockedParts,
-      exp: currentExp,
-    });
-  };
-
-  // ランダム4色パレットを新規生成＆即装備
-  const handleGenerateRandomPalette = () => {
-    soundEngine.playStageVictory();
-    const newPal = generateRandom4ColorPalette();
-    const updatedPalettes = [newPal, ...palettes];
-    setPalettes(updatedPalettes);
-
-    const updatedLoadout: CharacterPartLoadout = {
-      ...loadout,
-      mode: "custom",
-      palette: newPal.id,
-    };
-    setLoadout(updatedLoadout);
-    onSave({
-      ...profile,
-      characterLoadout: updatedLoadout,
-      unlockedParts,
-      exp: currentExp,
-    });
-  };
-
-  // LXP消費でパーツ解放
-  const handleUnlockPart = (part: PartItemDef) => {
-    if (currentExp < part.lxpCost) {
-      soundEngine.playBountyLock();
-      alert(`LXPが足りません！必要: ${part.lxpCost} LXP / 所持: ${currentExp} LXP`);
-      return;
-    }
-
-    soundEngine.playStageVictory();
-    const newExp = currentExp - part.lxpCost;
-    const newUnlocked = [...unlockedParts, part.id];
-    const updatedLoadout: CharacterPartLoadout = {
-      ...loadout,
-      mode: "custom",
-      [part.slot]: part.id,
-    };
-
-    setCurrentExp(newExp);
-    setUnlockedParts(newUnlocked);
-    setLoadout(updatedLoadout);
-
-    onSave({
-      ...profile,
-      exp: newExp,
-      unlockedParts: newUnlocked,
-      characterLoadout: updatedLoadout,
-    });
-  };
-
-  // オート進化モードに戻す
-  const handleResetToAuto = () => {
-    soundEngine.playWeakHit(3);
-    const auto = resolveAutoLoadout(profile.gender, profile.level, currentBranch);
-    setLoadout(auto);
-    onSave({
-      ...profile,
-      characterLoadout: auto,
-      unlockedParts,
-      exp: currentExp,
-    });
-  };
-
-  // ランダム着せ替え
-  const handleRandomize = () => {
-    soundEngine.playWeakHit(5);
-    const pickRandom = (arr: PartItemDef[]) => arr[Math.floor(Math.random() * arr.length)].id;
-    const randomPal = palettes[Math.floor(Math.random() * palettes.length)].id;
-
-    const randomized: CharacterPartLoadout = {
-      mode: "custom",
-      hairStyle: pickRandom(HAIR_STYLES),
-      headgear: pickRandom(HEADGEAR_PARTS),
-      eyeStyle: pickRandom(EYE_STYLES),
-      outfit: pickRandom(OUTFIT_PARTS),
-      weaponRight: pickRandom(WEAPON_RIGHT_PARTS),
-      weaponLeft: pickRandom(WEAPON_LEFT_PARTS),
-      backGear: pickRandom(BACK_GEAR_PARTS),
-      palette: randomPal,
-    };
-    setLoadout(randomized);
-    onSave({
-      ...profile,
-      characterLoadout: randomized,
-      unlockedParts,
-      exp: currentExp,
-    });
-  };
-
-  // 120形態図鑑から特定系統を適用
-  const handleApplyBranchForm = (branch: StatBranchType) => {
-    soundEngine.playEvolutionFanfare();
-    const newAuto = resolveAutoLoadout(profile.gender, profile.level, branch);
-    setLoadout(newAuto);
-    onSave({
-      ...profile,
-      characterLoadout: newAuto,
-      unlockedParts,
-      exp: currentExp,
-    });
-  };
-
-  const titleInfo = getCharacterEvolutionTitle(
+  // 称号取得
+  const evolutionTitle = getCharacterEvolutionTitle(
     profile.gender,
     profile.level,
     profile.stats,
     loadout
   );
 
+  // 解放チェック
+  const isHairUnlocked = (h: HairDef) => {
+    if (h.lxpCost === 0) return true;
+    if (unlockedParts.includes(h.id)) return true;
+    if (profile.level >= h.unlockLevel && h.lxpCost <= 0) return true;
+    return false;
+  };
+
+  const isUniformUnlocked = (u: UniformDef) => {
+    if (u.lxpCost === 0) return true;
+    if (unlockedParts.includes(u.id)) return true;
+    if (profile.level >= u.unlockLevel && u.lxpCost <= 0) return true;
+    return false;
+  };
+
+  const isAuraUnlocked = (a: AuraLevelDef) => {
+    // レベル飾りはキャラクターレベル（1〜10）の進行で自動解放
+    // Lv.1: 全員, Lv.2: Lv.3以上, Lv.3: Lv.5以上, Lv.4: Lv.7以上, Lv.5: Lv.9以上
+    const reqLevel = (a.level - 1) * 2 + 1;
+    return profile.level >= reqLevel;
+  };
+
+  // 装備ハンドラー
+  const handleSelectHair = (h: HairDef) => {
+    soundEngine.playTap();
+    const updated: CharacterPartLoadout = { ...loadout, hairId: h.id };
+    setLoadout(updated);
+    onSave({ ...profile, characterLoadout: updated });
+  };
+
+  const handleSelectUniform = (u: UniformDef) => {
+    soundEngine.playTap();
+    const updated: CharacterPartLoadout = { ...loadout, uniformId: u.id };
+    setLoadout(updated);
+    onSave({ ...profile, characterLoadout: updated });
+  };
+
+  const handleSelectAura = (a: AuraLevelDef) => {
+    soundEngine.playTap();
+    const updated: CharacterPartLoadout = { ...loadout, auraLevel: a.level };
+    setLoadout(updated);
+    onSave({ ...profile, characterLoadout: updated });
+  };
+
+  // LXPアンロック（髪型・制服）
+  const handleUnlockItem = (id: string, cost: number) => {
+    if (currentExp < cost) {
+      soundEngine.playBountyLock();
+      alert(`LXPが足りません！ 必要: ${cost} LXP / 所持: ${currentExp} LXP`);
+      return;
+    }
+    soundEngine.playStageVictory();
+    const newExp = currentExp - cost;
+    const newUnlocked = [...unlockedParts, id];
+    setCurrentExp(newExp);
+    setUnlockedParts(newUnlocked);
+    onSave({
+      ...profile,
+      exp: newExp,
+      unlockedParts: newUnlocked,
+    });
+  };
+
+  // ランダム着せ替え
+  const handleRandomize = () => {
+    soundEngine.playWeakHit(5);
+    const randomHair = hairList[Math.floor(Math.random() * hairList.length)];
+    const randomUniform = UNIFORM_DEFS[Math.floor(Math.random() * UNIFORM_DEFS.length)];
+    // 解放済みのオーラから選ぶ
+    const maxAura = Math.max(1, Math.min(5, Math.ceil(profile.level / 2)));
+    const randomAura = Math.floor(Math.random() * maxAura) + 1;
+
+    const updated: CharacterPartLoadout = {
+      mode: "custom",
+      hairId: randomHair.id,
+      uniformId: randomUniform.id,
+      auraLevel: randomAura,
+    };
+    setLoadout(updated);
+    onSave({ ...profile, characterLoadout: updated });
+  };
+
+  // リセット（基本中学生スタイルに戻す）
+  const handleReset = () => {
+    soundEngine.playWeakHit(2);
+    const defaultAura = Math.max(1, Math.min(5, Math.ceil(profile.level / 2)));
+    const resetLoadout: CharacterPartLoadout = {
+      mode: "custom",
+      hairId: hairList[0].id,
+      uniformId: UNIFORM_DEFS[0].id,
+      auraLevel: defaultAura,
+    };
+    setLoadout(resetLoadout);
+    onSave({ ...profile, characterLoadout: resetLoadout });
+  };
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          initial={{ opacity: 0, scale: 0.94, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 16 }}
-          className="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-[#0F172A] border-2 border-[#334155] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] overflow-hidden"
+          exit={{ opacity: 0, scale: 0.94, y: 15 }}
+          className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-slate-900/95 border-2 border-indigo-500/40 rounded-3xl shadow-2xl overflow-hidden text-slate-100"
         >
           {/* ヘッダー */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#334155] bg-[#1E293B]/70">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🎓</span>
+          <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-500/20 border border-indigo-400/40 rounded-xl text-indigo-400">
+                <Sparkles className="w-5 h-5" />
+              </div>
               <div>
-                <h2 className="text-base font-black text-white tracking-wider flex items-center gap-2">
-                  学園生 DopaEng アバター＆4色パレット
-                </h2>
-                <p className="text-[11px] text-[#94A3B8]">
-                  4色パレットアイテム × 学園制服・スクール文具カスタマイズ
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black tracking-wide">
+                    アジト着せ替えスタジオ
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    世界観統一
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  {evolutionTitle.title} ({evolutionTitle.branchLabel})
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="px-3 py-1 rounded-full bg-[#111827] border border-[#FACC15]/40 flex items-center gap-1.5 shadow-inner">
-                <span className="text-xs">⚡</span>
-                <span className="text-xs font-black text-[#FACC15]">
-                  {currentExp.toLocaleString()} LXP
-                </span>
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-bold text-amber-300">
+                <span>所持 LXP:</span>
+                <span className="font-mono text-sm">{currentExp}</span>
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg bg-[#334155]/60 hover:bg-[#475569] flex items-center justify-center text-[#94A3B8] hover:text-white transition-colors"
+                className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* キャラクタープレビューエリア（上部固定） */}
-          <div className="px-5 py-4 bg-gradient-to-b from-[#111827] to-[#0F172A] border-b border-[#334155] flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative w-28 h-28 flex items-center justify-center bg-[#07090E] rounded-xl border border-[#334155] shadow-inner overflow-hidden">
+          {/* メインコンテンツ（2カラム: 左プレビュー / 右パーツ一覧） */}
+          <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-12">
+            {/* 左側: キャラクター大型プレビュー */}
+            <div className="md:col-span-5 p-4 sm:p-6 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-slate-800 bg-gradient-to-b from-slate-950/40 to-slate-900/60">
+              <div className="w-full flex justify-between items-center text-xs">
+                <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 font-bold">
+                  Lv.{profile.level} {isGirl ? "女子生徒" : "男子生徒"}
+                </span>
+                <span className="text-[11px] text-indigo-300 font-medium">
+                  {evolutionTitle.branchBadge}
+                </span>
+              </div>
+
+              {/* ドット絵キャラクター */}
+              <div className="relative py-4 my-auto flex flex-col items-center">
                 <PixelCharacter
                   gender={profile.gender}
                   stage={profile.level}
-                  loadout={loadout}
+                  size={180}
                   mood={previewMood}
-                  size={104}
-                  showAura={true}
+                  loadout={loadout}
                   animateFrames={true}
-                  customPalettes={palettes}
                 />
+                <div className="mt-2 text-center">
+                  <div className="text-xs font-bold text-slate-200">
+                    {evolutionTitle.title}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    飾り Lv.{loadout.auraLevel} / {hairList.find(h => h.id === loadout.hairId)?.name}
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#FACC15]/20 text-[#FACC15] border border-[#FACC15]/40">
-                    Lv.{profile.level}
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40">
-                    {titleInfo.branchBadge}
-                  </span>
-                  {loadout.mode === "custom" ? (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#A855F7]/20 text-[#C084FC] border border-[#A855F7]/40">
-                      カスタム
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#06B6D4]/20 text-[#22D3EE] border border-[#06B6D4]/40">
-                      オート進化
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-base font-black text-white tracking-wide">
-                  {titleInfo.title}
-                </h3>
-                <p className="text-[11px] text-[#94A3B8] mt-0.5">
-                  英語勇者「DopaEng」/ 性別: {profile.gender === "boy" ? "男子 👦" : "女子 👧"}
-                </p>
-
-                {/* 4コマモーション確認ボタン */}
-                <div className="flex items-center gap-1.5 mt-2">
+              {/* モーション変更 & アクションバー */}
+              <div className="w-full space-y-2.5">
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-950/60 rounded-xl border border-slate-800 text-xs">
                   <button
                     onClick={() => setPreviewMood("idle")}
-                    className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                    className={`py-1.5 rounded-lg font-bold transition ${
                       previewMood === "idle"
-                        ? "bg-[#38BDF8] text-black font-black"
-                        : "bg-[#1E293B] text-[#94A3B8] hover:text-white"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    待機4コマ
-                  </button>
-                  <button
-                    onClick={() => setPreviewMood("attack")}
-                    className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
-                      previewMood === "attack"
-                        ? "bg-[#EF4444] text-white font-black"
-                        : "bg-[#1E293B] text-[#94A3B8] hover:text-white"
-                    }`}
-                  >
-                    斬撃4コマ
+                    自然体
                   </button>
                   <button
                     onClick={() => setPreviewMood("happy")}
-                    className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                    className={`py-1.5 rounded-lg font-bold transition ${
                       previewMood === "happy"
-                        ? "bg-[#10B981] text-black font-black"
-                        : "bg-[#1E293B] text-[#94A3B8] hover:text-white"
+                        ? "bg-pink-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    歓喜4コマ
+                    笑顔 ✨
+                  </button>
+                  <button
+                    onClick={() => setPreviewMood("attack")}
+                    className={`py-1.5 rounded-lg font-bold transition ${
+                      previewMood === "attack"
+                        ? "bg-amber-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    決めポーズ ⚡
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleRandomize}
+                    className="flex-1 py-2 px-3 flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 transition"
+                  >
+                    <Dice5 className="w-3.5 h-3.5 text-amber-400" />
+                    ランダムコーデ
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="py-2 px-3 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-400 hover:text-slate-200 border border-slate-700 transition"
+                    title="初期状態に戻す"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* クイックアクション */}
-            <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
-              <button
-                onClick={handleResetToAuto}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-xs font-bold text-[#E2E8F0] border border-[#475569] transition-all"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-[#06B6D4]" />
-                オート進化に戻す
-              </button>
-              <button
-                onClick={handleRandomize}
-                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#A855F7]/30 to-[#EC4899]/30 hover:from-[#A855F7]/45 hover:to-[#EC4899]/45 text-xs font-bold text-white border border-[#A855F7]/50 transition-all shadow-sm"
-              >
-                <Dice5 className="w-3.5 h-3.5 text-[#FACC15]" />
-                🎲 ランダム着せ替え
-              </button>
-            </div>
-          </div>
+            {/* 右側: 3軸の着せ替え選択エリア */}
+            <div className="md:col-span-7 flex flex-col h-[400px] md:h-[540px] bg-slate-900/40">
+              {/* 3大タブナビゲーション */}
+              <div className="flex border-b border-slate-800 bg-slate-950/40 p-2 gap-1.5">
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    setActiveTab("uniform");
+                  }}
+                  className={`flex-1 py-2 px-3 flex items-center justify-center gap-2 rounded-xl text-xs sm:text-sm font-black transition ${
+                    activeTab === "uniform"
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+                >
+                  <Shirt className="w-4 h-4 text-indigo-300" />
+                  <span>制服 20校</span>
+                </button>
 
-          {/* メインタブバー */}
-          <div className="flex border-b border-[#334155] bg-[#0B0F19]">
-            <button
-              onClick={() => setMainTab("customize")}
-              className={`flex-1 py-2.5 text-xs font-black flex items-center justify-center gap-2 border-b-2 transition-all ${
-                mainTab === "customize"
-                  ? "border-[#FACC15] text-[#FACC15] bg-[#1E293B]/40"
-                  : "border-transparent text-[#94A3B8] hover:text-white"
-              }`}
-            >
-              <Palette className="w-4 h-4" />
-              🎨 4色パレット ＆ 学園パーツ
-            </button>
-            <button
-              onClick={() => setMainTab("codex")}
-              className={`flex-1 py-2.5 text-xs font-black flex items-center justify-center gap-2 border-b-2 transition-all ${
-                mainTab === "codex"
-                  ? "border-[#FACC15] text-[#FACC15] bg-[#1E293B]/40"
-                  : "border-transparent text-[#94A3B8] hover:text-white"
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              📖 120形態・学園進化図鑑
-            </button>
-          </div>
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    setActiveTab("hair");
+                  }}
+                  className={`flex-1 py-2 px-3 flex items-center justify-center gap-2 rounded-xl text-xs sm:text-sm font-black transition ${
+                    activeTab === "hair"
+                      ? "bg-pink-600 text-white shadow-md shadow-pink-600/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-pink-300" />
+                  <span>髪型 10選</span>
+                </button>
 
-          {/* タブコンテンツ */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {mainTab === "customize" ? (
-              <>
-                {/* スロット選択タブ（横スクロール） */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {SLOT_TABS.map((tab) => {
-                    const isSelected = activeSlot === tab.key;
-                    return (
-                      <button
-                        key={tab.key}
-                        onClick={() => setActiveSlot(tab.key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all ${
-                          isSelected
-                            ? "bg-[#FACC15] text-black shadow-md font-black"
-                            : "bg-[#1E293B] text-[#94A3B8] hover:text-white hover:bg-[#334155]"
-                        }`}
-                      >
-                        {tab.icon}
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    setActiveTab("aura");
+                  }}
+                  className={`flex-1 py-2 px-3 flex items-center justify-center gap-2 rounded-xl text-xs sm:text-sm font-black transition ${
+                    activeTab === "aura"
+                      ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+                >
+                  <Flame className="w-4 h-4 text-amber-300" />
+                  <span>レベル飾り (5段階)</span>
+                </button>
+              </div>
 
-                {/* 4色パレット選択画面 */}
-                {activeSlot === "palette" ? (
-                  <div className="space-y-3">
-                    {/* ランダムパレット生成アクションカード */}
-                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#1E293B] to-[#0F172A] border border-[#38BDF8]/40 flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-xs font-black text-white flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4 text-[#FACC15]" />
-                          <span>4色パレットをランダム生成する</span>
-                        </div>
-                        <p className="text-[11px] text-[#94A3B8] mt-0.5">
-                          開発用機能: 新しい4色の組み合わせアイテムを1クリックで無制限に生成・即試着！
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleGenerateRandomPalette}
-                        className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#06B6D4] to-[#3B82F6] hover:brightness-110 active:scale-95 text-white font-black text-xs shrink-0 flex items-center gap-1.5 shadow-md transition"
-                      >
-                        <Plus className="w-4 h-4" />
-                        新パレット生成
-                      </button>
+              {/* アイテムリスト（スクロール領域） */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+                {/* 1. 制服 20校 */}
+                {activeTab === "uniform" && (
+                  <div className="space-y-2.5">
+                    <div className="text-xs text-slate-400 px-1 flex items-center justify-between">
+                      <span>全国・世界の名門＆個性派スクール制服 (全20種)</span>
+                      <span className="text-[11px] text-slate-500">靴・ボトムスセット</span>
                     </div>
 
-                    {/* パレットアイテム一覧グリッド */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {palettes.map((pal) => {
-                        const isEquipped = loadout.palette === pal.id;
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {UNIFORM_DEFS.map((u) => {
+                        const isEquipped = loadout.uniformId === u.id;
+                        const unlocked = isUniformUnlocked(u);
+
                         return (
                           <div
-                            key={pal.id}
-                            className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                            key={u.id}
+                            onClick={() => {
+                              if (unlocked) {
+                                handleSelectUniform(u);
+                              } else if (u.lxpCost > 0) {
+                                handleUnlockItem(u.id, u.lxpCost);
+                              }
+                            }}
+                            className={`relative p-3 rounded-2xl border transition text-left cursor-pointer flex flex-col justify-between ${
                               isEquipped
-                                ? "bg-[#1E293B] border-[#FACC15] shadow-[0_0_15px_rgba(250,204,21,0.2)]"
-                                : "bg-[#111827]/80 border-[#334155] hover:border-[#64748B]"
+                                ? "bg-indigo-950/60 border-indigo-400 shadow-md ring-1 ring-indigo-400"
+                                : unlocked
+                                ? "bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 hover:border-slate-600"
+                                : "bg-slate-900/40 border-slate-800 opacity-70 hover:opacity-90"
                             }`}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              {/* 4色カラースウォッチ */}
-                              <div className="flex items-center rounded-lg overflow-hidden border border-[#475569] shrink-0 shadow-inner">
-                                <span className="w-4 h-8" style={{ backgroundColor: pal.c1 }} />
-                                <span className="w-4 h-8" style={{ backgroundColor: pal.c2 }} />
-                                <span className="w-4 h-8" style={{ backgroundColor: pal.c3 }} />
-                                <span className="w-4 h-8" style={{ backgroundColor: pal.c4 }} />
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-xs text-slate-100">
+                                    {u.name}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {u.schoolName}
+                                </div>
                               </div>
 
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-black text-white truncate">
-                                    {pal.name}
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 border border-slate-700 text-indigo-300">
+                                {u.badge}
+                              </span>
+                            </div>
+
+                            {/* カラーパレットバー */}
+                            <div className="mt-2.5 flex items-center gap-1">
+                              <span
+                                className="w-4 h-4 rounded-full border border-black/40"
+                                style={{ backgroundColor: u.top }}
+                                title="トップス"
+                              />
+                              <span
+                                className="w-4 h-4 rounded-full border border-black/40"
+                                style={{ backgroundColor: u.sub }}
+                                title="シャツ/サブ"
+                              />
+                              <span
+                                className="w-4 h-4 rounded-full border border-black/40"
+                                style={{ backgroundColor: u.acc }}
+                                title="ネクタイ/アクセント"
+                              />
+                              <span
+                                className="w-4 h-4 rounded-full border border-black/40"
+                                style={{ backgroundColor: isGirl ? u.bot_g : u.bot }}
+                                title={isGirl ? "スカート" : "スラックス"}
+                              />
+
+                              <div className="ml-auto flex items-center">
+                                {isEquipped ? (
+                                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                                    <Check className="w-3.5 h-3.5" /> 着用中
                                   </span>
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#334155] text-[#CBD5E1] shrink-0">
-                                    {pal.badge}
+                                ) : !unlocked ? (
+                                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                                    <Lock className="w-3 h-3" />
+                                    {u.lxpCost > 0 ? `${u.lxpCost} LXP` : `Lv.${u.unlockLevel}`}
                                   </span>
-                                </div>
-                                <div className="text-[10px] text-[#94A3B8] mt-0.5">
-                                  4色パレットアイテム
-                                </div>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400">着用する</span>
+                                )}
                               </div>
                             </div>
 
-                            <div className="shrink-0">
+                            <p className="mt-1.5 text-[10px] text-slate-400 line-clamp-1">
+                              {u.description}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. 髪型 10選 */}
+                {activeTab === "hair" && (
+                  <div className="space-y-2.5">
+                    <div className="text-xs text-slate-400 px-1 flex items-center justify-between">
+                      <span>{isGirl ? "女子" : "男子"} 髪型＆カラーセット (全10種)</span>
+                      <span className="text-[11px] text-pink-300 font-bold">カット×カラー固定</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {hairList.map((h) => {
+                        const isEquipped = loadout.hairId === h.id;
+                        const unlocked = isHairUnlocked(h);
+
+                        return (
+                          <div
+                            key={h.id}
+                            onClick={() => {
+                              if (unlocked) {
+                                handleSelectHair(h);
+                              } else if (h.lxpCost > 0) {
+                                handleUnlockItem(h.id, h.lxpCost);
+                              }
+                            }}
+                            className={`relative p-3 rounded-2xl border transition text-left cursor-pointer flex flex-col justify-between ${
+                              isEquipped
+                                ? "bg-pink-950/60 border-pink-400 shadow-md ring-1 ring-pink-400"
+                                : unlocked
+                                ? "bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 hover:border-slate-600"
+                                : "bg-slate-900/40 border-slate-800 opacity-70 hover:opacity-90"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-bold text-xs text-slate-100">
+                                  {h.name}
+                                </span>
+                              </div>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 border border-slate-700 text-pink-300">
+                                {h.badge}
+                              </span>
+                            </div>
+
+                            {/* ヘアカラープレビュー */}
+                            <div className="mt-3 flex items-center gap-1.5">
+                              <div className="flex items-center gap-1">
+                                <span
+                                  className="w-4 h-4 rounded-full border border-black/40"
+                                  style={{ backgroundColor: h.base }}
+                                  title="ベース色"
+                                />
+                                <span
+                                  className="w-4 h-4 rounded-full border border-black/40"
+                                  style={{ backgroundColor: h.dark }}
+                                  title="シャドウ色"
+                                />
+                                <span
+                                  className="w-4 h-4 rounded-full border border-black/40"
+                                  style={{ backgroundColor: h.lite }}
+                                  title="ハイライト色"
+                                />
+                              </div>
+
+                              <div className="ml-auto flex items-center">
+                                {isEquipped ? (
+                                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                                    <Check className="w-3.5 h-3.5" /> セット中
+                                  </span>
+                                ) : !unlocked ? (
+                                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                                    <Lock className="w-3 h-3" />
+                                    {h.lxpCost > 0 ? `${h.lxpCost} LXP` : `Lv.${h.unlockLevel}`}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400">セットする</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. レベル開放の飾り（Lv.1〜5 段階） */}
+                {activeTab === "aura" && (
+                  <div className="space-y-2.5">
+                    <div className="text-xs text-slate-400 px-1 flex items-center justify-between">
+                      <span>キャラクターレベルで開放されるファンタジー進化 (全5段階)</span>
+                      <span className="text-[11px] text-amber-300 font-bold">装飾＆オーラ</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {AURA_LEVEL_DEFS.map((a) => {
+                        const isEquipped = (loadout.auraLevel ?? 1) === a.level;
+                        const unlocked = isAuraUnlocked(a);
+                        const reqLevel = (a.level - 1) * 2 + 1;
+
+                        return (
+                          <div
+                            key={a.level}
+                            onClick={() => {
+                              if (unlocked) {
+                                handleSelectAura(a);
+                              }
+                            }}
+                            className={`p-3.5 rounded-2xl border transition text-left flex items-center justify-between gap-3 ${
+                              isEquipped
+                                ? "bg-amber-950/60 border-amber-400 shadow-md ring-1 ring-amber-400 cursor-pointer"
+                                : unlocked
+                                ? "bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 hover:border-slate-600 cursor-pointer"
+                                : "bg-slate-900/40 border-slate-800 opacity-60 cursor-not-allowed"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border ${
+                                  isEquipped
+                                    ? "bg-amber-500 text-slate-950 border-amber-300"
+                                    : unlocked
+                                    ? "bg-slate-800 text-amber-400 border-slate-700"
+                                    : "bg-slate-900 text-slate-500 border-slate-800"
+                                }`}
+                              >
+                                {a.badge}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-slate-100">
+                                    {a.name}
+                                  </span>
+                                  <span className="text-[10px] text-amber-400/90 font-medium">
+                                    ({a.title})
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                  {a.description}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center shrink-0">
                               {isEquipped ? (
-                                <span className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#FACC15] text-black">
-                                  適用中
+                                <span className="flex items-center gap-1 text-xs font-bold text-emerald-400">
+                                  <Check className="w-4 h-4" /> 解放中
+                                </span>
+                              ) : !unlocked ? (
+                                <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500">
+                                  <Lock className="w-3.5 h-3.5" /> Lv.{reqLevel}で開放
                                 </span>
                               ) : (
-                                <button
-                                  onClick={() => handleEquipPalette(pal.id)}
-                                  className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#334155] hover:bg-[#475569] text-white transition-all"
-                                >
-                                  セット
-                                </button>
+                                <span className="text-xs text-slate-400">切り替える</span>
                               )}
                             </div>
                           </div>
@@ -543,203 +613,25 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
                       })}
                     </div>
                   </div>
-                ) : (
-                  /* 各部位パーツ一覧グリッド */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {getSlotParts(activeSlot).map((part) => {
-                      const isEquipped = loadout[activeSlot] === part.id;
-                      const unlocked = isPartUnlocked(part);
-                      const canAfford = currentExp >= part.lxpCost;
-
-                      return (
-                        <div
-                          key={part.id}
-                          className={`relative p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
-                            isEquipped
-                              ? "bg-[#1E293B] border-[#FACC15] shadow-[0_0_15px_rgba(250,204,21,0.2)]"
-                              : unlocked
-                              ? "bg-[#111827]/80 border-[#334155] hover:border-[#64748B]"
-                              : "bg-[#090D16] border-[#1E293B] opacity-80"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-[#030712] border border-[#334155] flex items-center justify-center shrink-0">
-                              {unlocked ? (
-                                isEquipped ? (
-                                  <Check className="w-4 h-4 text-[#FACC15]" />
-                                ) : (
-                                  <Sparkles className="w-4 h-4 text-[#38BDF8]" />
-                                )
-                              ) : (
-                                <Lock className="w-4 h-4 text-[#64748B]" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold text-white truncate">
-                                  {part.name}
-                                </span>
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#334155] text-[#CBD5E1] shrink-0">
-                                  {part.badge}
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-[#94A3B8] mt-0.5">
-                                {part.lxpCost === 0
-                                  ? "初期解放"
-                                  : unlocked
-                                  ? "解放済み"
-                                  : `${part.lxpCost} LXP で即解放`}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0">
-                            {isEquipped ? (
-                              <span className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#FACC15] text-black">
-                                装備中
-                              </span>
-                            ) : unlocked ? (
-                              <button
-                                onClick={() => handleEquipPart(part)}
-                                className="px-2.5 py-1 rounded-md text-[11px] font-black bg-[#334155] hover:bg-[#475569] text-white transition-all"
-                              >
-                                装備
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleUnlockPart(part)}
-                                disabled={!canAfford}
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all flex items-center gap-1 ${
-                                  canAfford
-                                    ? "bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-black hover:brightness-110 shadow-sm"
-                                    : "bg-[#1E293B] text-[#64748B] cursor-not-allowed"
-                                }`}
-                              >
-                                <Sparkles className="w-3 h-3" />
-                                解放
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 )}
-              </>
-            ) : (
-              /* 120形態・学園進化図鑑 */
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(
-                    Object.keys(STAT_BRANCH_INFO) as StatBranchType[]
-                  ).map((branchKey) => {
-                    const info = STAT_BRANCH_INFO[branchKey];
-                    const isSelected = selectedBranch === branchKey;
-                    return (
-                      <button
-                        key={branchKey}
-                        onClick={() => setSelectedBranch(branchKey)}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? "bg-[#1E293B] border-[#FACC15] shadow-md"
-                            : "bg-[#111827] border-[#334155] hover:border-[#64748B]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-black text-white">
-                            {info.badge}
-                          </span>
-                          <span
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{ backgroundColor: info.color }}
-                          />
-                        </div>
-                        <div className="text-[11px] font-bold text-[#E2E8F0]">
-                          {info.shortLabel}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-[#111827] border border-[#334155] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-sm font-black text-white flex items-center gap-2">
-                      <span>{STAT_BRANCH_INFO[selectedBranch].label}</span>
-                    </h4>
-                    <p className="text-[11px] text-[#94A3B8] mt-1">
-                      {STAT_BRANCH_INFO[selectedBranch].description}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleApplyBranchForm(selectedBranch)}
-                    className="w-full sm:w-auto px-4 py-2 rounded-lg bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-black font-black text-xs hover:brightness-110 shadow-md shrink-0 flex items-center justify-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    この系統の姿にする
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((stageNum) => {
-                    const stageLoadout = resolveAutoLoadout(
-                      profile.gender,
-                      stageNum,
-                      selectedBranch
-                    );
-                    const titleObj = getCharacterEvolutionTitle(
-                      profile.gender,
-                      stageNum,
-                      undefined,
-                      stageLoadout
-                    );
-                    const isCurrentStage = profile.level === stageNum;
-
-                    return (
-                      <div
-                        key={stageNum}
-                        className={`p-2.5 rounded-xl border flex flex-col items-center text-center transition-all ${
-                          isCurrentStage
-                            ? "bg-[#1E293B] border-[#FACC15] shadow-md"
-                            : "bg-[#090D16] border-[#1E293B]"
-                        }`}
-                      >
-                        <div className="w-16 h-16 flex items-center justify-center bg-[#030712] rounded-lg border border-[#334155] mb-2 overflow-hidden shadow-inner">
-                          <PixelCharacter
-                            gender={profile.gender}
-                            stage={stageNum}
-                            loadout={stageLoadout}
-                            size={56}
-                            showAura={stageNum >= 5}
-                            animateFrames={true}
-                            customPalettes={palettes}
-                          />
-                        </div>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-[#334155] text-[#FACC15] mb-1">
-                          Lv.{stageNum}
-                        </span>
-                        <span className="text-[10px] font-bold text-white line-clamp-1">
-                          {titleObj.title}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
-            )}
-          </div>
 
-          {/* フッター */}
-          <div className="px-5 py-3 border-t border-[#334155] bg-[#1E293B]/60 flex items-center justify-between">
-            <span className="text-[11px] text-[#94A3B8]">
-              ※ 英語勇者DopaEngは他教科の仲間と共鳴し、大ボスへ挑みます
-            </span>
-            <button
-              onClick={onClose}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#FACC15] to-[#EAB308] text-black font-black text-xs hover:brightness-110 shadow-md transition-all"
-            >
-              決定して閉じる
-            </button>
+              {/* フッター（保存＆完了ボタン） */}
+              <div className="p-3.5 border-t border-slate-800 bg-slate-950/70 flex items-center justify-between">
+                <div className="text-xs text-slate-400">
+                  選択した組み合わせは自動保存されます
+                </div>
+                <button
+                  onClick={() => {
+                    soundEngine.playStageVictory();
+                    onClose();
+                  }}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-md shadow-indigo-500/25 transition active:scale-95"
+                >
+                  着せ替えを決定
+                </button>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>

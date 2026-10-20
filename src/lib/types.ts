@@ -124,16 +124,21 @@ export type StatBranchType =
   | "guts";     // 度胸特化：紅蓮・覇王系統 (BERSERKER / OVERLORD)
 
 export interface CharacterPartLoadout {
-  mode: "auto" | "custom"; // auto = Lv×五角形ステータス連動進化, custom = 自由パーツ組み合わせ
-  forcedBranch?: StatBranchType; // auto時に特定系統をプレビュー・固定したい場合
-  hairStyle: string;
-  headgear: string;
-  eyeStyle: string;
-  outfit: string;
-  weaponRight: string;
-  weaponLeft: string;
-  backGear: string;
-  palette: string;
+  mode?: "auto" | "custom";
+  hairId?: string;      // 髪型10種（色×カットセット）
+  uniformId?: string;   // 制服20種（上下＋靴セット）
+  auraLevel?: number;   // レベル飾り（1〜5段階）
+  forcedBranch?: StatBranchType; // 特定系統プレビュー
+  
+  // 後方互換用フィールド
+  hairStyle?: string;
+  headgear?: string;
+  eyeStyle?: string;
+  outfit?: string;
+  weaponRight?: string;
+  weaponLeft?: string;
+  backGear?: string;
+  palette?: string;
 }
 
 export interface PlayerProfile {

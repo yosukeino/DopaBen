@@ -5,44 +5,110 @@ import {
   StatBranchType,
 } from "./types";
 
-export interface PartItemDef {
+// =========================================================================
+// 1. 髪型 10選（色×カットセット）
+// =========================================================================
+export interface HairDef {
   id: string;
-  slot:
-    | "hairStyle"
-    | "headgear"
-    | "eyeStyle"
-    | "outfit"
-    | "weaponRight"
-    | "weaponLeft"
-    | "backGear"
-    | "palette";
   name: string;
   badge: string;
+  base: string;
+  dark: string;
+  lite: string;
+  type: string;
   unlockLevel: number;
   lxpCost: number;
-  description?: string;
-  branchAffinity?: StatBranchType;
 }
 
-/**
- * 4色カラーパレット（キャラの全ピクセルを厳密にこの4色のみで表現）
- * c1: 暗部 / 輪郭線 / 靴 / 瞳 (Base Dark)
- * c2: 肌色 / 明部 / シャツ (Light / Skin)
- * c3: 制服メイン色 / 髪色 (Main Fabric / Hair)
- * c4: アクセント色 (Tie, Ribbon, Emblem, Pen Light)
- */
-export interface FourColorPalette {
+export const GIRL_HAIR_DEFS: HairDef[] = [
+  { id: "gh_01", name: "フェアルーン・チェリーボブ", badge: "定番", base: "#D92B3A", dark: "#9E1B28", lite: "#FF7A8A", type: "bob", unlockLevel: 1, lxpCost: 0 },
+  { id: "gh_02", name: "ミルクティー・ツインテール", badge: "人気", base: "#C26D2D", dark: "#8A4312", lite: "#E89B58", type: "twintail", unlockLevel: 1, lxpCost: 0 },
+  { id: "gh_03", name: "ストロベリー・ハーフアップ", badge: "可憐", base: "#DB2777", dark: "#9D174D", lite: "#F472B6", type: "halfup", unlockLevel: 2, lxpCost: 200 },
+  { id: "gh_04", name: "漆黒・サラサラストレートロング", badge: "清楚", base: "#1E293B", dark: "#0F172A", lite: "#475569", type: "long", unlockLevel: 3, lxpCost: 350 },
+  { id: "gh_05", name: "ハニーゴールド・ポニーテール", badge: "快活", base: "#D97706", dark: "#92400E", lite: "#FBBF24", type: "ponytail", unlockLevel: 4, lxpCost: 500 },
+  { id: "gh_06", name: "プラチナシルバー・ショートウルフ", badge: "クール", base: "#94A3B8", dark: "#64748B", lite: "#E2E8F0", type: "wolf", unlockLevel: 5, lxpCost: 650 },
+  { id: "gh_07", name: "ショコラ・お嬢様縦ロール", badge: "気品", base: "#451A03", dark: "#2E1002", lite: "#78350F", type: "drill", unlockLevel: 6, lxpCost: 800 },
+  { id: "gh_08", name: "パステルミント・お団子ツイン", badge: "ポップ", base: "#0D9488", dark: "#115E59", lite: "#2DD4BF", type: "odango", unlockLevel: 7, lxpCost: 1000 },
+  { id: "gh_09", name: "アメジスト・サイドテール", badge: "知性", base: "#7C3AED", dark: "#5B21B6", lite: "#A78BFA", type: "sidetail", unlockLevel: 8, lxpCost: 1200 },
+  { id: "gh_10", name: "サンセット・ゆるふわウェーブ", badge: "華やか", base: "#EA580C", dark: "#9A3412", lite: "#FB923C", type: "wave", unlockLevel: 9, lxpCost: 1500 },
+];
+
+export const BOY_HAIR_DEFS: HairDef[] = [
+  { id: "bh_01", name: "ショコラ・少年勇者ショート", badge: "定番", base: "#3F2B1D", dark: "#26180E", lite: "#6A4A32", type: "spiky", unlockLevel: 1, lxpCost: 0 },
+  { id: "bh_02", name: "スレート・洗練クリーンマッシュ", badge: "今どき", base: "#2D3748", dark: "#1A202C", lite: "#4A5568", type: "mush", unlockLevel: 1, lxpCost: 0 },
+  { id: "bh_03", name: "アッシュブロンド・ウルフ", badge: "快活", base: "#CA8A04", dark: "#854D0E", lite: "#FACC15", type: "wolf", unlockLevel: 2, lxpCost: 200 },
+  { id: "bh_04", name: "ジェットブラック・ナチュラル分け", badge: "知性", base: "#0F172A", dark: "#020617", lite: "#334155", type: "part", unlockLevel: 3, lxpCost: 350 },
+  { id: "bh_05", name: "ロイヤルインディゴ・スパイキー", badge: "エネルギッシュ", base: "#3730A3", dark: "#1E1B4B", lite: "#6366F1", type: "spiky2", unlockLevel: 4, lxpCost: 500 },
+  { id: "bh_06", name: "シルバーホワイト・アンニュイマッシュ", badge: "クール", base: "#94A3B8", dark: "#475569", lite: "#F1F5F9", type: "mush2", unlockLevel: 5, lxpCost: 650 },
+  { id: "bh_07", name: "クリムゾン・ツーブロック", badge: "情熱", base: "#991B1B", dark: "#450A0A", lite: "#DC2626", type: "undercut", unlockLevel: 6, lxpCost: 800 },
+  { id: "bh_08", name: "キャメル・センターパート", badge: "爽やか", base: "#B45309", dark: "#78350F", lite: "#F59E0B", type: "center", unlockLevel: 7, lxpCost: 1000 },
+  { id: "bh_09", name: "ダークエメラルド・カーリー", badge: "個性派", base: "#065F46", dark: "#022C22", lite: "#059669", type: "curly", unlockLevel: 8, lxpCost: 1200 },
+  { id: "bh_10", name: "ゴールド・覚醒勇者逆毛", badge: "神話", base: "#EAB308", dark: "#A16207", lite: "#FEF08A", type: "crown", unlockLevel: 9, lxpCost: 1500 },
+];
+
+// =========================================================================
+// 2. 制服 20校（様々な学校の制服）
+// =========================================================================
+export interface UniformDef {
   id: string;
   name: string;
+  schoolName: string;
   badge: string;
-  c1: string; // Base Dark
-  c2: string; // Light / Skin
-  c3: string; // Main Fabric / Hair
-  c4: string; // Accent
-  isCustom?: boolean;
+  top: string;
+  sub: string;
+  acc: string;
+  bot: string;   // 男子スラックス
+  bot_g: string; // 女子スカート
+  unlockLevel: number;
+  lxpCost: number;
+  description: string;
 }
 
-// 学園モノ世界観における6系統の称号定義（DopaEng＝万能勇者）
+export const UNIFORM_DEFS: UniformDef[] = [
+  { id: "uni_01", name: "桜台高校（王道ブレザー校）", schoolName: "都立桜台高校", badge: "定番", top: "#1E293B", sub: "#FFFFFF", acc: "#DC2626", bot: "#1E293B", bot_g: "#DC2626", unlockLevel: 1, lxpCost: 0, description: "王道の濃紺ブレザーに赤いチェックスカート＆ネクタイが映える名門校制服。" },
+  { id: "uni_02", name: "開智アカデミー（名門進学校）", schoolName: "開智アカデミー高等部", badge: "知性", top: "#475569", sub: "#FFFFFF", acc: "#2563EB", bot: "#334155", bot_g: "#475569", unlockLevel: 1, lxpCost: 0, description: "洗練されたチャコールグレーに知的なブルータイを合わせた進学校スタイル。" },
+  { id: "uni_03", name: "聖カトレア学園（伝統セーラー＆漆黒学ラン）", schoolName: "私立聖カトレア学園", badge: "伝統", top: "#0F172A", sub: "#FFFFFF", acc: "#DC2626", bot: "#0F172A", bot_g: "#0F172A", unlockLevel: 2, lxpCost: 200, description: "白襟セーラー服と漆黒の詰襟学ラン。100年の歴史を誇るクラシックスタイル。" },
+  { id: "uni_04", name: "セント・オックスフォード（英国風トラッド校）", schoolName: "セント・オックスフォード国際校", badge: "英国風", top: "#D97706", sub: "#FFFFFF", acc: "#059669", bot: "#78350F", bot_g: "#047857", unlockLevel: 2, lxpCost: 200, description: "キャメルブレザーに深緑タータンチェックをあしらった気品あふれる英国調。" },
+  { id: "uni_05", name: "自由ヶ丘高校（放課後カーディガン校）", schoolName: "自由ヶ丘学園高校", badge: "人気", top: "#B45309", sub: "#FFFFFF", acc: "#10B981", bot: "#991B1B", bot_g: "#991B1B", unlockLevel: 3, lxpCost: 350, description: "ざっくり羽織ったルーズなキャメルカーディガンと赤チェックスカート。" },
+  { id: "uni_06", name: "翔嶺アスリート（スポーツ強豪校）", schoolName: "翔嶺体育大学附属高校", badge: "スポーティ", top: "#1D4ED8", sub: "#FFFFFF", acc: "#FFFFFF", bot: "#1E3A8A", bot_g: "#1D4ED8", unlockLevel: 3, lxpCost: 350, description: "シャープなブルーに白のサイドラインが走る公式アスリートジャージ。" },
+  { id: "uni_07", name: "ネオ・アキバ高等工専（電脳サイバー校）", schoolName: "ネオ・アキバ工業高等専門学校", badge: "SF", top: "#1E293B", sub: "#06B6D4", acc: "#22D3EE", bot: "#0F172A", bot_g: "#0F172A", unlockLevel: 4, lxpCost: 500, description: "ダークスーツにネオンシアンの発光ラインが組み込まれたハイテクベスト。" },
+  { id: "uni_08", name: "湘南シーサイド（海風爽快マリン校）", schoolName: "湘南シーサイド学園", badge: "爽快", top: "#FFFFFF", sub: "#0284C7", acc: "#0284C7", bot: "#0369A1", bot_g: "#0284C7", unlockLevel: 4, lxpCost: 500, description: "青い海と空をイメージした純白セーラーブレザーとスカイブルータイ。" },
+  { id: "uni_09", name: "白百合貴族学院（お嬢様ボルドー校）", schoolName: "私立白百合貴族女学院", badge: "お嬢様", top: "#831843", sub: "#FBCFE8", acc: "#FACC15", bot: "#500724", bot_g: "#831843", unlockLevel: 5, lxpCost: 650, description: "深紅のボルドーワイン生地にゴールドボタンが輝く最高峰のセレブ制服。" },
+  { id: "uni_10", name: "アレクサンドリア学園（図書室スカラー校）", schoolName: "大図書館アレクサンドリア学園", badge: "賢者", top: "#312E81", sub: "#E0E7FF", acc: "#C084FC", bot: "#1E1B4B", bot_g: "#312E81", unlockLevel: 5, lxpCost: 650, description: "深い知性を湛えた夜空色のローブ風ブレザーにアメジストタイ。" },
+  { id: "uni_11", name: "渋谷ユース（ストリートパーカー校）", schoolName: "渋谷クリエイティブ高等学院", badge: "ストリート", top: "#111827", sub: "#E5E7EB", acc: "#F43F5E", bot: "#374151", bot_g: "#991B1B", unlockLevel: 6, lxpCost: 800, description: "オーバーサイズの漆黒パーカーにネオンピンクのアクセント。" },
+  { id: "uni_12", name: "コンセルヴァトワール（芸術音楽校）", schoolName: "帝都音楽芸術高等学院", badge: "芸術", top: "#0D9488", sub: "#CCFBF1", acc: "#F59E0B", bot: "#115E59", bot_g: "#0D9488", unlockLevel: 6, lxpCost: 800, description: "音符エンブレムを胸に宿した、上品なノーカラージャケットスタイル。" },
+  { id: "uni_13", name: "神楽坂学園（モダン和風ハイカラ校）", schoolName: "神楽坂モダン高等女学校", badge: "和風", top: "#7F1D1D", sub: "#FEF2F2", acc: "#15803D", bot: "#1E293B", bot_g: "#15803D", unlockLevel: 7, lxpCost: 1000, description: "大正ロマンの書生羽織と深緑の袴をブレザーに融合させたハイカラスタイル。" },
+  { id: "uni_14", name: "グリーンヒルズ（自然環境エコ校）", schoolName: "グリーンヒルズ環境アカデミー", badge: "エコ", top: "#15803D", sub: "#FEF3C7", acc: "#EAB308", bot: "#14532D", bot_g: "#15803D", unlockLevel: 7, lxpCost: 1000, description: "豊かな森のフォレストグリーンとクリームイエローの自然派スクール。" },
+  { id: "uni_15", name: "常夏サマー（清涼開襟サマー校）", schoolName: "常夏インターナショナルスクール", badge: "夏期", top: "#F8FAFC", sub: "#38BDF8", acc: "#0284C7", bot: "#0284C7", bot_g: "#38BDF8", unlockLevel: 8, lxpCost: 1200, description: "照りつける太陽にも涼やかな開襟サマーシャツと水色スカーフ。" },
+  { id: "uni_16", name: "生徒会執行部（純白テーラード特別制服）", schoolName: "全国生徒会連合・特待執行部", badge: "生徒会", top: "#FFFFFF", sub: "#F1F5F9", acc: "#EAB308", bot: "#0F172A", bot_g: "#0F172A", unlockLevel: 8, lxpCost: 1200, description: "選ばれし生徒会幹部のみが袖を通す、黄金肩章つきの純白ジャケット。" },
+  { id: "uni_17", name: "ミッドナイトハイスクール（漆黒バイカー校）", schoolName: "深夜特別定時制ミッドナイト高校", badge: "硬派", top: "#000000", sub: "#A855F7", acc: "#C084FC", bot: "#1E1B4B", bot_g: "#581C87", unlockLevel: 9, lxpCost: 1500, description: "ライダース風の漆黒レザージャケットに妖艶なパープルネオン。" },
+  { id: "uni_18", name: "エンタメハイスクール（アイドルステージ制服）", schoolName: "帝都エンターテインメント学院", badge: "アイドル", top: "#EC4899", sub: "#FFFFFF", acc: "#FACC15", bot: "#BE185D", bot_g: "#DB2777", unlockLevel: 9, lxpCost: 1500, description: "ステージライトの下で眩しく輝く、チェック柄フリルと星のバッジ。" },
+  { id: "uni_19", name: "スノーフェザー学園（冬期ダッフルコート校）", schoolName: "北海道スノーフェザー学院", badge: "冬期", top: "#78350F", sub: "#DC2626", acc: "#FEF08A", bot: "#1E293B", bot_g: "#78350F", unlockLevel: 10, lxpCost: 2000, description: "雪降る通学路を温かく彩る、キャメルダッフルコートと赤チェックマフラー。" },
+  { id: "uni_20", name: "万能勇者アカデミー（レジェンド制服）", schoolName: "時空超越・万能勇者アカデミー", badge: "神話", top: "#CA8A04", sub: "#FEF08A", acc: "#DC2626", bot: "#713F12", bot_g: "#CA8A04", unlockLevel: 10, lxpCost: 3000, description: "全教科の壁を越えた伝説の英語勇者DopaEngが纏う、黄金装飾と深紅のマント。" },
+];
+
+// =========================================================================
+// 3. レベル開放の飾り（ファンタジー進化 5段階）
+// =========================================================================
+export interface AuraLevelDef {
+  level: number;
+  name: string;
+  badge: string;
+  title: string;
+  description: string;
+}
+
+export const AURA_LEVEL_DEFS: AuraLevelDef[] = [
+  { level: 1, name: "自然体（ノーマル）", badge: "Lv.1", title: "爽やか中学生", description: "飾りなし。自然体で爽やかな学園生活スタイル。" },
+  { level: 2, name: "英気覚醒（スタディ・スパークル）", badge: "Lv.2", title: "英気覚醒", description: "周囲に淡いきらめきと知性の星屑パーティクルが舞い踊る。" },
+  { level: 3, name: "英知解放（マジック・ビット）", badge: "Lv.3", title: "英知解放", description: "頭上に知性の光輪が浮かび、浮遊する魔導書や文具ビットがホバー。" },
+  { level: 4, name: "属性共鳴（エレメンタル・オーラ）", badge: "Lv.4", title: "属性共鳴", description: "激しく燃え盛る属性オーラの炎と、背後に交差する光の双剣。" },
+  { level: 5, name: "全知超越（ゴッド・ウィング）", badge: "Lv.5", title: "全知共鳴のゴッド", description: "神聖な黄金光輪と、背後に大きく羽ばたく神話の六翼光翼。" },
+];
+
+// =========================================================================
+// 4. 称号定義（アジト画面などで使用）
+// =========================================================================
 export const STAT_BRANCH_INFO: Record<
   StatBranchType,
   {
@@ -62,31 +128,14 @@ export const STAT_BRANCH_INFO: Record<
     shortLabel: "万能勇者",
     badge: "⚖️ DopaEng勇者",
     color: "#FACC15",
-    description:
-      "他教科の仲間と力を合わせて大ボスに立ち向かう、英語の万能勇者ルート！",
+    description: "他教科の仲間と力を合わせて大ボスに立ち向かう、英語の万能勇者ルート！",
     classTitlesBoy: [
-      "寝起きの英語新入生",
-      "単語帳スプリンター",
-      "放課後イングリッシュ",
-      "学園の英語エース",
-      "生徒会スピーチリーダー",
-      "学園英語フェニックス",
-      "特待生・DopaEng",
-      "学園選抜・英語ヒーロー",
-      "覚醒・万能勇者DopaEng",
-      "森羅万象の英語勇者（レジェンド）",
+      "寝起きの英語新入生", "単語帳スプリンター", "放課後イングリッシュ", "学園の英語エース", "生徒会スピーチリーダー",
+      "学園英語フェニックス", "特待生・DopaEng", "学園選抜・英語ヒーロー", "覚醒・万能勇者DopaEng", "全知共鳴の英語勇者（ゴッド）"
     ],
     classTitlesGirl: [
-      "寝起きの英語新入生",
-      "単語帳スプリンター",
-      "放課後イングリッシュ",
-      "学園の英語エース",
-      "生徒会スピーチリーダー",
-      "学園英語フェニックス",
-      "特待生・DopaEng",
-      "学園選抜・英語ヒロイン",
-      "覚醒・万能勇者DopaEng",
-      "森羅万象の英語勇者（レジェンド）",
+      "寝起きの英語新入生", "単語帳スプリンター", "放課後イングリッシュ", "学園の英語エース", "生徒会スピーチリーダー",
+      "学園英語フェニックス", "特待生・DopaEng", "学園選抜・英語ヒロイン", "覚醒・万能勇者DopaEng", "全知共鳴の英語勇者（ゴッド）"
     ],
   },
   vocab: {
@@ -97,28 +146,12 @@ export const STAT_BRANCH_INFO: Record<
     color: "#A855F7",
     description: "【語彙】が突出！分厚い英英辞典と単語力で論破する図書賢者ルート。",
     classTitlesBoy: [
-      "見習い図書委員",
-      "単語帳マスター",
-      "辞書引きスカラー",
-      "オックスフォード読破生",
-      "学園の生き字引",
-      "図書室のアーク賢者",
-      "禁書庫のイングリッシュロード",
-      "語彙力無双のスペシャリスト",
-      "六翼のボキャブラリーセージ",
-      "森羅万象の語彙大賢者",
+      "見習い図書委員", "単語帳マスター", "辞書引きスカラー", "オックスフォード読破生", "学園の生き字引",
+      "図書室のアーク賢者", "禁書庫のイングリッシュロード", "語彙力無双のスペシャリスト", "六翼のボキャブラリーセージ", "森羅万象の語彙大賢者"
     ],
     classTitlesGirl: [
-      "見習い図書委員",
-      "単語帳マスター",
-      "辞書引きスカラー",
-      "オックスフォード読破生",
-      "学園の生き字引",
-      "図書室のアーク賢者",
-      "禁書庫のイングリッシュクイーン",
-      "語彙力無双のスペシャリスト",
-      "六翼のボキャブラリーセージ",
-      "森羅万象の語彙大賢者",
+      "見習い図書委員", "単語帳マスター", "辞書引きスカラー", "オックスフォード読破生", "学園の生き字引",
+      "図書室のアーク賢者", "禁書庫のイングリッシュクイーン", "語彙力無双のスペシャリスト", "六翼のボキャブラリーセージ", "森羅万象の語彙大賢者"
     ],
   },
   speed: {
@@ -129,28 +162,12 @@ export const STAT_BRANCH_INFO: Record<
     color: "#06B6D4",
     description: "【瞬発】が突出！電光石火の即答とシャドーイングで駆け抜ける神速ルート。",
     classTitlesBoy: [
-      "早口英語の練習生",
-      "即答スラッガー",
-      "シャドーイング走者",
-      "疾風のディベーター",
-      "音速のスピーカー",
-      "ストリート・ラッパー",
-      "ライトニング・トーカー",
-      "英語フラッシュマスター",
-      "瞬発神速のライトニング・ロード",
-      "時空超越の光速スピーカー",
+      "早口英語の練習生", "即答スラッガー", "シャドーイング走者", "疾風のディベーター", "音速のスピーカー",
+      "ストリート・ラッパー", "ライトニング・トーカー", "英語フラッシュマスター", "瞬発神速のライトニング・ロード", "時空超越の光速スピーカー"
     ],
     classTitlesGirl: [
-      "早口英語の練習生",
-      "即答スラッガー",
-      "シャドーイング走者",
-      "疾風のディベーター",
-      "音速のスピーカー",
-      "ストリート・ラッパー",
-      "ライトニング・トーカー",
-      "英語フラッシュマスター",
-      "瞬発神速のライトニング・クイーン",
-      "時空超越の光速スピーカー",
+      "早口英語の練習生", "即答スラッガー", "シャドーイング走者", "疾風のディベーター", "音速のスピーカー",
+      "ストリート・ラッパー", "ライトニング・トーカー", "英語フラッシュマスター", "瞬発神速のライトニング・クイーン", "時空超越の光速スピーカー"
     ],
   },
   grammar: {
@@ -159,356 +176,50 @@ export const STAT_BRANCH_INFO: Record<
     shortLabel: "構文パラディン",
     badge: "🛡️ PALADIN",
     color: "#10B981",
-    description: "【構築】が突出！5文型と複雑な複文パズルを瞬時に組み立てる理論派ルート。",
+    description: "【構築】が突出！長文読解と文法ロジックで強固な要塞を築く構文騎士ルート。",
     classTitlesBoy: [
-      "文法パズル好きの生徒",
-      "5文型ビルダー",
-      "構文アーキテクト",
-      "ロジカル・エッセイスト",
-      "長文解読パラディン",
-      "不落のグラマーガード",
-      "白銀の構文ナイト",
-      "秩序のイージス・ディベーター",
-      "構文創世のアークアーキテクト",
-      "絶対秩序の創世文法神",
+      "文法パズルの入門生", "構文グラマリアン", "文法チェックキーパー", "鉄壁のセンテンスガード", "英語論理アーキテクト",
+      "構文パラディン", "要塞級グラマープライム", "真理を暴く構文マスター", "神託のロジカルロード", "森羅万象の文法守護神"
     ],
     classTitlesGirl: [
-      "文法パズル好きの生徒",
-      "5文型ビルダー",
-      "構文アーキテクト",
-      "ロジカル・エッセイスト",
-      "長文解読パラディン",
-      "不落のグラマーガード",
-      "白銀の構文ヴァルキリー",
-      "秩序のイージス・ディベーター",
-      "構文創世のアークアーキテクト",
-      "絶対秩序の創世文法神",
+      "文法パズルの入門生", "構文グラマリアン", "文法チェックキーパー", "鉄壁のセンテンスガード", "英語論理アーキテクト",
+      "構文パラディン", "要塞級グラマープライム", "真理を暴く構文マスター", "神託のロジカルクイーン", "森羅万象の文法守護神"
     ],
   },
   listening: {
     id: "listening",
-    label: "聴覚特化系統（共鳴のネイティブリスナー）",
-    shortLabel: "聴覚リスナー",
-    badge: "🎧 SONIC",
+    label: "聴覚特化系統（音波のリスニングゴッド）",
+    shortLabel: "音波ゴッド",
+    badge: "🎧 BARD",
     color: "#EC4899",
-    description: "【聴覚】が突出！ネイティブの微細な発音も完璧に聞き分ける音撃ルート。",
+    description: "【聴覚】が突出！ネイティブの高速英語も一発で聞き分ける音響詩人ルート。",
     classTitlesBoy: [
-      "通学ヘッドホンの生徒",
-      "ポッドキャスト愛好家",
-      "ネイティブ耳の生徒",
-      "発音チューナーDJ",
-      "学園放送の英語アナウンサー",
-      "超音撃のリスナー",
-      "共鳴のソニック・スター",
-      "極彩音波のイングリッシュマスター",
-      "宇宙共鳴のサウンドロード",
-      "全知共鳴のリスニングゴッド",
+      "イヤホンリスナー新入生", "ネイティブ耳の予備軍", "発音キャッチビギナー", "音波のリスニングマスター", "スクールDJスピーカー",
+      "全方位バイノーラルセージ", "超音速のリスニングロード", "音波超越のエコーマスター", "全知共鳴のリスニングゴッド", "全次元のネイティブ共鳴神"
     ],
     classTitlesGirl: [
-      "通学ヘッドホンの生徒",
-      "ポッドキャスト愛好家",
-      "ネイティブ耳の生徒",
-      "発音チューナーDJ",
-      "学園放送の英語アナウンサー",
-      "超音撃のリスナー",
-      "共鳴のソニック・ミューズ",
-      "極彩音波のイングリッシュマスター",
-      "宇宙共鳴のサウンドクイーン",
-      "全知共鳴のリスニングゴッド",
+      "イヤホンリスナー新入生", "ネイティブ耳の予備軍", "発音キャッチビギナー", "音波のリスニングマスター", "スクールDJスピーカー",
+      "全方位バイノーラルセージ", "超音速のリスニングクイーン", "音波超越のエコーマスター", "全知共鳴のリスニングゴッド", "全次元のネイティブ共鳴神"
     ],
   },
   guts: {
     id: "guts",
-    label: "度胸特化系統（不屈のプレゼン覇王）",
-    shortLabel: "度胸スピーカー",
-    badge: "🔥 OVERLORD",
+    label: "度胸特化系統（英語弁論のバーサーカー）",
+    shortLabel: "弁論バーサーカー",
+    badge: "🔥 BERSERK",
     color: "#EF4444",
-    description: "【度胸】が突出！文法ミスを恐れず壇上で堂々と英語を放つ度胸満点ルート。",
+    description: "【度胸】が突出！ミスを恐れずパッションと大声で押し通す豪快ルート。",
     classTitlesBoy: [
-      "身振り手振りスピーカー",
-      "物怖じしない新星",
-      "学園ストリートスピーカー",
-      "不屈のプレゼンター",
-      "英語弁論ファイナリスト",
-      "壇上のディベート覇王",
-      "スピーチコンテストの勝者",
-      "逆転無双のプレゼンリーダー",
-      "紅蓮スピーチのオーバードライブ",
-      "逆転無双の英語プレゼン神",
+      "声出しイングリッシュ", "物怖じ知らずのチャレンジャー", "パッション・トーカー", "英語弁論のスピーチファイター", "メガホン・スピーカー",
+      "不屈のバーサーカー", "全校集会の大演説家", "度胸無双のイングリッシュライオン", "覇王のパッショングレート", "不滅の英語バーサーカー神"
     ],
     classTitlesGirl: [
-      "身振り手振りスピーカー",
-      "物怖じしない新星",
-      "学園ストリートスピーカー",
-      "不屈のプレゼンター",
-      "英語弁論ファイナリスト",
-      "壇上のディベート覇王",
-      "スピーチコンテストの勝者",
-      "逆転無双のプレゼンリーダー",
-      "紅蓮スピーチのオーバードライブ",
-      "逆転無双の英語プレゼン神",
+      "声出しイングリッシュ", "物怖じ知らずのチャレンジャー", "パッション・トーカー", "英語弁論のスピーチファイター", "メガホン・スピーカー",
+      "不屈のバーサーカー", "全校集会の大演説家", "度胸無双のイングリッシュライオン", "覇王のパッショングレート", "不滅の英語バーサーカー神"
     ],
   },
 };
 
-/**
- * 厳選された基本4色パレットアイテム群（学園モノ・レトロピクセル調）
- */
-export const PRESET_4COLOR_PALETTES: FourColorPalette[] = [
-  {
-    id: "pal_classic_navy",
-    name: "王道ネイビー制服",
-    badge: "定番",
-    c1: "#0F172A", // 深紺ライン
-    c2: "#FFDCB8", // 健康的な肌色
-    c3: "#1E3A8A", // 伝統ブレザー紺
-    c4: "#FACC15", // ゴールド金ボタン
-  },
-  {
-    id: "pal_crimson_afterschool",
-    name: "茜色の放課後",
-    badge: "人気",
-    c1: "#1E1B18",
-    c2: "#FFE3C7",
-    c3: "#991B1B", // 夕暮れクリムゾン
-    c4: "#F59E0B", // 琥珀色の夕陽
-  },
-  {
-    id: "pal_campus_emerald",
-    name: "新緑のキャンパス",
-    badge: "爽やか",
-    c1: "#064E3B",
-    c2: "#FFDCB8",
-    c3: "#047857", // エメラルド制服
-    c4: "#FEF08A", // レモンイエロータイ
-  },
-  {
-    id: "pal_sakura_blossom",
-    name: "春風の桜並木",
-    badge: "春季",
-    c1: "#4A044E",
-    c2: "#FFF1F2",
-    c3: "#DB2777", // 桜ピンク
-    c4: "#FACC15", // 花粉ゴールド
-  },
-  {
-    id: "pal_berry_rose",
-    name: "放課後チェリーローズ",
-    badge: "人気",
-    c1: "#1E1229", // 深みショコラライン
-    c2: "#FFF0F5", // 透き通るミルキー美肌
-    c3: "#831843", // 上品なディープチェリー
-    c4: "#F43F5E", // 華やかチェリーローズリボン
-  },
-  {
-    id: "pal_sweet_caramel",
-    name: "ミルクティーラテ",
-    badge: "キュート",
-    c1: "#29150B", // ビターショコラ
-    c2: "#FFF7ED", // やわらか白肌
-    c3: "#9A3412", // ふんわりミルクティー
-    c4: "#2DD4BF", // スパークルミントリボン
-  },
-  {
-    id: "pal_cyber_academy",
-    name: "電脳アカデミー",
-    badge: "SF",
-    c1: "#090D16",
-    c2: "#E0F2FE",
-    c3: "#0284C7", // サイバーブルー
-    c4: "#22D3EE", // ネオンシアン
-  },
-  {
-    id: "pal_monotone_gakuran",
-    name: "伝統の漆黒学ラン",
-    badge: "硬派",
-    c1: "#030712",
-    c2: "#FFDCB8",
-    c3: "#374151", // チャコールブラック
-    c4: "#FFFFFF", // 白詰襟・白ライン
-  },
-  {
-    id: "pal_twilight_violet",
-    name: "黄昏の図書室",
-    badge: "知性",
-    c1: "#1E1B4B",
-    c2: "#FAF5FF",
-    c3: "#6D28D9", // ロイヤルパープル
-    c4: "#C084FC", // アメジスト
-  },
-  {
-    id: "pal_retro_gameboy",
-    name: "初代レトロポータブル",
-    badge: "激レア",
-    c1: "#0F380F",
-    c2: "#9BBC0F",
-    c3: "#306230",
-    c4: "#8BAC0F",
-  },
-  {
-    id: "pal_brave_gold",
-    name: "万能勇者DopaEngゴールド",
-    badge: "Lv.10",
-    c1: "#1E293B",
-    c2: "#FFFFFF",
-    c3: "#CA8A04", // 黄金ブレザー
-    c4: "#EF4444", // 勇者の深紅ネクタイ
-  },
-];
-
-/**
- * ランダムに美しい調和の取れた4色パレットを1つ生成するジェネレーター
- */
-export function generateRandom4ColorPalette(): FourColorPalette {
-  const hues = [
-    { name: "サイバー", c3: "#0284C7", c4: "#00F0FF" },
-    { name: "紅蓮", c3: "#B91C1C", c4: "#F59E0B" },
-    { name: "フォレスト", c3: "#15803D", c4: "#FACC15" },
-    { name: "プラム", c3: "#7E22CE", c4: "#F472B6" },
-    { name: "サンセット", c3: "#C2410C", c4: "#FEF08A" },
-    { name: "インディゴ", c3: "#3730A3", c4: "#38BDF8" },
-    { name: "ローズ", c3: "#BE123C", c4: "#FDA4AF" },
-    { name: "ティール", c3: "#0F766E", c4: "#A7F3D0" },
-    { name: "ノクターン", c3: "#1F2937", c4: "#E11D48" },
-    { name: "ゴールド", c3: "#A16207", c4: "#FFFFFF" },
-  ];
-  const darks = ["#090D16", "#0F172A", "#111827", "#1A102F", "#18181B"];
-  const lights = ["#FFDCB8", "#FFE3C7", "#F8FAFC", "#FEF3C7", "#EDE9FE"];
-
-  const randomHue = hues[Math.floor(Math.random() * hues.length)];
-  const randomDark = darks[Math.floor(Math.random() * darks.length)];
-  const randomLight = lights[Math.floor(Math.random() * lights.length)];
-  const idSuffix = Math.floor(1000 + Math.random() * 9000);
-
-  return {
-    id: `pal_custom_${idSuffix}`,
-    name: `${randomHue.name}カスタム #${idSuffix}`,
-    badge: "生成",
-    c1: randomDark,
-    c2: randomLight,
-    c3: randomHue.c3,
-    c4: randomHue.c4,
-    isCustom: true,
-  };
-}
-
-// =========================================================================
-// 学園モノ × 英語勇者DopaEng のパーツ定義（全8部位）
-// =========================================================================
-
-export const HAIR_STYLES: PartItemDef[] = [
-  { id: "hair_spiky", slot: "hairStyle", name: "爽やかスクールショート", badge: "定番", unlockLevel: 1, lxpCost: 0 },
-  { id: "hair_bob", slot: "hairStyle", name: "ふんわりスクールボブ", badge: "定番", unlockLevel: 1, lxpCost: 0 },
-  { id: "hair_twintail", slot: "hairStyle", name: "王道スクールツインテ", badge: "人気", unlockLevel: 1, lxpCost: 0 },
-  { id: "hair_mush", slot: "hairStyle", name: "今どきマッシュヘア", badge: "Lv.2", unlockLevel: 2, lxpCost: 200 },
-  { id: "hair_ponytail", slot: "hairStyle", name: "疾風ポニーテール", badge: "瞬発", unlockLevel: 2, lxpCost: 200, branchAffinity: "speed" },
-  { id: "hair_wolf", slot: "hairStyle", name: "ストリートウルフ", badge: "Lv.3", unlockLevel: 3, lxpCost: 400 },
-  { id: "hair_center", slot: "hairStyle", name: "知的センターパート", badge: "語彙", unlockLevel: 3, lxpCost: 400, branchAffinity: "vocab" },
-  { id: "hair_drill", slot: "hairStyle", name: "お嬢様ツインロール", badge: "構築", unlockLevel: 4, lxpCost: 600, branchAffinity: "grammar" },
-  { id: "hair_allback", slot: "hairStyle", name: "気合のオールバック", badge: "度胸", unlockLevel: 5, lxpCost: 800, branchAffinity: "guts" },
-  { id: "hair_odango", slot: "hairStyle", name: "ポップお団子ツイン", badge: "聴覚", unlockLevel: 6, lxpCost: 1000, branchAffinity: "listening" },
-  { id: "hair_flame", slot: "hairStyle", name: "不屈のバーサーカー逆毛", badge: "Lv.8", unlockLevel: 8, lxpCost: 1500 },
-  { id: "hair_brave_crown", slot: "hairStyle", name: "覚醒・英語勇者ヘア", badge: "Lv.10", unlockLevel: 10, lxpCost: 3000 },
-];
-
-export const HEADGEAR_PARTS: PartItemDef[] = [
-  { id: "head_none", slot: "headgear", name: "なし（素頭）", badge: "定番", unlockLevel: 1, lxpCost: 0 },
-  { id: "head_ahoge", slot: "headgear", name: "寝癖ピョコ毛", badge: "Lv.1", unlockLevel: 1, lxpCost: 0 },
-  { id: "head_ribbon", slot: "headgear", name: "制服ヘアリボン", badge: "Lv.2", unlockLevel: 2, lxpCost: 150 },
-  { id: "head_glasses", slot: "headgear", name: "知略のスクールメガネ", badge: "語彙", unlockLevel: 2, lxpCost: 250, branchAffinity: "vocab" },
-  { id: "head_headphones", slot: "headgear", name: "通学ネオンヘッドホン", badge: "聴覚", unlockLevel: 3, lxpCost: 400, branchAffinity: "listening" },
-  { id: "head_cap", slot: "headgear", name: "ストリート英語キャップ", badge: "瞬発", unlockLevel: 3, lxpCost: 400, branchAffinity: "speed" },
-  { id: "head_smart_glass", slot: "headgear", name: "電子辞書スマートグラス", badge: "構築", unlockLevel: 4, lxpCost: 600, branchAffinity: "grammar" },
-  { id: "head_headband", slot: "headgear", name: "必勝スピーチハチマキ", badge: "度胸", unlockLevel: 5, lxpCost: 800, branchAffinity: "guts" },
-  { id: "head_laurel", slot: "headgear", name: "英語弁論大会月桂冠", badge: "Lv.7", unlockLevel: 7, lxpCost: 1200 },
-  { id: "head_brave_tiara", slot: "headgear", name: "万能勇者の黄金ティアラ", badge: "Lv.10", unlockLevel: 10, lxpCost: 2500 },
-];
-
-export const EYE_STYLES: PartItemDef[] = [
-  { id: "eye_normal", slot: "eyeStyle", name: "まじめスクール瞳", badge: "定番", unlockLevel: 1, lxpCost: 0 },
-  { id: "eye_determined", slot: "eyeStyle", name: "熱血キリッ目", badge: "度胸", unlockLevel: 2, lxpCost: 200, branchAffinity: "guts" },
-  { id: "eye_cool", slot: "eyeStyle", name: "クールインテリ瞳", badge: "語彙", unlockLevel: 3, lxpCost: 350, branchAffinity: "vocab" },
-  { id: "eye_sparkle", slot: "eyeStyle", name: "キラキラ期待の瞳", badge: "聴覚", unlockLevel: 4, lxpCost: 500, branchAffinity: "listening" },
-  { id: "eye_cyber", slot: "eyeStyle", name: "電脳スマートスキャン瞳", badge: "構築", unlockLevel: 5, lxpCost: 750, branchAffinity: "grammar" },
-  { id: "eye_brave", slot: "eyeStyle", name: "万能勇者DopaEngの瞳", badge: "Lv.10", unlockLevel: 10, lxpCost: 2000 },
-];
-
-export const OUTFIT_PARTS: PartItemDef[] = [
-  { id: "outfit_jersey", slot: "outfit", name: "部屋着・新入生ジャージ", badge: "Lv.1", unlockLevel: 1, lxpCost: 0 },
-  { id: "outfit_uniform", slot: "outfit", name: "学園ブレザー制服", badge: "Lv.2", unlockLevel: 2, lxpCost: 200 },
-  { id: "outfit_sailor_gakuran", slot: "outfit", name: "伝統セーラー / 学ラン", badge: "Lv.2", unlockLevel: 2, lxpCost: 200 },
-  { id: "outfit_cardigan", slot: "outfit", name: "放課後スクールカーディガン", badge: "Lv.3", unlockLevel: 3, lxpCost: 400 },
-  { id: "outfit_hoodie", slot: "outfit", name: "パーカー制服スタイル", badge: "瞬発", unlockLevel: 4, lxpCost: 600, branchAffinity: "speed" },
-  { id: "outfit_tuxedo", slot: "outfit", name: "英語弁論大会フォーマルスーツ", badge: "度胸", unlockLevel: 5, lxpCost: 800, branchAffinity: "guts" },
-  { id: "outfit_scholar_robe", slot: "outfit", name: "図書室スカラー制服", badge: "語彙", unlockLevel: 6, lxpCost: 1000, branchAffinity: "vocab" },
-  { id: "outfit_idol_stage", slot: "outfit", name: "学園祭ステージ衣装", badge: "聴覚", unlockLevel: 6, lxpCost: 1000, branchAffinity: "listening" },
-  { id: "outfit_council_blazer", slot: "outfit", name: "生徒会特注エンブレム制服", badge: "構築", unlockLevel: 7, lxpCost: 1400, branchAffinity: "grammar" },
-  { id: "outfit_ace_blazer", slot: "outfit", name: "学園英語選抜エースブレザー", badge: "Lv.8", unlockLevel: 8, lxpCost: 1800 },
-  { id: "outfit_brave_dopaeng", slot: "outfit", name: "万能勇者DopaEngマント制服", badge: "Lv.10", unlockLevel: 10, lxpCost: 3500 },
-];
-
-export const WEAPON_RIGHT_PARTS: PartItemDef[] = [
-  { id: "wp_none", slot: "weaponRight", name: "なし（素手）", badge: "Lv.1", unlockLevel: 1, lxpCost: 0 },
-  { id: "wp_pencil_dagger", slot: "weaponRight", name: "必勝シャープペンシル", badge: "Lv.2", unlockLevel: 2, lxpCost: 200 },
-  { id: "wp_fountain_pen", slot: "weaponRight", name: "インテリ万年筆ブレード", badge: "語彙", unlockLevel: 3, lxpCost: 400, branchAffinity: "vocab" },
-  { id: "wp_ruler_blade", slot: "weaponRight", name: "30cm定規スラッシャー", badge: "瞬発", unlockLevel: 4, lxpCost: 600, branchAffinity: "speed" },
-  { id: "wp_speech_mic", slot: "weaponRight", name: "英語スピーチマイク", badge: "聴覚", unlockLevel: 4, lxpCost: 600, branchAffinity: "listening" },
-  { id: "wp_laser_pointer", slot: "weaponRight", name: "レーザーポインターセイバー", badge: "構築", unlockLevel: 5, lxpCost: 800, branchAffinity: "grammar" },
-  { id: "wp_megaphone", slot: "weaponRight", name: "学園応援メガホン", badge: "度胸", unlockLevel: 6, lxpCost: 1000, branchAffinity: "guts" },
-  { id: "wp_penlight_sabre", slot: "weaponRight", name: "ペンライトツインブレード", badge: "Lv.7", unlockLevel: 7, lxpCost: 1400 },
-  { id: "wp_e_dict_sabre", slot: "weaponRight", name: "電子辞書プラズマセイバー", badge: "Lv.8", unlockLevel: 8, lxpCost: 1800 },
-  { id: "wp_brave_pen_caliber", slot: "weaponRight", name: "勇者の光筆ペンシルカリバー", badge: "Lv.10", unlockLevel: 10, lxpCost: 3500 },
-];
-
-export const WEAPON_LEFT_PARTS: PartItemDef[] = [
-  { id: "sub_none", slot: "weaponLeft", name: "なし", badge: "定番", unlockLevel: 1, lxpCost: 0 },
-  { id: "sub_word_ring", slot: "weaponLeft", name: "必勝リング単語帳", badge: "Lv.2", unlockLevel: 2, lxpCost: 200 },
-  { id: "sub_school_bag", slot: "weaponLeft", name: "通学スクールバッグ", badge: "Lv.3", unlockLevel: 3, lxpCost: 400 },
-  { id: "sub_oxford_dict", slot: "weaponLeft", name: "厚口オックスフォード英英辞典", badge: "語彙", unlockLevel: 4, lxpCost: 600, branchAffinity: "vocab" },
-  { id: "sub_speech_notes", slot: "weaponLeft", name: "英語弁論スピーチ原稿", badge: "度胸", unlockLevel: 5, lxpCost: 800, branchAffinity: "guts" },
-  { id: "sub_e_dict_pad", slot: "weaponLeft", name: "小型電子辞書パッド", badge: "構築", unlockLevel: 6, lxpCost: 1000, branchAffinity: "grammar" },
-  { id: "sub_wireless_earbud", slot: "weaponLeft", name: "重低音スピーカー宝珠", badge: "聴覚", unlockLevel: 6, lxpCost: 1000, branchAffinity: "listening" },
-  { id: "sub_dual_pen", slot: "weaponLeft", name: "逆手・二刀流赤ペン", badge: "瞬発", unlockLevel: 7, lxpCost: 1300, branchAffinity: "speed" },
-  { id: "sub_brave_crest_shield", slot: "weaponLeft", name: "万能勇者の生徒手帳シールド", badge: "Lv.10", unlockLevel: 10, lxpCost: 3000 },
-];
-
-export const BACK_GEAR_PARTS: PartItemDef[] = [
-  { id: "back_none", slot: "backGear", name: "なし", badge: "Lv.1", unlockLevel: 1, lxpCost: 0 },
-  { id: "back_rucksack", slot: "backGear", name: "スクールリュックサック", badge: "Lv.2", unlockLevel: 2, lxpCost: 200 },
-  { id: "back_scarf", slot: "backGear", name: "風になびく通学マフラー", badge: "瞬発", unlockLevel: 3, lxpCost: 400, branchAffinity: "speed" },
-  { id: "back_shoulder_knit", slot: "backGear", name: "肩掛けプロデューサーニット", badge: "Lv.4", unlockLevel: 4, lxpCost: 600 },
-  { id: "back_equalizer", slot: "backGear", name: "ネオン音波イコライザー", badge: "聴覚", unlockLevel: 5, lxpCost: 800, branchAffinity: "listening" },
-  { id: "back_flying_stationery", slot: "backGear", name: "浮遊する必勝文具ビット", badge: "構築", unlockLevel: 6, lxpCost: 1100, branchAffinity: "grammar" },
-  { id: "back_speech_banner", slot: "backGear", name: "大会応援スクールフラッグ", badge: "度胸", unlockLevel: 7, lxpCost: 1400, branchAffinity: "guts" },
-  { id: "back_alphabet_aura", slot: "backGear", name: "舞い踊る英単語(A-Z)オーラ", badge: "語彙", unlockLevel: 8, lxpCost: 1800, branchAffinity: "vocab" },
-  { id: "back_brave_cape", slot: "backGear", name: "英語勇者の学園マント", badge: "Lv.9", unlockLevel: 9, lxpCost: 2400 },
-  { id: "back_brave_wings", slot: "backGear", name: "万能勇者DopaEngの光翼", badge: "Lv.10", unlockLevel: 10, lxpCost: 3500 },
-];
-
-// パレットパーツ一覧（プリセット）
-export const PALETTE_PART_DEFS: PartItemDef[] = PRESET_4COLOR_PALETTES.map((p) => ({
-  id: p.id,
-  slot: "palette",
-  name: p.name,
-  badge: p.badge,
-  unlockLevel: 1,
-  lxpCost: 0,
-}));
-
-export const ALL_CHARACTER_PARTS: PartItemDef[] = [
-  ...HAIR_STYLES,
-  ...HEADGEAR_PARTS,
-  ...EYE_STYLES,
-  ...OUTFIT_PARTS,
-  ...WEAPON_RIGHT_PARTS,
-  ...WEAPON_LEFT_PARTS,
-  ...BACK_GEAR_PARTS,
-  ...PALETTE_PART_DEFS,
-];
-
-/**
- * プレイヤーの五角形ステータスから、現在の「進化系統（6系統）」を自動判定する
- */
 export function detectStatBranch(stats?: FiveStats): StatBranchType {
   if (!stats) return "balanced";
   const entries: { key: StatBranchType; val: number }[] = [
@@ -526,172 +237,6 @@ export function detectStatBranch(stats?: FiveStats): StatBranchType {
   return entries[0].key;
 }
 
-/**
- * 性別 × レベル(1〜10) × 進化系統(6系統) から、全120パターンの公式学園進化ロードアウトを解決
- */
-export function resolveAutoLoadout(
-  gender: CharacterGender,
-  stage: number,
-  branch: StatBranchType
-): CharacterPartLoadout {
-  const lv = Math.max(1, Math.min(10, stage));
-
-  // Lv.10 はどの系統でも「万能勇者DopaEng」覚醒フォーム！
-  if (lv === 10) {
-    return {
-      mode: "auto",
-      forcedBranch: branch,
-      hairStyle: "hair_brave_crown",
-      headgear: "head_brave_tiara",
-      eyeStyle: "eye_brave",
-      outfit: "outfit_brave_dopaeng",
-      weaponRight: "wp_brave_pen_caliber",
-      weaponLeft: "sub_brave_crest_shield",
-      backGear: "back_brave_wings",
-      palette: "pal_brave_gold",
-    };
-  }
-
-  // 系統別テーブル
-  switch (branch) {
-    case "vocab": {
-      const hairs = ["hair_spiky", "hair_center", "hair_center", "hair_center", "hair_wolf", "hair_center", "hair_center", "hair_center", "hair_brave_crown"];
-      const hairsG = ["hair_bob", "hair_bob", "hair_drill", "hair_bob", "hair_drill", "hair_bob", "hair_drill", "hair_bob", "hair_brave_crown"];
-      const heads = ["head_ahoge", "head_glasses", "head_glasses", "head_glasses", "head_smart_glass", "head_smart_glass", "head_laurel", "head_laurel", "head_brave_tiara"];
-      const outfits = ["outfit_jersey", "outfit_uniform", "outfit_cardigan", "outfit_scholar_robe", "outfit_scholar_robe", "outfit_scholar_robe", "outfit_council_blazer", "outfit_ace_blazer", "outfit_ace_blazer"];
-      const wpR = ["wp_none", "wp_pencil_dagger", "wp_fountain_pen", "wp_fountain_pen", "wp_fountain_pen", "wp_e_dict_sabre", "wp_fountain_pen", "wp_e_dict_sabre", "wp_brave_pen_caliber"];
-      const wpL = ["sub_none", "sub_word_ring", "sub_word_ring", "sub_oxford_dict", "sub_oxford_dict", "sub_oxford_dict", "sub_e_dict_pad", "sub_oxford_dict", "sub_brave_crest_shield"];
-      const backs = ["back_none", "back_none", "back_rucksack", "back_rucksack", "back_shoulder_knit", "back_alphabet_aura", "back_alphabet_aura", "back_brave_cape", "back_brave_cape"];
-      return {
-        mode: "auto",
-        forcedBranch: branch,
-        hairStyle: gender === "boy" ? hairs[lv - 1] : hairsG[lv - 1],
-        headgear: heads[lv - 1],
-        eyeStyle: lv >= 5 ? "eye_cool" : "eye_normal",
-        outfit: outfits[lv - 1],
-        weaponRight: wpR[lv - 1],
-        weaponLeft: wpL[lv - 1],
-        backGear: backs[lv - 1],
-        palette: "pal_twilight_violet",
-      };
-    }
-
-    case "speed": {
-      const hairs = ["hair_spiky", "hair_spiky", "hair_mush", "hair_mush", "hair_wolf", "hair_mush", "hair_wolf", "hair_flame", "hair_brave_crown"];
-      const hairsG = ["hair_ponytail", "hair_ponytail", "hair_ponytail", "hair_twintail", "hair_ponytail", "hair_ponytail", "hair_twintail", "hair_ponytail", "hair_brave_crown"];
-      const heads = ["head_ahoge", "head_cap", "head_cap", "head_cap", "head_headband", "head_cap", "head_headband", "head_laurel", "head_brave_tiara"];
-      const outfits = ["outfit_jersey", "outfit_uniform", "outfit_hoodie", "outfit_hoodie", "outfit_hoodie", "outfit_cardigan", "outfit_council_blazer", "outfit_ace_blazer", "outfit_ace_blazer"];
-      const wpR = ["wp_none", "wp_pencil_dagger", "wp_ruler_blade", "wp_ruler_blade", "wp_ruler_blade", "wp_ruler_blade", "wp_penlight_sabre", "wp_ruler_blade", "wp_brave_pen_caliber"];
-      const wpL = ["sub_none", "sub_none", "sub_word_ring", "sub_dual_pen", "sub_dual_pen", "sub_school_bag", "sub_dual_pen", "sub_dual_pen", "sub_brave_crest_shield"];
-      const backs = ["back_none", "back_scarf", "back_scarf", "back_scarf", "back_rucksack", "back_scarf", "back_scarf", "back_brave_cape", "back_brave_cape"];
-      return {
-        mode: "auto",
-        forcedBranch: branch,
-        hairStyle: gender === "boy" ? hairs[lv - 1] : hairsG[lv - 1],
-        headgear: heads[lv - 1],
-        eyeStyle: lv >= 5 ? "eye_determined" : "eye_normal",
-        outfit: outfits[lv - 1],
-        weaponRight: wpR[lv - 1],
-        weaponLeft: wpL[lv - 1],
-        backGear: backs[lv - 1],
-        palette: "pal_cyber_academy",
-      };
-    }
-
-    case "grammar": {
-      const hairs = ["hair_spiky", "hair_mush", "hair_center", "hair_mush", "hair_center", "hair_mush", "hair_center", "hair_center", "hair_brave_crown"];
-      const hairsG = ["hair_bob", "hair_twintail", "hair_drill", "hair_drill", "hair_drill", "hair_drill", "hair_drill", "hair_drill", "hair_brave_crown"];
-      const heads = ["head_ahoge", "head_ribbon", "head_smart_glass", "head_smart_glass", "head_smart_glass", "head_smart_glass", "head_laurel", "head_laurel", "head_brave_tiara"];
-      const outfits = ["outfit_jersey", "outfit_uniform", "outfit_cardigan", "outfit_cardigan", "outfit_council_blazer", "outfit_council_blazer", "outfit_council_blazer", "outfit_ace_blazer", "outfit_ace_blazer"];
-      const wpR = ["wp_none", "wp_pencil_dagger", "wp_laser_pointer", "wp_laser_pointer", "wp_laser_pointer", "wp_laser_pointer", "wp_laser_pointer", "wp_e_dict_sabre", "wp_brave_pen_caliber"];
-      const wpL = ["sub_none", "sub_word_ring", "sub_word_ring", "sub_e_dict_pad", "sub_e_dict_pad", "sub_e_dict_pad", "sub_e_dict_pad", "sub_e_dict_pad", "sub_brave_crest_shield"];
-      const backs = ["back_none", "back_none", "back_shoulder_knit", "back_shoulder_knit", "back_flying_stationery", "back_flying_stationery", "back_flying_stationery", "back_brave_cape", "back_brave_cape"];
-      return {
-        mode: "auto",
-        forcedBranch: branch,
-        hairStyle: gender === "boy" ? hairs[lv - 1] : hairsG[lv - 1],
-        headgear: heads[lv - 1],
-        eyeStyle: lv >= 5 ? "eye_cyber" : "eye_normal",
-        outfit: outfits[lv - 1],
-        weaponRight: wpR[lv - 1],
-        weaponLeft: wpL[lv - 1],
-        backGear: backs[lv - 1],
-        palette: "pal_campus_emerald",
-      };
-    }
-
-    case "listening": {
-      const hairs = ["hair_spiky", "hair_mush", "hair_wolf", "hair_mush", "hair_wolf", "hair_mush", "hair_wolf", "hair_wolf", "hair_brave_crown"];
-      const hairsG = ["hair_twintail", "hair_twintail", "hair_odango", "hair_odango", "hair_twintail", "hair_odango", "hair_twintail", "hair_odango", "hair_brave_crown"];
-      const heads = ["head_ahoge", "head_headphones", "head_headphones", "head_headphones", "head_headphones", "head_headphones", "head_headphones", "head_laurel", "head_brave_tiara"];
-      const outfits = ["outfit_jersey", "outfit_uniform", "outfit_hoodie", "outfit_idol_stage", "outfit_idol_stage", "outfit_idol_stage", "outfit_council_blazer", "outfit_ace_blazer", "outfit_ace_blazer"];
-      const wpR = ["wp_none", "wp_speech_mic", "wp_speech_mic", "wp_speech_mic", "wp_speech_mic", "wp_penlight_sabre", "wp_speech_mic", "wp_speech_mic", "wp_brave_pen_caliber"];
-      const wpL = ["sub_none", "sub_none", "sub_wireless_earbud", "sub_wireless_earbud", "sub_wireless_earbud", "sub_wireless_earbud", "sub_wireless_earbud", "sub_school_bag", "sub_brave_crest_shield"];
-      const backs = ["back_none", "back_none", "back_rucksack", "back_equalizer", "back_equalizer", "back_equalizer", "back_equalizer", "back_brave_cape", "back_brave_cape"];
-      return {
-        mode: "auto",
-        forcedBranch: branch,
-        hairStyle: gender === "boy" ? hairs[lv - 1] : hairsG[lv - 1],
-        headgear: heads[lv - 1],
-        eyeStyle: "eye_sparkle",
-        outfit: outfits[lv - 1],
-        weaponRight: wpR[lv - 1],
-        weaponLeft: wpL[lv - 1],
-        backGear: backs[lv - 1],
-        palette: "pal_sakura_blossom",
-      };
-    }
-
-    case "guts": {
-      const hairs = ["hair_spiky", "hair_spiky", "hair_allback", "hair_allback", "hair_allback", "hair_flame", "hair_allback", "hair_flame", "hair_brave_crown"];
-      const hairsG = ["hair_ponytail", "hair_ponytail", "hair_ponytail", "hair_twintail", "hair_ponytail", "hair_flame", "hair_ponytail", "hair_flame", "hair_brave_crown"];
-      const heads = ["head_ahoge", "head_headband", "head_headband", "head_headband", "head_headband", "head_headband", "head_laurel", "head_laurel", "head_brave_tiara"];
-      const outfits = ["outfit_jersey", "outfit_uniform", "outfit_sailor_gakuran", "outfit_tuxedo", "outfit_tuxedo", "outfit_tuxedo", "outfit_council_blazer", "outfit_ace_blazer", "outfit_ace_blazer"];
-      const wpR = ["wp_none", "wp_pencil_dagger", "wp_megaphone", "wp_megaphone", "wp_megaphone", "wp_megaphone", "wp_megaphone", "wp_e_dict_sabre", "wp_brave_pen_caliber"];
-      const wpL = ["sub_none", "sub_none", "sub_speech_notes", "sub_speech_notes", "sub_speech_notes", "sub_speech_notes", "sub_speech_notes", "sub_speech_notes", "sub_brave_crest_shield"];
-      const backs = ["back_none", "back_scarf", "back_speech_banner", "back_speech_banner", "back_speech_banner", "back_speech_banner", "back_speech_banner", "back_brave_cape", "back_brave_cape"];
-      return {
-        mode: "auto",
-        forcedBranch: branch,
-        hairStyle: gender === "boy" ? hairs[lv - 1] : hairsG[lv - 1],
-        headgear: heads[lv - 1],
-        eyeStyle: lv >= 5 ? "eye_determined" : "eye_normal",
-        outfit: outfits[lv - 1],
-        weaponRight: wpR[lv - 1],
-        weaponLeft: wpL[lv - 1],
-        backGear: backs[lv - 1],
-        palette: "pal_crimson_afterschool",
-      };
-    }
-
-    case "balanced":
-    default: {
-      const hairs = ["hair_spiky", "hair_spiky", "hair_mush", "hair_spiky", "hair_wolf", "hair_spiky", "hair_center", "hair_flame", "hair_brave_crown"];
-      const hairsG = ["hair_bob", "hair_twintail", "hair_twintail", "hair_ponytail", "hair_twintail", "hair_drill", "hair_bob", "hair_twintail", "hair_brave_crown"];
-      const heads = ["head_ahoge", "head_ribbon", "head_headphones", "head_glasses", "head_smart_glass", "head_headphones", "head_laurel", "head_laurel", "head_brave_tiara"];
-      const outfits = ["outfit_jersey", "outfit_uniform", "outfit_cardigan", "outfit_hoodie", "outfit_council_blazer", "outfit_council_blazer", "outfit_ace_blazer", "outfit_ace_blazer", "outfit_ace_blazer"];
-      const wpR = ["wp_none", "wp_pencil_dagger", "wp_pencil_dagger", "wp_speech_mic", "wp_ruler_blade", "wp_laser_pointer", "wp_penlight_sabre", "wp_e_dict_sabre", "wp_brave_pen_caliber"];
-      const wpL = ["sub_none", "sub_word_ring", "sub_school_bag", "sub_oxford_dict", "sub_speech_notes", "sub_e_dict_pad", "sub_dual_pen", "sub_school_bag", "sub_brave_crest_shield"];
-      const backs = ["back_none", "back_none", "back_rucksack", "back_scarf", "back_shoulder_knit", "back_equalizer", "back_flying_stationery", "back_brave_cape", "back_brave_cape"];
-      return {
-        mode: "auto",
-        forcedBranch: "balanced",
-        hairStyle: gender === "boy" ? hairs[lv - 1] : hairsG[lv - 1],
-        headgear: heads[lv - 1],
-        eyeStyle: lv >= 7 ? "eye_brave" : "eye_normal",
-        outfit: outfits[lv - 1],
-        weaponRight: wpR[lv - 1],
-        weaponLeft: wpL[lv - 1],
-        backGear: backs[lv - 1],
-        palette: gender === "girl" ? "pal_berry_rose" : "pal_classic_navy",
-      };
-    }
-  }
-}
-
-/**
- * 現在の進化段階および系統に応じた肩書きタイトルを取得
- */
 export function getCharacterEvolutionTitle(
   gender: CharacterGender,
   stage: number,
@@ -710,5 +255,67 @@ export function getCharacterEvolutionTitle(
     branch,
     branchLabel: info.shortLabel,
     branchBadge: info.badge,
+  };
+}
+
+// =========================================================================
+// 5. ロードアウト解決関数（3つの軸を統合）
+// =========================================================================
+export function resolveEffectiveLoadout(
+  gender: CharacterGender,
+  level: number,
+  loadout?: CharacterPartLoadout
+): {
+  hair: HairDef;
+  uniform: UniformDef;
+  auraLevel: number;
+} {
+  const isGirl = gender === "girl";
+  const hairList = isGirl ? GIRL_HAIR_DEFS : BOY_HAIR_DEFS;
+
+  // 1. 髪型
+  let hair = hairList[0];
+  if (loadout?.hairId) {
+    const found = hairList.find((h) => h.id === loadout.hairId);
+    if (found) hair = found;
+  }
+
+  // 2. 制服
+  let uniform = UNIFORM_DEFS[0];
+  if (loadout?.uniformId) {
+    const found = UNIFORM_DEFS.find((u) => u.id === loadout.uniformId);
+    if (found) uniform = found;
+  }
+
+  // 3. レベル開放の飾り（1〜5段階）
+  // 未設定の場合はキャラクターのレベル（1〜10）に応じて自動決定:
+  // Lv.1-2 -> 1, Lv.3-4 -> 2, Lv.5-6 -> 3, Lv.7-8 -> 4, Lv.9-10 -> 5
+  let auraLevel = Math.max(1, Math.min(5, Math.ceil(level / 2)));
+  if (loadout?.auraLevel && loadout.auraLevel >= 1 && loadout.auraLevel <= 5) {
+    auraLevel = loadout.auraLevel;
+  }
+
+  return {
+    hair,
+    uniform,
+    auraLevel,
+  };
+}
+
+// 後方互換用：以前の呼び出しシグネチャ互換
+export function resolveAutoLoadout(
+  gender: CharacterGender,
+  stage: number,
+  _branch?: StatBranchType
+): CharacterPartLoadout {
+  const isGirl = gender === "girl";
+  const hairList = isGirl ? GIRL_HAIR_DEFS : BOY_HAIR_DEFS;
+  const auraLevel = Math.max(1, Math.min(5, Math.ceil(stage / 2)));
+  
+  return {
+    mode: "auto",
+    hairId: hairList[0].id,
+    uniformId: UNIFORM_DEFS[0].id,
+    auraLevel,
   };
 }
