@@ -2,8 +2,8 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Trophy, Flame, Swords, Terminal, RotateCcw } from "lucide-react";
-import { FiveStats, PlayerProfile } from "@/lib/types";
+import { X, Zap, Trophy, Flame, Swords, Terminal, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { CharacterGender, FiveStats, PlayerProfile } from "@/lib/types";
 import { PixelCharacter } from "./PixelCharacter";
 import { StarRadarChart } from "./StarRadarChart";
 import { SKILL_HACKS } from "@/lib/vocabData";
@@ -30,6 +30,9 @@ interface StatusModalProps {
   getStatUpgradeLxpCost: (currentVal: number) => number;
   onOpenSkillModal: () => void;
   onClose: () => void;
+  onToggleGender?: (gender: CharacterGender) => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
 }
 
 export const StatusModal: React.FC<StatusModalProps> = ({
@@ -47,6 +50,9 @@ export const StatusModal: React.FC<StatusModalProps> = ({
   getStatUpgradeLxpCost,
   onOpenSkillModal,
   onClose,
+  onToggleGender,
+  isMuted,
+  onToggleMute,
 }) => {
   // 各ステータスに「今全振りしたら何ポイント伸ばせるか」を計算
   const calculateFocusPoints = (statKey: keyof FiveStats) => {
@@ -72,26 +78,72 @@ export const StatusModal: React.FC<StatusModalProps> = ({
         className="w-full max-w-md max-h-[90vh] bg-[#131720] border-2 border-white shadow-p5-yellow flex flex-col overflow-hidden"
       >
         {/* モーダルヘッダー */}
-        <div className="bg-[#131720] px-3.5 py-2.5 flex items-center justify-between border-b-2 border-white shrink-0">
+        <div className="bg-[#131720] px-3.5 py-2 flex items-center justify-between border-b-2 border-white shrink-0">
           <div className="flex items-center gap-2">
             <span className="bg-[#FACC15] text-[#0B0D12] font-black text-xs px-2.5 py-0.5 -skew-x-12 border border-[#0B0D12]">
               STATUS
             </span>
-            <span className="font-black text-sm text-white tracking-wide">
+            <span className="font-black text-xs sm:text-sm text-white tracking-wide">
               ステータス＆育成
             </span>
           </div>
 
-          <button
-            onClick={() => {
-              soundEngine.playTap();
-              onClose();
-            }}
-            className="p-1 hover:bg-white/10 text-white transition rounded"
-            title="閉じる"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* 男子 / 女子 切替トグル */}
+            {onToggleGender && (
+              <div className="flex border border-white/50 p-0.5 bg-[#0B0D12] rounded">
+                <button
+                  type="button"
+                  onClick={() => onToggleGender("boy")}
+                  className={`px-2 py-0.5 text-[10px] font-black rounded transition ${
+                    profile.gender === "boy"
+                      ? "bg-[#FACC15] text-[#0B0D12]"
+                      : "text-[#94A3B8] hover:text-white"
+                  }`}
+                >
+                  男子
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onToggleGender("girl")}
+                  className={`px-2 py-0.5 text-[10px] font-black rounded transition ${
+                    profile.gender === "girl"
+                      ? "bg-[#F43F5E] text-white shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                      : "text-[#94A3B8] hover:text-white"
+                  }`}
+                >
+                  女子
+                </button>
+              </div>
+            )}
+
+            {/* 音声ON/OFF */}
+            {onToggleMute && (
+              <button
+                type="button"
+                onClick={onToggleMute}
+                className="p-1 border border-white/40 bg-[#0B0D12] rounded text-white hover:border-[#FACC15] transition"
+                title="音声ON/OFF"
+              >
+                {isMuted ? (
+                  <VolumeX className="w-3.5 h-3.5 text-[#EF4444]" />
+                ) : (
+                  <Volume2 className="w-3.5 h-3.5 text-[#FACC15]" />
+                )}
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                soundEngine.playTap();
+                onClose();
+              }}
+              className="p-1 hover:bg-white/10 text-white transition rounded ml-1"
+              title="閉じる"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* モーダルコンテンツ（スクロール可能） */}

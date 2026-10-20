@@ -1303,78 +1303,13 @@ export default function DopaBenApp() {
 
         return (
           <div
-            className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-start p-3.5 space-y-3 touch-pan-y transition-colors duration-300 select-none ${
+            className={`min-h-screen w-full max-w-md mx-auto flex flex-col justify-start p-3 sm:p-4 space-y-3 touch-pan-y transition-colors duration-300 select-none ${
               isGirl
                 ? "bg-[#13091B] bg-halftone-girl"
                 : "bg-[#0B0D12] bg-halftone"
             }`}
           >
-            {/* 1. ヘッダー（ロゴ ＋ 性別切替 ＋ 音声切替） */}
-            <header className={`flex items-center justify-between pb-1.5 pt-0.5 border-b ${
-              isGirl ? "border-[#3D2752]" : "border-[#262D3D]"
-            }`}>
-              <div className="relative flex items-center">
-                <img
-                  src="/dopaben-logo.png"
-                  alt="ドパベン"
-                  draggable={false}
-                  className={`h-8 sm:h-9 w-auto object-contain select-none pointer-events-none ${
-                    isGirl
-                      ? "drop-shadow-[0_2px_12px_rgba(244,63,94,0.5)]"
-                      : "drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)]"
-                  }`}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className={`flex border p-0.5 shadow-sm ${
-                  isGirl ? "bg-[#1D1229] border-[#3D2752]" : "bg-[#131720] border-[#262D3D]"
-                }`}>
-                  <button
-                    onClick={() => handleToggleGender("boy")}
-                    className={`px-2.5 py-1 text-[11px] font-black transition ${
-                      profile.gender === "boy"
-                        ? "bg-[#FACC15] text-[#0B0D12]"
-                        : "text-[#94A3B8] hover:text-white"
-                    }`}
-                  >
-                    男子
-                  </button>
-                  <button
-                    onClick={() => handleToggleGender("girl")}
-                    className={`px-2.5 py-1 text-[11px] font-black transition ${
-                      profile.gender === "girl"
-                        ? "bg-[#F43F5E] text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]"
-                        : "text-[#94A3B8] hover:text-white"
-                    }`}
-                  >
-                    女子
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => {
-                    const nextMute = !isMuted;
-                    setIsMuted(nextMute);
-                    soundEngine.setMuted(nextMute);
-                  }}
-                  className={`p-1.5 border transition ${
-                    isGirl
-                      ? "bg-[#1D1229] border-[#3D2752] text-white hover:border-[#F43F5E]"
-                      : "bg-[#131720] border-[#262D3D] text-white hover:border-[#FACC15]"
-                  }`}
-                  title="音声ON/OFF"
-                >
-                  {isMuted ? (
-                    <VolumeX className="w-4 h-4 text-[#EF4444]" />
-                  ) : (
-                    <Volume2 className={`w-4 h-4 ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`} />
-                  )}
-                </button>
-              </div>
-            </header>
-
-            {/* 2. 大迫力キャラクターカード（画面の約20%・育成の主役！タップでステータス画面） */}
+            {/* 1. 大迫力キャラクターカード（画面の約20%・育成の主役！タップでステータス画面） */}
             <div
               onClick={() => {
                 soundEngine.playTap();
@@ -1999,6 +1934,13 @@ export default function DopaBenApp() {
           getStatUpgradeLxpCost={getStatUpgradeLxpCost}
           onOpenSkillModal={() => setIsSkillModalOpen(true)}
           onClose={() => setIsStatusModalOpen(false)}
+          onToggleGender={handleToggleGender}
+          isMuted={isMuted}
+          onToggleMute={() => {
+            const nextMute = !isMuted;
+            setIsMuted(nextMute);
+            soundEngine.setMuted(nextMute);
+          }}
         />
       )}
 
