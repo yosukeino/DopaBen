@@ -52,7 +52,12 @@ import { SkillHackModal } from "@/components/SkillHackModal";
 import { StatusModal } from "@/components/StatusModal";
 import { CodexCategory, VocabCodexModal } from "@/components/VocabCodexModal";
 import { CharacterCustomizeModal } from "@/components/CharacterCustomizeModal";
-import { getCharacterEvolutionTitle } from "@/lib/characterPartsEngine";
+import {
+  BOY_HAIR_DEFS,
+  getCharacterEvolutionTitle,
+  GIRL_HAIR_DEFS,
+  UNIFORM_DEFS,
+} from "@/lib/characterPartsEngine";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
 
@@ -1422,7 +1427,7 @@ export default function DopaBenApp() {
                       }`}>
                         Lv.{profile.level}
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1437,6 +1442,36 @@ export default function DopaBenApp() {
                           }`}
                         >
                           <span>🎨 着せ替え・図鑑</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            soundEngine.playStageVictory();
+                            const allIds = [
+                              "__ALL_UNLOCKED__",
+                              ...UNIFORM_DEFS.map((u) => u.id),
+                              ...GIRL_HAIR_DEFS.map((h) => h.id),
+                              ...BOY_HAIR_DEFS.map((h) => h.id),
+                            ];
+                            const updatedProfile = {
+                              ...profile,
+                              level: 10,
+                              exp: Math.max(profile.exp, 99999),
+                              unlockedParts: Array.from(new Set([...(profile.unlockedParts || []), ...allIds])),
+                            };
+                            setProfile(updatedProfile);
+                            try {
+                              localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProfile));
+                            } catch (err) {
+                              console.error(err);
+                            }
+                            setIsCustomizeModalOpen(true);
+                          }}
+                          className="px-2 py-0.5 rounded active:scale-95 font-black text-[10px] flex items-center gap-1 shadow-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white transition border border-emerald-300/40"
+                          title="全要素をアンロックして着せ替えスタジオを開きます"
+                        >
+                          <span>🔓 全アンロック(テスト)</span>
                         </button>
                         <span className="text-[10px] text-[#94A3B8] font-bold">
                           累積: <span className="text-white font-black"><CountUpNumber value={totalLxp} /></span> LXP

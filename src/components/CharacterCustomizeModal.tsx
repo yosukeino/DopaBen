@@ -12,6 +12,7 @@ import {
   Shirt,
   Flame,
   Award,
+  Unlock,
 } from "lucide-react";
 import {
   CharacterPartLoadout,
@@ -67,6 +68,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
     profile.unlockedParts || []
   );
   const [currentExp, setCurrentExp] = useState<number>(profile.exp);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -80,6 +82,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
 
   // 解放チェック
   const isHairUnlocked = (h: HairDef) => {
+    if (unlockedParts.includes("__ALL_UNLOCKED__")) return true;
     if (h.lxpCost === 0) return true;
     if (unlockedParts.includes(h.id)) return true;
     if (profile.level >= h.unlockLevel && h.lxpCost <= 0) return true;
@@ -87,6 +90,7 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
   };
 
   const isUniformUnlocked = (u: UniformDef) => {
+    if (unlockedParts.includes("__ALL_UNLOCKED__")) return true;
     if (u.lxpCost === 0) return true;
     if (unlockedParts.includes(u.id)) return true;
     if (profile.level >= u.unlockLevel && u.lxpCost <= 0) return true;
@@ -94,10 +98,41 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
   };
 
   const isAuraUnlocked = (a: AuraLevelDef) => {
+    if (unlockedParts.includes("__ALL_UNLOCKED__")) return true;
     // レベル飾りはキャラクターレベル（1〜10）の進行で自動解放
     // Lv.1: 全員, Lv.2: Lv.3以上, Lv.3: Lv.5以上, Lv.4: Lv.7以上, Lv.5: Lv.9以上
     const reqLevel = (a.level - 1) * 2 + 1;
     return profile.level >= reqLevel;
+  };
+
+  // テスト用：全要素アンロック
+  const handleUnlockAll = () => {
+    soundEngine.playStageVictory();
+    const allIds = [
+      "__ALL_UNLOCKED__",
+      ...UNIFORM_DEFS.map((u) => u.id),
+      ...GIRL_HAIR_DEFS.map((h) => h.id),
+      ...BOY_HAIR_DEFS.map((h) => h.id),
+    ];
+    const newUnlocked = Array.from(new Set([...unlockedParts, ...allIds]));
+    const newExp = Math.max(currentExp, 99999);
+    const newLevel = Math.max(profile.level, 10);
+
+    setUnlockedParts(newUnlocked);
+    setCurrentExp(newExp);
+
+    const updatedProfile: PlayerProfile = {
+      ...profile,
+      level: newLevel,
+      exp: newExp,
+      unlockedParts: newUnlocked,
+    };
+
+    onSave(updatedProfile);
+    setToastMessage("🎉 全要素（髪型・制服・レベル飾り・Lv.10）をアンロックしました！");
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
   };
 
   // 装備ハンドラー
@@ -205,6 +240,17 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
             </div>
 
             <div className="flex items-center gap-2">
+              {/* テスト用：全要素アンロックボタン */}
+              <button
+                type="button"
+                onClick={handleUnlockAll}
+                className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/30 border border-emerald-300/40 active:scale-95 transition"
+                title="全ての髪型・制服・レベル飾りを即座に解放し、Lv.10と99999 LXPを付与します"
+              >
+                <Unlock className="w-3.5 h-3.5" />
+                <span>全要素アンロック(テスト)</span>
+              </button>
+
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-bold text-amber-300">
                 <span>所持 LXP:</span>
                 <span className="font-mono text-sm">{currentExp}</span>
@@ -217,6 +263,21 @@ export const CharacterCustomizeModal: React.FC<CharacterCustomizeModalProps> = (
               </button>
             </div>
           </div>
+
+          {/* トースト通知 */}
+          <AnimatePresence>
+            {toastMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-emerald-600/90 border-b border-emerald-400 text-white text-xs font-bold py-2 px-4 text-center flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Sparkles className="w-4 h-4 text-yellow-300 animate-spin" />
+                <span>{toastMessage}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* メインコンテンツ（2カラム: 左プレビュー / 右パーツ一覧） */}
           <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-12">
