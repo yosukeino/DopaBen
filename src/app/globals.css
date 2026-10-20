@@ -241,6 +241,50 @@ body {
   animation: stagePulseBorder 1.6s ease-in-out infinite;
 }
 
+@keyframes levelPulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px rgba(250, 204, 21, 0.6)) drop-shadow(2px 2px 0 #0B0D12);
+  }
+  50% {
+    transform: scale(1.08) translateY(-1px);
+    filter: drop-shadow(0 0 14px rgba(250, 204, 21, 0.95)) drop-shadow(2px 2px 0 #0B0D12);
+  }
+}
+
+.animate-level-badge {
+  animation: levelPulseGlow 2.2s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes audioWavePulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.4));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.9));
+  }
+}
+
+.animate-audio-wave {
+  animation: audioWavePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gaugeGlint {
+  0% {
+    transform: translateX(-100%);
+  }
+  55%, 100% {
+    transform: translateX(250%);
+  }
+}
+
+.animate-gauge-glint {
+  animation: gaugeGlint 2.6s ease-in-out infinite;
+}
+
 /* Crisp retro pixel art rendering */
 .pixelated {
   image-rendering: pixelated;
