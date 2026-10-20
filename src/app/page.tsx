@@ -1418,66 +1418,36 @@ export default function DopaBenApp() {
                 {/* 右側：Lv.X(アニメーション付き)、称号、累積LXP、NEXT EVOLUTIONハイテクゲージ */}
                 <div className="flex-1 min-w-0 space-y-2">
                   <div>
-                    <div className="flex items-baseline justify-between gap-1 flex-wrap">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       {/* アニメーションでゴールドまたはローズに輝く Lv.X */}
-                      <span className={`text-3xl font-black italic ${
+                      <span className={`text-3xl sm:text-4xl font-black italic tracking-tight ${
                         isGirl
                           ? "text-[#FB7185] animate-level-badge-girl"
                           : "text-[#FACC15] animate-level-badge"
                       }`}>
                         Lv.{profile.level}
                       </span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            soundEngine.playTap();
-                            setIsCustomizeModalOpen(true);
-                          }}
-                          className={`px-2 py-0.5 rounded active:scale-95 font-black text-[10px] flex items-center gap-1 shadow-sm transition ${
-                            isGirl
-                              ? "bg-[#F43F5E] hover:bg-[#FB7185] text-white"
-                              : "bg-[#FACC15] hover:bg-[#FFE600] text-black"
-                          }`}
-                        >
-                          <span>🎨 着せ替え・図鑑</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            soundEngine.playStageVictory();
-                            const allIds = [
-                              "__ALL_UNLOCKED__",
-                              ...UNIFORM_DEFS.map((u) => u.id),
-                              ...GIRL_HAIR_DEFS.map((h) => h.id),
-                              ...BOY_HAIR_DEFS.map((h) => h.id),
-                            ];
-                            const updatedProfile = {
-                              ...profile,
-                              level: 10,
-                              exp: Math.max(profile.exp, 99999),
-                              unlockedParts: Array.from(new Set([...(profile.unlockedParts || []), ...allIds])),
-                            };
-                            setProfile(updatedProfile);
-                            try {
-                              localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProfile));
-                            } catch (err) {
-                              console.error(err);
-                            }
-                            setIsCustomizeModalOpen(true);
-                          }}
-                          className="px-2 py-0.5 rounded active:scale-95 font-black text-[10px] flex items-center gap-1 shadow-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white transition border border-emerald-300/40"
-                          title="全要素をアンロックして着せ替えスタジオを開きます"
-                        >
-                          <span>🔓 全アンロック(テスト)</span>
-                        </button>
-                        <span className="text-[10px] text-[#94A3B8] font-bold">
-                          累積: <span className="text-white font-black"><CountUpNumber value={totalLxp} /></span> LXP
-                        </span>
-                      </div>
+
+                      {/* 大型の目立つ「着せ替え・図鑑」ボタン */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundEngine.playTap();
+                          setIsCustomizeModalOpen(true);
+                        }}
+                        className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl active:scale-95 font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg transition duration-200 border ${
+                          isGirl
+                            ? "bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-400 hover:to-rose-400 text-white shadow-pink-500/35 border-pink-300/50"
+                            : "bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 shadow-amber-400/40 border-yellow-200/60"
+                        }`}
+                      >
+                        <span className="text-base sm:text-lg">🎨</span>
+                        <span>着せ替え・図鑑</span>
+                      </button>
                     </div>
+
+                    {/* 称号表示（意味不明なDopaEng勇者バッジは撤廃し、称号をスッキリ強調） */}
                     {(() => {
                       const evo = getCharacterEvolutionTitle(
                         profile.gender,
@@ -1486,67 +1456,99 @@ export default function DopaBenApp() {
                         profile.characterLoadout
                       );
                       return (
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-black border shrink-0 ${
-                            isGirl
-                              ? "bg-[#2DD4BF]/20 text-[#2DD4BF] border-[#2DD4BF]/40"
-                              : "bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40"
-                          }`}>
-                            {evo.branchBadge}
-                          </span>
-                          <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
+                        <div className="flex items-center justify-between gap-1.5 mt-1.5 flex-wrap">
+                          <span className="text-sm sm:text-base font-black text-white truncate drop-shadow-md tracking-wide">
                             {evo.title}
+                          </span>
+                          <span className="text-[11px] text-[#94A3B8] font-bold">
+                            累積: <span className="text-white font-black"><CountUpNumber value={totalLxp} /></span> LXP
                           </span>
                         </div>
                       );
                     })()}
                   </div>
 
-                  {/* ハイテク NEXT EVOLUTION ゲージデザイン */}
-                  <div className={`border p-2 space-y-1.5 shadow-inner ${
+                  {/* 立体的＆派手なアーケード風 NEXT EVOLUTION ゲージ */}
+                  <div className={`p-2.5 rounded-xl border space-y-2 shadow-xl ${
                     isGirl
-                      ? "bg-[#13091B]/90 border-[#3D2752]"
-                      : "bg-[#0B0D12]/90 border-[#262D3D]"
+                      ? "bg-gradient-to-b from-[#1c0d27]/95 to-[#12081a]/95 border-[#542d75]/80 shadow-[0_4px_16px_rgba(244,63,94,0.15)]"
+                      : "bg-gradient-to-b from-[#131b28]/95 to-[#0b1018]/95 border-[#2c3d59]/80 shadow-[0_4px_16px_rgba(250,204,21,0.15)]"
                   }`}>
-                    <div className="flex justify-between items-center text-[10px] font-black">
-                      <span className="text-[#94A3B8] flex items-center gap-1">
-                        <Zap className={`w-3 h-3 ${isGirl ? "text-[#FB7185] fill-[#FB7185]" : "text-[#FACC15] fill-[#FACC15]"}`} />
-                        <span>NEXT EVOLUTION</span>
+                    {/* ゲージヘッダー */}
+                    <div className="flex justify-between items-center text-[10px] sm:text-xs font-black">
+                      <span className="flex items-center gap-1.5 tracking-wider">
+                        <Zap className={`w-3.5 h-3.5 ${isGirl ? "text-[#FB7185] fill-[#FB7185]" : "text-[#FACC15] fill-[#FACC15]"} animate-pulse`} />
+                        <span className="text-slate-300">NEXT EVOLUTION</span>
                       </span>
-                      <span className={canEvolveLevel ? (isGirl ? "text-[#2DD4BF] animate-pulse" : "text-[#10B981] animate-pulse") : (isGirl ? "text-[#FB7185]" : "text-[#FACC15]")}>
+                      <span className={`px-2 py-0.5 rounded-md font-mono text-[10px] sm:text-xs shadow-inner ${
+                        canEvolveLevel
+                          ? isGirl
+                            ? "bg-[#2DD4BF] text-slate-950 font-black animate-bounce"
+                            : "bg-[#10B981] text-slate-950 font-black animate-bounce"
+                          : isGirl
+                          ? "bg-pink-950/80 text-pink-300 border border-pink-700/50"
+                          : "bg-amber-950/80 text-amber-300 border border-amber-700/50"
+                      }`}>
                         {profile.level >= 10
                           ? "MAX LEVEL"
                           : canEvolveLevel
                           ? "🎉 進化可能！"
-                          : (
-                              <>
-                                <CountUpNumber value={totalLxp} /> / {nextLevelTargetLxp.toLocaleString()} LXP
-                              </>
-                            )}
+                          : `${Math.min(100, Math.round(cumulativeLxpPercent))}%`}
                       </span>
                     </div>
 
-                    {/* 斜めスライス＆シマー付きネオングラデーションバー（左から右へググッと伸びるアニメーション） */}
-                    <div className={`relative w-full h-2.5 border border-white/60 -skew-x-12 p-0.5 overflow-hidden shadow-inner ${
-                      isGirl ? "bg-[#1D1229]" : "bg-[#131720]"
-                    }`}>
-                      <motion.div
-                        className={`h-full relative overflow-hidden ${
-                          canEvolveLevel
-                            ? isGirl
-                              ? "bg-[#2DD4BF] shadow-[0_0_12px_rgba(45,212,191,0.8)]"
-                              : "bg-[#10B981] shadow-[0_0_12px_rgba(16,185,129,0.8)]"
-                            : isGirl
-                            ? "bg-gradient-to-r from-[#F43F5E] via-[#A855F7] to-[#2DD4BF] shadow-[0_0_10px_rgba(244,63,94,0.6)]"
-                            : "bg-gradient-to-r from-[#10B981] via-[#06B6D4] to-[#FACC15] shadow-[0_0_10px_rgba(250,204,21,0.6)]"
-                        }`}
-                        initial={{ width: "0%" }}
-                        animate={{ width: `${cumulativeLxpPercent}%` }}
-                        transition={{ duration: 1.1, ease: "easeOut" }}
-                      >
-                        {/* バー内部を走る光沢シマー */}
-                        <span className="pointer-events-none absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-gauge-glint" />
-                      </motion.div>
+                    {/* 立体クリスタルシリンダー・エネルギーゲージ（3Dハイライト・セグメント目盛り付き） */}
+                    <div className="relative w-full">
+                      <div className="relative w-full h-5 sm:h-6 rounded-lg bg-slate-950 border-2 border-slate-700/90 shadow-[inset_0_3px_6px_rgba(0,0,0,0.9),0_1px_1px_rgba(255,255,255,0.15)] overflow-hidden p-0.5">
+                        {/* 背景のハイテク目盛りスリット（10%刻み） */}
+                        <div className="absolute inset-0 flex justify-between pointer-events-none px-1 z-10 opacity-30">
+                          {Array.from({ length: 9 }).map((_, i) => (
+                            <div key={i} className="w-[1px] h-full bg-white/60" />
+                          ))}
+                        </div>
+
+                        {/* 充填されるエネルギーバー本体 */}
+                        <motion.div
+                          className={`h-full relative rounded-md overflow-hidden ${
+                            canEvolveLevel
+                              ? isGirl
+                                ? "bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 shadow-[0_0_16px_rgba(45,212,191,0.95)]"
+                                : "bg-gradient-to-r from-emerald-400 via-green-300 to-amber-300 shadow-[0_0_16px_rgba(16,185,129,0.95)]"
+                              : isGirl
+                              ? "bg-gradient-to-r from-[#F43F5E] via-[#D946EF] to-[#06B6D4] shadow-[0_0_14px_rgba(244,63,94,0.7)]"
+                              : "bg-gradient-to-r from-[#059669] via-[#0284C7] to-[#FACC15] shadow-[0_0_14px_rgba(250,204,21,0.7)]"
+                          }`}
+                          initial={{ width: "0%" }}
+                          animate={{ width: `${cumulativeLxpPercent}%` }}
+                          transition={{ duration: 1.1, ease: "easeOut" }}
+                        >
+                          {/* 3Dガラスシリンダー反射光（上部40%に白いハイライトグロスを走らせる） */}
+                          <div className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-white/60 via-white/15 to-transparent pointer-events-none" />
+                          {/* 下部シャドウ */}
+                          <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+
+                          {/* 先端のエネルギーパルスヘッド */}
+                          <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white shadow-[0_0_8px_#ffffff] rounded-r-md pointer-events-none animate-pulse" />
+
+                          {/* 内部を駆け抜ける光沢シマー */}
+                          <span className="pointer-events-none absolute inset-y-0 w-12 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-gauge-glint" />
+                        </motion.div>
+                      </div>
+
+                      {/* ゲージ直下の進行数値テキスト */}
+                      <div className="flex justify-between items-center text-[9px] sm:text-[10px] text-slate-400 font-bold mt-1 px-0.5">
+                        <span>Lv.{profile.level}</span>
+                        <span className="font-mono text-slate-300">
+                          {profile.level >= 10 ? (
+                            "限界突破中"
+                          ) : (
+                            <>
+                              <CountUpNumber value={totalLxp} /> / {nextLevelTargetLxp.toLocaleString()} LXP
+                            </>
+                          )}
+                        </span>
+                        <span>{profile.level >= 10 ? "MAX" : `Lv.${profile.level + 1}`}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
