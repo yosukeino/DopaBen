@@ -578,6 +578,112 @@ class SoundEngine {
   public playEvolutionFanfare() {
     this.playStageVictory();
   }
+
+  // =========================================================================
+  // ★ DopaSoc 熱闘！社会科ベースボール専用サウンドエフェクト
+  // =========================================================================
+
+  /**
+   * 金属バット特有の爽快な「カキィィン！」打球音
+   */
+  public playBatCrack() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 芯で捉えたインパクトの重低音 (180Hz)
+    this.playFmTone(180, 0.5, 400, 0.08, now, 0.22, 60);
+    // 金属バットの澄んだ高域共鳴 (2200Hz, ratio 2.76)
+    this.playFmTone(2200, 2.76, 2500, 0.35, now, 0.25, 1800);
+    // キーンと伸びる倍音余韻 (3500Hz)
+    this.playFmTone(3500, 1.414, 1800, 0.45, now + 0.01, 0.18);
+  }
+
+  /**
+   * クリーンヒット「パコーン！」
+   */
+  public playHit() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 快音
+    this.playFmTone(600, 1.5, 800, 0.12, now, 0.18, 900);
+    this.playFmTone(1400, 2.0, 1200, 0.18, now + 0.01, 0.14);
+  }
+
+  /**
+   * 特大ホームラン！快音＋スタジアム・オルガンファンファーレ
+   */
+  public playHomerun() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 1. 強烈なカキーン音
+    this.playBatCrack();
+
+    // 2. スタジアム名物「チャージ！」風オルガンフレーズ (ド・ミ・ソ・ド・ソ・ド！)
+    const fanfare = [
+      { f: 523.25, t: 0.12, d: 0.1 },  // C5
+      { f: 659.25, t: 0.22, d: 0.1 },  // E5
+      { f: 783.99, t: 0.32, d: 0.1 },  // G5
+      { f: 1046.5, t: 0.42, d: 0.22 }, // C6
+      { f: 783.99, t: 0.58, d: 0.1 },  // G5
+      { f: 1046.5, t: 0.68, d: 0.45 }, // C6 (ロングトーン)
+    ];
+
+    fanfare.forEach((n) => {
+      this.playFmTone(n.f, 2.0, 1600, n.d, now + n.t, 0.15);
+      this.playFmTone(n.f * 1.5, 3.5, 2000, n.d * 0.8, now + n.t, 0.08);
+    });
+  }
+
+  /**
+   * 空振り・ストライク（バットの風切り音＋ミットのバシッ音）
+   */
+  public playStrike() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 風切りスイング音 (低域スウィープ)
+    this.playFmTone(320, 0.8, 300, 0.1, now, 0.15, 80);
+    // キャッチャーミット補球音
+    this.playFmTone(140, 1.2, 500, 0.12, now + 0.06, 0.2, 50);
+  }
+
+  /**
+   * アウト判定音
+   */
+  public playOut() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 下降する2連トーン
+    this.playFmTone(440, 1.414, 600, 0.14, now, 0.12, 330);
+    this.playFmTone(330, 1.414, 500, 0.22, now + 0.12, 0.14, 220);
+  }
+
+  /**
+   * プレイボールのサイレン／ホイッスル
+   */
+  public playPlayBall() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // サイレン上昇
+    this.playFmTone(440, 2.0, 900, 0.4, now, 0.14, 880);
+    this.playFmTone(880, 2.0, 1200, 0.35, now + 0.35, 0.16);
+  }
 }
 
 export const soundEngine = new SoundEngine();

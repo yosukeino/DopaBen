@@ -177,11 +177,11 @@ export default function DopaBenPortalPage() {
               {/* カード詳細 */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className="px-2 py-0.5 rounded text-[9px] font-black bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/40 animate-pulse">
-                    NEW! 鋭意開発中
+                  <span className="px-2 py-0.5 rounded text-[9px] font-black bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40">
+                    稼働中 PLAYABLE
                   </span>
                   <span className="text-[10px] font-bold text-[#94A3B8]">
-                    中学社会
+                    中学社会 全1,331問
                   </span>
                 </div>
 
