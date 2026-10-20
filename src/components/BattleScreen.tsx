@@ -111,6 +111,7 @@ interface AnswerFeedbackModalState {
     deck: GeneratedQuestion[];
     wordLogs: BattleWordLog[];
     masteryDeltas: Record<string, { cleared: number; missed: number }>;
+    correctCount: number;
   };
 }
 
@@ -127,6 +128,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [maxCombo, setMaxCombo] = useState(0);
   const [earnedExp, setEarnedExp] = useState(0);
   const [revengeCount, setRevengeCount] = useState(0);
+  const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
 
   // ランキングバトル用タイマー
   const startTimeRef = React.useRef<number>(Date.now());
@@ -268,7 +270,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       updatedGains: FiveStats,
       currentDeckSnapshot: GeneratedQuestion[],
       updatedLogs: BattleWordLog[],
-      updatedDeltas: Record<string, { cleared: number; missed: number }>
+      updatedDeltas: Record<string, { cleared: number; missed: number }>,
+      nextCorrectCount?: number
     ) => {
       if (isAdvancingRef.current) return;
       isAdvancingRef.current = true;
@@ -279,7 +282,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
       if (currentIndex + 1 >= currentDeckSnapshot.length) {
         const timeMs = Date.now() - startTimeRef.current;
-        const correctCount = updatedLogs.filter((l) => l.result !== "missed").length;
+        const correctCount =
+          typeof nextCorrectCount === "number"
+            ? nextCorrectCount
+            : updatedLogs.filter((l) => l.result !== "missed").length;
         const basePts = correctCount * 500;
         const comboPts = nextMaxCombo * 80;
         const timeBonus = Math.max(0, 10000 - Math.floor(timeMs / 10));
@@ -289,7 +295,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           earnedExp: Math.round(nextExp),
           maxCombo: nextMaxCombo,
           revengeCount: nextRevengeCount,
-          wordsCleared: correctCount || currentDeckSnapshot.length,
+          wordsCleared: correctCount,
           statGains: updatedGains,
           wordLogs: updatedLogs,
           masteryDeltas: updatedDeltas,
@@ -368,12 +374,24 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             result: logStatus,
           });
         }
+      } else {
+        // targetWord がない場合（短文問題など）のフォールバック
+        nextLogs.push({
+          wordId: currentQuestion.uid,
+          english: currentQuestion.audioText || currentQuestion.promptMain,
+          japanese: currentQuestion.promptSub || currentQuestion.promptMain,
+          phonetic: "",
+          tip: currentQuestion.promptSub || "",
+          result: choice.isCorrect ? "perfect" : "missed",
+        });
       }
 
       setMasteryDeltas(nextDeltas);
       setWordLogs(nextLogs);
 
+      const newCorrectCount = correctAnswersCount + (choice.isCorrect ? 1 : 0);
       if (choice.isCorrect) {
+        setCorrectAnswersCount(newCorrectCount);
         const newCombo = combo + 1;
         const newMaxCombo = Math.max(maxCombo, newCombo);
         setCombo(newCombo);
@@ -442,6 +460,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             deck,
             wordLogs: nextLogs,
             masteryDeltas: nextDeltas,
+            correctCount: newCorrectCount,
           },
         });
       } else {
@@ -454,8 +473,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         soundEngine.speakEnglish(targetAudio, 0.95);
 
         let updatedDeck = [...deck];
-        if (targetWord) {
-          // 倍返し問題は別角度の形式（英→日 ⇔ 日→英）でデッキ後半に挿入
+        // ランキングバトル以外の場合のみリベンジ問題を挿入
+        if (!isRankingBattle && targetWord) {
           const revengeFormat =
             currentQuestion.format === "en_to_ja" ? "ja_to_en" : "en_to_ja";
           const revengeQ = buildWordQuestion(targetWord, revengeFormat, {
@@ -496,6 +515,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             deck: updatedDeck,
             wordLogs: nextLogs,
             masteryDeltas: nextDeltas,
+            correctCount: newCorrectCount,
           },
         });
       }
@@ -515,6 +535,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       revengeCount,
       statGains,
       wordLogs,
+      correctAnswersCount,
+      isRankingBattle,
     ]
   );
 
@@ -539,7 +561,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             snap.gains,
             snap.deck,
             snap.wordLogs,
-            snap.masteryDeltas
+            snap.masteryDeltas,
+            snap.correctCount
           );
         } else if (e.key === "r" || e.key === "R") {
           e.preventDefault();
@@ -635,6 +658,22 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setBannerType("allout");
         setBannerText(`💥 ALL-OUT FINISH!! 総攻撃成功 +${allOutBonus} LXP!!`);
 
+        const newCorrect = correctAnswersCount + 1;
+        setCorrectAnswersCount(newCorrect);
+
+        const updatedLogsWithSentence: BattleWordLog[] = [
+          ...wordLogs,
+          {
+            wordId: currentQuestion.uid,
+            english: answer,
+            japanese: currentQuestion.sentence?.japanese || currentQuestion.promptMain,
+            phonetic: "",
+            tip: currentQuestion.sentence?.grammarPoint || "",
+            result: "perfect",
+          },
+        ];
+        setWordLogs(updatedLogsWithSentence);
+
         setAnswerModal({
           isCorrect: true,
           isRevenge: false,
@@ -650,8 +689,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             revengeCount,
             gains: nextGains,
             deck,
-            wordLogs,
+            wordLogs: updatedLogsWithSentence,
             masteryDeltas,
+            correctCount: newCorrect,
           },
         });
       } else {
@@ -1406,7 +1446,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       snap.gains,
                       snap.deck,
                       snap.wordLogs,
-                      snap.masteryDeltas
+                      snap.masteryDeltas,
+                      snap.correctCount
                     );
                   }}
                   className={`w-full py-3.5 font-black text-base border-2 -skew-x-6 active:scale-95 transition flex items-center justify-center gap-2 ${

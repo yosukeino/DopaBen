@@ -108,7 +108,7 @@ export interface BattleWordLog {
   wordId: string;
   english: string;
   japanese: string;
-  phonetic: string;
+  phonetic?: string;
   tip: string;
   exampleSentenceEn?: string;
   exampleSentenceJa?: string;

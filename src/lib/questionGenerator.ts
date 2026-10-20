@@ -586,8 +586,8 @@ export function generateBattleDeck(
 
 /**
  * 【ランキングバトル専用デッキ生成（全20問）】
- * - 対象: 英検4級の全単語（約700語）および全短文
- * - 4択英和・和英・リスニング・短文空所補充をテンポよく20問選出
+ * - 対象: 英検4級の全単語（約700語）
+ * - 4択英和・和英・リスニング・文脈空所補充をテンポよく20問選出
  */
 export function generateRankingDeck(
   count: number = 20,
@@ -595,37 +595,21 @@ export function generateRankingDeck(
 ): GeneratedQuestion[] {
   const pool = getActiveVocabPool();
   const allWords = pool.eiken4Words;
-  const allSentences = pool.eiken4Sentences;
 
   if (allWords.length === 0) {
     return generateBattleDeck("ALL", false, 1, undefined, false, includeListening).slice(0, count);
   }
 
-  // 20問のフォーマット構成（リスニングあり・なし対応）
+  // 20問のフォーマット構成（4択英和、和英、リスニング、文脈空所補充）
   const formatCycle: Exclude<QuestionFormat, "sentence_order">[] = includeListening
     ? ["en_to_ja", "ja_to_en", "listening", "sentence_fill"]
     : ["en_to_ja", "ja_to_en", "sentence_fill", "en_to_ja"];
 
-  const shuffledWords = shuffleArray([...allWords]);
-  const shuffledSentences = shuffleArray([...allSentences]);
+  // 20問分のユニークな単語をシャッフル選出
+  const selectedWords = shuffleArray([...allWords]).slice(0, count);
 
-  const questions: GeneratedQuestion[] = [];
-  let wordIdx = 0;
-  let sentIdx = 0;
-
-  for (let i = 0; i < count; i++) {
-    const format = formatCycle[i % formatCycle.length];
-
-    if (format === "sentence_fill" && shuffledSentences.length > 0) {
-      const sentence = shuffledSentences[sentIdx % shuffledSentences.length];
-      sentIdx++;
-      questions.push(buildSentenceQuestion(sentence));
-    } else {
-      const word = shuffledWords[wordIdx % shuffledWords.length];
-      wordIdx++;
-      questions.push(buildWordQuestion(word, format));
-    }
-  }
-
-  return questions;
+  return selectedWords.map((word, index) => {
+    const format = formatCycle[index % formatCycle.length];
+    return buildWordQuestion(word, format);
+  });
 }
