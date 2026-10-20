@@ -398,7 +398,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           },
         });
       } else {
-        triggerHapticFeedback("error");
         soundEngine.playBountyLock();
         const mult = hasBountyOverdrive ? 3.5 : 2.5;
         const nextCombo = Math.max(1, Math.floor(combo / 2));
@@ -609,7 +608,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           },
         });
       } else {
-        triggerHapticFeedback("error");
         soundEngine.playBountyLock();
         setStatGains((prev) => ({ ...prev, guts: prev.guts + 2 }));
         setBannerType("bounty");
