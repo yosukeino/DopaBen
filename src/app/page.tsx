@@ -40,19 +40,31 @@ export default function DopaBenPortalPage() {
   return (
     <div className="min-h-screen w-full bg-[#0B0D12] bg-halftone text-white flex flex-col items-center justify-start p-3 sm:p-5 select-none">
       <div className="w-full max-w-md space-y-4">
-        {/* 1. DopaBen ヘッダーロゴ */}
-        <header className="pt-2 pb-1 text-center relative">
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#1E293B] border border-[#FACC15]/40 shadow-inner mb-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="text-[10px] font-black tracking-widest text-[#FACC15] uppercase">
-              DopaBen Academy Portal // 教科選択
-            </span>
-          </div>
+        {/* 1. DopaBen 賑やかな公式ヒーロービジュアル（白背景画像） */}
+        <header className="relative text-center">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: -8 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative rounded-2xl border-2 border-white shadow-[0_8px_30px_rgba(0,0,0,0.85)] bg-white overflow-hidden p-1.5"
+          >
+            {/* 白背景の賑やかなドパベンロゴ＆イラスト */}
+            <img
+              src="/dopaben-hero.jpg"
+              alt="ドパベン - 新感覚学園学習バトル"
+              className="w-full h-auto object-contain rounded-xl select-none"
+            />
 
-          <h1 className="text-3xl sm:text-4xl font-black italic tracking-tighter text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
-            <span className="text-[#FACC15]">Dopa</span>Ben
-          </h1>
-          <p className="text-[11px] text-[#94A3B8] font-bold mt-0.5">
+            {/* バナーステータスリボン */}
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0B0D12]/90 border border-[#FACC15] backdrop-blur-sm shadow-md">
+              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span className="text-[9px] font-black tracking-widest text-[#FACC15] uppercase">
+                DopaBen Portal // 教科選択
+              </span>
+            </div>
+          </motion.div>
+
+          <p className="text-[11px] text-[#94A3B8] font-bold mt-2">
             各教科のキャラクターを育成し、学園の大ボスを討伐せよ！
           </p>
         </header>
