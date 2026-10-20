@@ -115,12 +115,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     guts: 2,
   });
 
-  // 音声再生中フラグ（ボタンの波形アニメ・二重再生防止用）
+  // 音声再生中フラグ＆現在再生中テキスト（ボタンの波形アニメ・二重再生防止用）
   const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
+  const [currentSpeakingText, setCurrentSpeakingText] = useState("");
 
   useEffect(() => {
-    return soundEngine.onSpeakingChange((speaking) => {
+    return soundEngine.onSpeakingChange((speaking, text) => {
       setIsSpeakingAudio(speaking);
+      setCurrentSpeakingText(speaking ? text : "");
     });
   }, []);
 
@@ -143,12 +145,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
   const isAdvancingRef = React.useRef(false);
 
-  // バトル画面マウント時にも念のためデッキ全単語のGoogle TTS音声をプリロード
+  // バトル画面マウント時にも念のためデッキ全単語＆例文のGoogle TTS音声をプリロード
   useEffect(() => {
     const preloadList: string[] = [];
     initialDeck.forEach((q) => {
       if (q.audioText) preloadList.push(q.audioText);
       if (q.word?.english) preloadList.push(q.word.english);
+      if (q.word?.exampleSentenceEn) preloadList.push(q.word.exampleSentenceEn);
     });
     soundEngine.preloadTexts(preloadList);
   }, [initialDeck]);
@@ -325,8 +328,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setStatGains(nextGains);
 
         soundEngine.playWeakHit(newCombo, isRevenge);
-        // プリロード済みの Google TTS (Web Audio API) で即座に発音再生
-        soundEngine.speakEnglish(targetAudio, defaultSpeechRate);
+        // プリロード済みの Google TTS (Web Audio API) で例文（なければ英単語）の発音を即座に再生
+        const speechAudio = targetWord?.exampleSentenceEn || targetAudio;
+        soundEngine.speakEnglish(speechAudio, defaultSpeechRate);
 
         setBannerType(isRevenge ? "revenge" : "weak");
         setBannerText(
@@ -1095,38 +1099,52 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() =>
-                          soundEngine.speakEnglish(
-                            answerModal.word,
-                            defaultSpeechRate
-                          )
-                        }
-                        className={`px-2.5 py-2 border text-xs font-black flex items-center gap-1 active:scale-95 transition ${
-                          isSpeakingAudio
-                            ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[0_0_12px_rgba(250,204,21,0.6)] animate-pulse"
-                            : "bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] border-[#FACC15] text-[#FACC15]"
-                        }`}
-                        title="発音を再生 (Rキー)"
-                      >
-                        <Volume2 className={`w-4 h-4 ${isSpeakingAudio ? "animate-bounce" : ""}`} />
-                        {isSpeakingAudio ? "再生中" : "発音 (R)"}
-                      </button>
-                      <button
-                        onClick={() =>
-                          soundEngine.speakEnglish(
-                            answerModal.word,
-                            0.7
-                          )
-                        }
-                        className="bg-[#131720] hover:border-white text-[#94A3B8] hover:text-white font-black text-xs px-2 py-2 border border-[#262D3D] flex items-center gap-1 active:scale-95 transition"
-                        title="ゆっくり発音 (0.7倍速)"
-                      >
-                        <Turtle className="w-3.5 h-3.5" />
-                        0.7x
-                      </button>
-                    </div>
+                    {(() => {
+                      const isSpeakingThisWord =
+                        isSpeakingAudio &&
+                        Boolean(
+                          currentSpeakingText &&
+                            answerModal.word &&
+                            currentSpeakingText.trim().toLowerCase() ===
+                              answerModal.word.trim().toLowerCase()
+                        );
+                      return (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() =>
+                              soundEngine.speakEnglish(
+                                answerModal.word,
+                                defaultSpeechRate
+                              )
+                            }
+                            className={`px-2.5 py-2 border text-xs font-black flex items-center gap-1 active:scale-95 transition ${
+                              isSpeakingThisWord
+                                ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[0_0_12px_rgba(250,204,21,0.6)] animate-pulse"
+                                : "bg-[#131720] hover:bg-[#FACC15] hover:text-[#0B0D12] border-[#FACC15] text-[#FACC15]"
+                            }`}
+                            title="発音を再生 (Rキー)"
+                          >
+                            <Volume2
+                              className={`w-4 h-4 ${isSpeakingThisWord ? "animate-bounce" : ""}`}
+                            />
+                            {isSpeakingThisWord ? "再生中" : "発音 (R)"}
+                          </button>
+                          <button
+                            onClick={() =>
+                              soundEngine.speakEnglish(
+                                answerModal.word,
+                                0.7
+                              )
+                            }
+                            className="bg-[#131720] hover:border-white text-[#94A3B8] hover:text-white font-black text-xs px-2 py-2 border border-[#262D3D] flex items-center gap-1 active:scale-95 transition"
+                            title="ゆっくり発音 (0.7倍速)"
+                          >
+                            <Turtle className="w-3.5 h-3.5" />
+                            0.7x
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {(() => {
@@ -1146,35 +1164,60 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                   })()}
 
                   {/* 公式例文＆和訳（ターゲット単語をイエローでハイライト＋例文音声再生） */}
-                  {answerModal.exampleSentenceEn && (
-                    <div className="bg-[#131720] border border-[#262D3D] p-2.5 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="text-xs font-bold text-white leading-snug">
-                          <BookOpen className="w-3.5 h-3.5 text-[#FACC15] inline mr-1 -mt-0.5" />
-                          {renderHighlightedSentence(
-                            answerModal.exampleSentenceEn,
-                            answerModal.word
-                          )}
+                  {answerModal.exampleSentenceEn && (() => {
+                    const isSpeakingThisSentence =
+                      isSpeakingAudio &&
+                      Boolean(
+                        currentSpeakingText &&
+                          answerModal.exampleSentenceEn &&
+                          currentSpeakingText.trim().toLowerCase() ===
+                            answerModal.exampleSentenceEn.trim().toLowerCase()
+                      );
+
+                    return (
+                      <div
+                        className={`bg-[#131720] border p-2.5 space-y-1 transition-colors ${
+                          isSpeakingThisSentence
+                            ? "border-[#FACC15] shadow-[0_0_15px_rgba(250,204,21,0.25)]"
+                            : "border-[#262D3D]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-xs font-bold text-white leading-snug">
+                            <BookOpen className="w-3.5 h-3.5 text-[#FACC15] inline mr-1 -mt-0.5" />
+                            {renderHighlightedSentence(
+                              answerModal.exampleSentenceEn,
+                              answerModal.word
+                            )}
+                          </div>
+                          <button
+                            onClick={() =>
+                              soundEngine.speakEnglish(
+                                answerModal.exampleSentenceEn!,
+                                defaultSpeechRate
+                              )
+                            }
+                            className={`text-[10px] font-black border px-2 py-0.5 shrink-0 flex items-center gap-1 active:scale-95 transition ${
+                              isSpeakingThisSentence
+                                ? "bg-[#FACC15] text-[#0B0D12] border-white shadow-[0_0_10px_rgba(250,204,21,0.6)] animate-pulse"
+                                : "text-[#FACC15] hover:bg-[#FACC15] hover:text-[#0B0D12] border-[#FACC15]"
+                            }`}
+                            title="例文の音声を再生"
+                          >
+                            <Volume2
+                              className={`w-3 h-3 ${isSpeakingThisSentence ? "animate-bounce" : ""}`}
+                            />
+                            {isSpeakingThisSentence ? "再生中" : "例文"}
+                          </button>
                         </div>
-                        <button
-                          onClick={() =>
-                            soundEngine.speakEnglish(
-                              answerModal.exampleSentenceEn!,
-                              defaultSpeechRate
-                            )
-                          }
-                          className="text-[10px] font-black text-[#FACC15] hover:bg-[#FACC15] hover:text-[#0B0D12] border border-[#FACC15] px-1.5 py-0.5 shrink-0 flex items-center gap-1 transition"
-                        >
-                          <Volume2 className="w-3 h-3" /> 例文
-                        </button>
+                        {answerModal.exampleSentenceJa && (
+                          <div className="text-[11px] text-[#94A3B8]">
+                            {answerModal.exampleSentenceJa}
+                          </div>
+                        )}
                       </div>
-                      {answerModal.exampleSentenceJa && (
-                        <div className="text-[11px] text-[#94A3B8]">
-                          {answerModal.exampleSentenceJa}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* 3. もう1タップで次の問題へ進むボタン */}

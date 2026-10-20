@@ -453,11 +453,12 @@ export default function DopaBenApp() {
       includeListening
     );
 
-    // ★ バトル開始ボタンを押した瞬間に AudioContext をアンロックし、出題される約12語分の Google TTS 音声を出題順にプリロード！
+    // ★ バトル開始ボタンを押した瞬間に AudioContext をアンロックし、出題される約12語分の Google TTS 音声（単語＋例文）を出題順にプリロード！
     const preloadList: string[] = [];
     deck.forEach((q) => {
       if (q.audioText) preloadList.push(q.audioText);
       if (q.word?.english) preloadList.push(q.word.english);
+      if (q.word?.exampleSentenceEn) preloadList.push(q.word.exampleSentenceEn);
     });
     soundEngine.preloadTexts(preloadList);
 
