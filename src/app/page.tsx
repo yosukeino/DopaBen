@@ -281,14 +281,17 @@ export default function DopaBenPortalPage() {
       // ignore
     }
 
-    // 🚀 出撃カットイン用背景画像を即座にバックグラウンド先読み（遅延ゼロ表示）
+    // 🚀 出撃カットイン用背景画像および遷移先ページを即座にバックグラウンド先読み（遅延ゼロ表示＆リロード要求防止）
     if (typeof window !== "undefined") {
+      router.prefetch("/english");
+      router.prefetch("/social");
+
       const img1 = new Image();
       img1.src = "/bg-cutin-english.jpg";
       const img2 = new Image();
       img2.src = "/bg-cutin-social.jpg";
     }
-  }, []);
+  }, [router]);
 
   const handleSelectStage = (stage: StageInfo) => {
     if (stage.status !== "playable" || !stage.href) return;
@@ -874,7 +877,10 @@ export default function DopaBenPortalPage() {
             profile={profile}
             onComplete={() => {
               const targetHref = entranceStage.href || "/english";
-              setEntranceStage(null);
+              // 注意: ここで setEntranceStage(null) を呼ぶと、ページ遷移の非同期描画中に
+              // カットインが即座にアンマウントされてトップページが一瞬チラ見えしてしまうため、
+              // カットインの閃光を維持したままシームレスに次ページへ移行させる。
+              // トップページに戻ってきた際は useEffect 内で setEntranceStage(null) が実行される。
               router.push(targetHref);
             }}
           />
