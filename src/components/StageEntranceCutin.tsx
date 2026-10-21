@@ -79,7 +79,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       } catch {}
     }, 1350);
 
-    // 2.40s〜: 突入直前の短い閃光フラッシュ（真っ白で長時間止まるのを防止）
+    // 2.40s〜: 突入直前の短い閃光フラッシュ
     const t2 = setTimeout(() => {
       setPhase("warp");
     }, 2400);
@@ -111,25 +111,23 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
           }}
         />
 
-        {/* 英語：桜吹雪パーティクル（背後で優雅に舞う） */}
+        {/* 英語：桜吹雪パーティクル（※純粋な数値アニメーションでクラッシュゼロ保証） */}
         {isEnglish && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-60">
             {Array.from({ length: 20 }).map((_, i) => (
               <motion.div
                 key={i}
                 initial={{
-                  x: Math.random() * 400 - 100,
-                  y: -50,
-                  rotate: Math.random() * 360,
+                  y: -40,
+                  rotate: (i * 37) % 360,
                 }}
                 animate={{
-                  x: `+=${Math.random() * 250 + 80}`,
-                  y: 900,
-                  rotate: `+=${Math.random() * 720}`,
+                  y: 950,
+                  rotate: (i * 37) % 360 + 540,
                 }}
                 transition={{
-                  duration: Math.random() * 1.8 + 1.6,
-                  delay: Math.random() * 0.8,
+                  duration: 2.2 + ((i % 5) * 0.3),
+                  delay: (i % 6) * 0.15,
                   ease: "easeInOut",
                   repeat: Infinity,
                 }}
@@ -140,29 +138,28 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
           </div>
         )}
 
-        {/* 社会：燃え盛る火の粉パーティクル（背後で熱く舞い上がる） */}
+        {/* 社会：燃え盛る火の粉パーティクル（※純粋な数値アニメーションでクラッシュゼロ保証） */}
         {isSocial && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-60">
             {Array.from({ length: 22 }).map((_, i) => (
               <motion.div
                 key={i}
                 initial={{
-                  x: (i * 4.5) % 100 + "%",
                   y: 750,
-                  scale: Math.random() * 0.8 + 0.5,
+                  scale: 0.8,
                 }}
                 animate={{
-                  x: `+=${Math.random() * 100 - 50}px`,
                   y: -60,
-                  scale: [0.6, 1.3, 0.2],
+                  scale: [0.6, 1.3, 0.3],
                 }}
                 transition={{
-                  duration: Math.random() * 1.4 + 1.2,
-                  delay: Math.random() * 0.5,
+                  duration: 1.6 + ((i % 4) * 0.3),
+                  delay: (i % 5) * 0.12,
                   ease: "easeOut",
                   repeat: Infinity,
                 }}
                 className="absolute w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-red-600 via-orange-400 to-yellow-300 shadow-[0_0_14px_#F97316]"
+                style={{ left: `${(i * 4.5) % 100}%` }}
               />
             ))}
           </div>
@@ -215,16 +212,17 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. 横から高速カットインする特大スラッシュカード（案1：ペルソナ調正当進化）        */}
+      {/* 3. 横から高速カットインする特大スラッシュカード                                */}
+      {/* ※ Framer Motion の unit-conversion バグを防ぐため、ピクセル数値で安全に制御      */}
       {/* ========================================================================= */}
       <motion.div
-        initial={{ x: "-120%", skewY: -4, opacity: 0 }}
-        animate={{ x: 0, skewY: -4, opacity: 1 }}
+        initial={{ x: -1400, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
         transition={{
           duration: 0.35,
-          ease: [0.16, 1, 0.3, 1], // 強烈なスナップ感のあるイージング
+          ease: [0.16, 1, 0.3, 1], // スナップ感のあるイージング
         }}
-        className="relative w-full sm:w-[108vw] h-[340px] sm:h-[390px] flex items-center justify-center overflow-hidden z-20 shadow-[0_0_70px_rgba(0,0,0,0.95)]"
+        className="relative w-full sm:w-[110vw] h-[340px] sm:h-[390px] -skew-y-3 sm:-skew-y-4 flex items-center justify-center overflow-hidden z-20 shadow-[0_0_80px_rgba(0,0,0,0.95)]"
         style={{
           borderTop: "3.5px solid #FFFFFF",
           borderBottom: "3.5px solid #FFFFFF",
@@ -236,7 +234,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
             className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
             style={{ backgroundImage: `url('${cardBgImage}')` }}
           >
-            {/* イラストの迫力を残しつつ文字やドット絵を浮かび上がらせるスマートグラデーション */}
+            {/* 文字やドット絵をハッキリ浮き上がらせるスマートグラデーション */}
             <div
               className={`absolute inset-0 ${
                 isSocial
@@ -256,16 +254,16 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
 
         {/* スラッシュカード内部を走る光の帯エフェクト */}
         <motion.div
-          initial={{ x: "-100%" }}
-          animate={{ x: "200%" }}
-          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
-          className="absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 pointer-events-none"
+          initial={{ x: -600 }}
+          animate={{ x: 900 }}
+          transition={{ duration: 1.1, delay: 0.25, ease: "easeOut" }}
+          className="absolute inset-y-0 w-36 bg-gradient-to-r from-transparent via-white/35 to-transparent skew-x-12 pointer-events-none"
         />
 
         {/* ======================================================================= */}
-        {/* 内部コンテンツ（カードの傾き -4deg を相殺して見やすく整える）                */}
+        {/* 内部コンテンツ（カードの傾き -skew-y を相殺して見やすく整える）                */}
         {/* ======================================================================= */}
-        <div className="relative z-10 w-full max-w-xl px-4 flex flex-col items-center justify-center text-center skew-y-4">
+        <div className="relative z-10 w-full max-w-xl px-4 flex flex-col items-center justify-center text-center skew-y-3 sm:skew-y-4">
           {/* 上部バッジ：ステージ名 */}
           <motion.div
             initial={{ y: -20, opacity: 0 }}
@@ -305,9 +303,9 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
             {/* 👑 英語：男子高生 ＆ 女子高生のクロス登場！ */}
             {isEnglish && (
               <motion.div
-                initial={{ scale: 0.7, opacity: 0 }}
+                initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 280, damping: 15 }}
+                transition={{ delay: 0.18, type: "spring", stiffness: 260, damping: 16 }}
                 className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]"
               >
                 {/* 男子高生（左） */}
@@ -354,9 +352,9 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
             {/* ⚾ 社会：野球少年 ＆ 鬼コーチの熱血出撃！ */}
             {isSocial && (
               <motion.div
-                initial={{ scale: 0.7, opacity: 0 }}
+                initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 280, damping: 15 }}
+                transition={{ delay: 0.18, type: "spring", stiffness: 260, damping: 16 }}
                 className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]"
               >
                 {/* 鬼コーチ（左） */}
