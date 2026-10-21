@@ -266,6 +266,9 @@ export default function DopaBenPortalPage() {
   const [cheerCount, setCheerCount] = useState<number>(0);
 
   useEffect(() => {
+    // 画面マウント時（および戻ってきた時）にカットイン状態を完全リセット
+    setEntranceStage(null);
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -880,6 +883,7 @@ export default function DopaBenPortalPage() {
             profile={profile}
             onComplete={() => {
               const targetHref = entranceStage.href || "/english";
+              setEntranceStage(null);
               router.push(targetHref);
             }}
           />

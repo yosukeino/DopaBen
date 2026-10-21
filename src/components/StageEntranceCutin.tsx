@@ -38,14 +38,14 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
   profile,
   onComplete,
 }) => {
-  const [phase, setPhase] = useState<"opening" | "heroes" | "engage" | "warp">("opening");
+  const [phase, setPhase] = useState<"opening" | "engage" | "warp">("opening");
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   const isEnglish = stage.id === "stage-english";
   const isSocial = stage.id === "stage-social";
 
-  // 背景画像URLの決定
+  // 背景画像URL
   const bgImage = isEnglish
     ? "/bg-cutin-english.jpg"
     : isSocial
@@ -53,19 +53,14 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
     : null;
 
   useEffect(() => {
-    // 確実なタイムライン実行（再レンダリングに影響されないタイマー制御）
-    // 0.0s: 背景画像 ＆ 集中線 ＆ パーティクル展開
-    // 0.40s: キャラクター（男女ペア / 野球部＆鬼コーチ）カットイン
+    // 確実なタイムライン実行 (計2.65秒のDX7ジングルと完全同期)
+    // 0.0s〜: 背景 ＆ キャラクター即時登場（不発ゼロ保証）
+    // 1.35s〜: クライマックスキメ (MISSION START / PLAY BALL 炸裂 ＆ 紙吹雪)
     const t1 = setTimeout(() => {
-      setPhase("heroes");
-    }, 400);
-
-    // 1.40s: MISSION START / PLAY BALL 炸裂 ＆ コンフェッティ爆発
-    const t2 = setTimeout(() => {
       setPhase("engage");
       try {
         confetti({
-          particleCount: 70,
+          particleCount: 75,
           spread: 90,
           origin: { y: 0.5 },
           colors: isSocial
@@ -73,15 +68,15 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
             : ["#FACC15", "#38BDF8", "#FFFFFF", "#EC4899"],
         });
       } catch {}
-    }, 1400);
+    }, 1350);
 
-    // 2.15s: ハイパースペース・ホワイトアウト突入
-    const t3 = setTimeout(() => {
+    // 2.20s〜: ホワイトアウト閃光（ハイパースペース突入）
+    const t2 = setTimeout(() => {
       setPhase("warp");
-    }, 2150);
+    }, 2200);
 
     // 2.65s: 各ステージメニューへ遷移
-    const t4 = setTimeout(() => {
+    const t3 = setTimeout(() => {
       onCompleteRef.current();
     }, 2650);
 
@@ -89,45 +84,41 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      clearTimeout(t4);
     };
   }, [isSocial]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black select-none flex items-center justify-center">
       {/* ========================================================================= */}
-      {/* 1. 背景：生成イラストを大迫力でフルスクリーン表示（黒帯で隠さない！）          */}
+      {/* 1. 背景イラスト：全画面フルスクリーン表示                                     */}
       {/* ========================================================================= */}
       <div className="absolute inset-0 overflow-hidden">
         {bgImage && (
-          <motion.div
-            initial={{ scale: 1.15 }}
-            animate={{ scale: 1.0 }}
-            transition={{ duration: 2.6, ease: "easeOut" }}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[2600ms] scale-105"
             style={{ backgroundImage: `url('${bgImage}')` }}
           >
-            {/* イラストの魅力を活かす薄めの雰囲気グラデーションオーバーレイ */}
+            {/* イラストを活かす薄いコントラストグラデーション */}
             <div
               className={`absolute inset-0 ${
                 isSocial
-                  ? "bg-gradient-to-t from-black/85 via-black/25 to-black/70"
-                  : "bg-gradient-to-t from-black/85 via-black/25 to-black/70"
+                  ? "bg-gradient-to-t from-black/85 via-black/20 to-black/70"
+                  : "bg-gradient-to-t from-black/85 via-black/20 to-black/70"
               }`}
             />
-          </motion.div>
+          </div>
         )}
 
         {/* 放射状スピード集中線 */}
         <div
-          className="absolute inset-0 opacity-25 mix-blend-screen pointer-events-none"
+          className="absolute inset-0 opacity-30 mix-blend-screen pointer-events-none"
           style={{
             backgroundImage: `radial-gradient(circle at center, transparent 35%, rgba(255,255,255,0.4) 100%),
               repeating-conic-gradient(from 0deg, transparent 0deg 4deg, rgba(255,255,255,0.18) 4deg 8deg)`,
           }}
         />
 
-        {/* 英語：舞い散る桜の花びらパーティクル */}
+        {/* 英語：桜吹雪パーティクル */}
         {isEnglish && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             {Array.from({ length: 24 }).map((_, i) => (
@@ -137,13 +128,11 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                   x: Math.random() * 400 - 100,
                   y: -50,
                   rotate: Math.random() * 360,
-                  opacity: 0,
                 }}
                 animate={{
                   x: `+=${Math.random() * 250 + 80}`,
                   y: 900,
                   rotate: `+=${Math.random() * 720}`,
-                  opacity: [0, 1, 0],
                 }}
                 transition={{
                   duration: Math.random() * 1.8 + 1.6,
@@ -151,7 +140,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                   ease: "easeInOut",
                   repeat: Infinity,
                 }}
-                className="absolute w-4 h-4 bg-gradient-to-br from-pink-200 via-rose-300 to-pink-400 rounded-full rounded-tr-none shadow-[0_0_10px_rgba(244,114,182,0.9)]"
+                className="absolute w-4 h-4 bg-gradient-to-br from-pink-200 via-rose-300 to-pink-400 rounded-full rounded-tr-none shadow-[0_0_10px_rgba(244,114,182,0.9)] opacity-90"
                 style={{ left: `${(i * 4.5) % 100}%` }}
               />
             ))}
@@ -167,13 +156,11 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                 initial={{
                   x: (i * 4) % 100 + "%",
                   y: 750,
-                  opacity: 0,
                   scale: Math.random() * 0.8 + 0.5,
                 }}
                 animate={{
                   x: `+=${Math.random() * 100 - 50}px`,
                   y: -60,
-                  opacity: [0, 1, 0],
                   scale: [0.6, 1.3, 0.2],
                 }}
                 transition={{
@@ -182,7 +169,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                   ease: "easeOut",
                   repeat: Infinity,
                 }}
-                className="absolute w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-red-600 via-orange-400 to-yellow-300 shadow-[0_0_14px_#F97316]"
+                className="absolute w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-red-600 via-orange-400 to-yellow-300 shadow-[0_0_14px_#F97316] opacity-90"
               />
             ))}
           </div>
@@ -190,7 +177,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. 上下のサイバー警戒アラートストライプ                                       */}
+      {/* 2. 上下のサイバーアラートストライプ                                           */}
       {/* ========================================================================= */}
       <div className="absolute top-0 inset-x-0 h-10 sm:h-12 bg-black/85 backdrop-blur-md border-b-2 border-white flex items-center overflow-hidden z-20 shadow-2xl">
         <motion.div
@@ -235,16 +222,11 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. キャラクター ＆ 必殺技演出（背景を隠さず、美しく透過配置）                   */}
+      {/* 3. キャラクター ＆ 必殺技（確実に100%表示されるソリッドDOM構造）                */}
       {/* ========================================================================= */}
       <div className="relative z-10 w-full max-w-xl px-4 flex flex-col items-center justify-center text-center">
         {/* 上部バッジ：ステージ名 */}
-        <motion.div
-          initial={{ y: -30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="flex items-center gap-2 mb-3"
-        >
+        <div className="flex items-center gap-2 mb-2 animate-bounce">
           <span className={`px-3.5 py-1 rounded-full font-black text-xs sm:text-sm tracking-wider shadow-[3px_3px_0_#000] -skew-x-12 border-2 border-white ${
             isSocial ? "bg-red-600 text-white" : "bg-amber-400 text-slate-950"
           }`}>
@@ -253,20 +235,19 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
           <span className="text-sm sm:text-base font-black tracking-widest text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] uppercase">
             {stage.subject}編 // {stage.roleBadge}
           </span>
-        </motion.div>
+        </div>
 
         {/* 中央：ドット絵キャラクターのクロス登場（背景画像の上にクッキリ浮かび上がる） */}
-        <div className="relative flex items-center justify-center my-2 w-full max-w-md h-40 sm:h-44">
+        <div className="relative flex items-center justify-center my-2 w-full max-w-md h-36 sm:h-40">
           {/* 回転する光輪エフェクト */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className={`absolute w-48 h-48 sm:w-56 sm:h-56 rounded-full border-2 border-dashed pointer-events-none ${
+          <div
+            className={`absolute w-44 h-44 sm:w-52 sm:h-52 rounded-full border-2 border-dashed animate-spin pointer-events-none ${
               isSocial ? "border-red-400/50" : "border-amber-400/50"
             }`}
+            style={{ animationDuration: "12s" }}
           />
           <div
-            className={`absolute w-40 h-40 sm:w-48 sm:h-48 rounded-full blur-2xl pointer-events-none animate-pulse ${
+            className={`absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full blur-2xl pointer-events-none animate-pulse ${
               isSocial
                 ? "bg-gradient-to-tr from-red-600/40 to-orange-500/40"
                 : "bg-gradient-to-tr from-amber-400/40 to-cyan-400/40"
@@ -275,19 +256,14 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
 
           {/* 👑 英語：男子高生 ＆ 女子高生のクロス登場！ */}
           {isEnglish && (
-            <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-8 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
-              {/* 男子高生（左からスライドイン） */}
-              <motion.div
-                initial={{ x: -140, scale: 0.3, opacity: 0 }}
-                animate={{ x: 0, scale: 1.25, opacity: 1 }}
-                transition={{ delay: 0.25, type: "spring", stiffness: 220, damping: 14 }}
-                className="flex flex-col items-center"
-              >
-                <div className="p-1 rounded-2xl bg-black/40 backdrop-blur-sm border-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.6)]">
+            <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
+              {/* 男子高生（左） */}
+              <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <PixelCharacter
                     gender="boy"
                     stage={profile?.level ?? 1}
-                    size={110}
+                    size={96}
                     mood="attack"
                     showAura={true}
                     animateFrames={true}
@@ -296,30 +272,20 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                 <span className="text-[10px] font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
                   英語勇者（男子）
                 </span>
-              </motion.div>
+              </div>
 
               {/* 中央の電撃アイコン */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.4, 1] }}
-                transition={{ delay: 0.45, duration: 0.35 }}
-                className="w-9 h-9 rounded-full bg-amber-400 border-2 border-white text-slate-950 font-black text-sm flex items-center justify-center shadow-[0_0_15px_#FACC15] -mt-4 shrink-0"
-              >
+              <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white text-slate-950 font-black text-sm flex items-center justify-center shadow-[0_0_15px_#FACC15] -mt-3 shrink-0 animate-pulse">
                 ⚡️
-              </motion.div>
+              </div>
 
-              {/* 女子高生（右からスライドイン） */}
-              <motion.div
-                initial={{ x: 140, scale: 0.3, opacity: 0 }}
-                animate={{ x: 0, scale: 1.25, opacity: 1 }}
-                transition={{ delay: 0.28, type: "spring", stiffness: 220, damping: 14 }}
-                className="flex flex-col items-center"
-              >
-                <div className="p-1 rounded-2xl bg-black/40 backdrop-blur-sm border-2 border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.6)]">
+              {/* 女子高生（右） */}
+              <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.8)]">
                   <PixelCharacter
                     gender="girl"
                     stage={profile?.level ?? 1}
-                    size={110}
+                    size={96}
                     mood="attack"
                     showAura={true}
                     animateFrames={true}
@@ -328,50 +294,35 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                 <span className="text-[10px] font-black bg-pink-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
                   英語勇者（女子）
                 </span>
-              </motion.div>
+              </div>
             </div>
           )}
 
           {/* ⚾ 社会：野球少年 ＆ 鬼コーチの熱血出撃！ */}
           {isSocial && (
-            <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-8 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
-              {/* 鬼コーチ（左からドカンと登場） */}
-              <motion.div
-                initial={{ x: -140, scale: 0.3, opacity: 0 }}
-                animate={{ x: 0, scale: 1.25, opacity: 1 }}
-                transition={{ delay: 0.25, type: "spring", stiffness: 220, damping: 14 }}
-                className="flex flex-col items-center"
-              >
-                <div className="p-1 rounded-2xl bg-black/40 backdrop-blur-sm border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.7)]">
-                  <CoachCharacter pose="ready" size={110} animate={true} />
+            <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
+              {/* 鬼コーチ（左） */}
+              <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]">
+                  <CoachCharacter pose="ready" size={96} animate={true} />
                 </div>
                 <span className="text-[10px] font-black bg-red-700 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
                   熱血鬼コーチ
                 </span>
-              </motion.div>
+              </div>
 
               {/* 中央の炎アイコン */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.5, 1] }}
-                transition={{ delay: 0.45, duration: 0.35 }}
-                className="w-9 h-9 rounded-full bg-red-600 border-2 border-white text-white font-black text-sm flex items-center justify-center shadow-[0_0_18px_#EF4444] -mt-4 shrink-0 animate-pulse"
-              >
+              <div className="w-8 h-8 rounded-full bg-red-600 border-2 border-white text-white font-black text-sm flex items-center justify-center shadow-[0_0_18px_#EF4444] -mt-3 shrink-0 animate-pulse">
                 🔥
-              </motion.div>
+              </div>
 
-              {/* 野球少年（右から気迫の打席構え） */}
-              <motion.div
-                initial={{ x: 140, scale: 0.3, opacity: 0 }}
-                animate={{ x: 0, scale: 1.25, opacity: 1 }}
-                transition={{ delay: 0.28, type: "spring", stiffness: 220, damping: 14 }}
-                className="flex flex-col items-center"
-              >
-                <div className="p-1 rounded-2xl bg-black/40 backdrop-blur-sm border-2 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.7)]">
+              {/* 野球少年（右） */}
+              <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]">
                   <BaseballCharacter
                     gender="boy"
                     pose="stance"
-                    size={110}
+                    size={96}
                     teamColor="#EF4444"
                     level={3}
                     batTier={2}
@@ -382,25 +333,20 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                 <span className="text-[10px] font-black bg-orange-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
                   熱血打線 4番
                 </span>
-              </motion.div>
+              </div>
             </div>
           )}
         </div>
 
         {/* 必殺技コールバナー */}
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.35, duration: 0.4 }}
-          className="space-y-1.5 mt-2"
-        >
+        <div className="space-y-1.5 mt-2">
           <div className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex items-center justify-center gap-2">
             <Flame className={`w-5 h-5 ${isSocial ? "text-red-500 fill-red-500" : "text-amber-400 fill-amber-400"} animate-bounce`} />
             <span>{stage.subject}編 覚醒出撃！</span>
             <Flame className={`w-5 h-5 ${isSocial ? "text-red-500 fill-red-500" : "text-amber-400 fill-amber-400"} animate-bounce`} />
           </div>
 
-          <div className="inline-block px-4 py-1.5 rounded-2xl bg-black/80 border-2 border-white/60 backdrop-blur-md shadow-2xl">
+          <div className="inline-block px-4 py-1.5 rounded-2xl bg-black/85 border-2 border-white/60 backdrop-blur-md shadow-2xl">
             <span className={`text-xs sm:text-sm font-black ${isSocial ? "text-red-400" : "text-amber-300"}`}>
               {stage.specialMove.split(" ")[0]}
             </span>
@@ -408,7 +354,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
               {stage.specialMove.split(" ").slice(1).join(" ")}
             </span>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -417,10 +363,10 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       <AnimatePresence>
         {phase === "engage" && (
           <motion.div
-            initial={{ scale: 2.6, opacity: 0 }}
-            animate={{ scale: [2.6, 1, 1.05], opacity: 1 }}
-            exit={{ scale: 3.4, opacity: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            initial={{ scale: 2.5, opacity: 0 }}
+            animate={{ scale: [2.5, 1, 1.05], opacity: 1 }}
+            exit={{ scale: 3.2, opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4"
           >
             <div
@@ -439,18 +385,17 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       {/* ========================================================================= */}
       {/* 5. ラスト：ホワイトアウト・ハイパースペース突入                                */}
       {/* ========================================================================= */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: phase === "warp" ? 1 : 0 }}
-        transition={{ duration: 0.45, ease: "easeInOut" }}
-        className="absolute inset-0 bg-white z-40 pointer-events-none flex items-center justify-center"
+      <div
+        className={`absolute inset-0 bg-white z-40 pointer-events-none flex items-center justify-center transition-opacity duration-400 ${
+          phase === "warp" ? "opacity-100" : "opacity-0"
+        }`}
       >
         <div
           className={`w-full h-1.5 scale-x-100 animate-ping ${
             isSocial ? "bg-red-500" : "bg-amber-400"
           }`}
         />
-      </motion.div>
+      </div>
     </div>
   );
 };

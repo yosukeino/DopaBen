@@ -497,9 +497,12 @@ class SoundEngine {
   }
 
   /**
-   * 【神聖・開闢・出撃の儀式音】トップページから各ステージ（教科）突入時の特大儀式サウンド
-   * - 英語: 神聖・覚醒・ファンタジックなFMシンセアルペジオ ＆ 開闢クリスタルコード
-   * - 社会: 熱血球場サイレン ＆ 金属バット快音 ＆ 咆哮ブラス ＆ スタジアム大歓声
+   * 【YAMAHA DX7風 2.6秒 出撃開幕ジングル（短い楽曲）】
+   * - 80〜90年代アーケード／メガドライブ黄金期を彷彿とさせる、FMスラップベース ＋ DX7クリスタルエレピ ＋ 勇壮なFMブラスリードのアンサンブル！
+   * - 0.0s: パワフルなキック ＆ スラップベース（始まるぞ！）
+   * - 0.4s: キャラ登場に合わせた疾走感あるFMブラス・メロディ ＆ エレピアルペジオ
+   * - 1.3s: クライマックス・キメ（「ダッ！ダッ！ダァァァン！！」） ＆ クラッシュ
+   * - 2.0s〜2.6s: キラめくクリスタルベルの余韻 ＆ 空間突入
    */
   public playStageEntrance(stageId: string = "stage-english") {
     if (this.muted) return;
@@ -507,152 +510,186 @@ class SoundEngine {
     if (!ctx) return;
 
     const now = ctx.currentTime;
+    const isSocial = stageId === "stage-social";
 
-    if (stageId === "stage-social") {
-      // ==========================================
-      // ⚾ 社会編：熱血甲子園出撃サウンド
-      // ==========================================
-
-      // 1. サブベース・インパクト
+    // -------------------------------------------------------------
+    // Helper: FMドラムス（キック ＆ スネア ＆ クラッシュシンバル）
+    // -------------------------------------------------------------
+    const playKick = (t: number) => {
       try {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(35, now + 0.6);
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc.frequency.setValueAtTime(160, now + t);
+        osc.frequency.exponentialRampToValueAtTime(38, now + t + 0.18);
+        gain.gain.setValueAtTime(0.38, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.22);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.8);
+        osc.start(now + t);
+        osc.stop(now + t + 0.22);
       } catch {}
+    };
 
-      // 2. 球場サイレン（ウゥゥゥーーン！！）
+    const playSnare = (t: number) => {
       try {
-        const siren = ctx.createOscillator();
-        const sirenGain = ctx.createGain();
-        siren.type = "sawtooth";
-        siren.frequency.setValueAtTime(320, now + 0.05);
-        siren.frequency.linearRampToValueAtTime(680, now + 0.7);
-        siren.frequency.exponentialRampToValueAtTime(450, now + 1.2);
-        sirenGain.gain.setValueAtTime(0.001, now);
-        sirenGain.gain.linearRampToValueAtTime(0.08, now + 0.2);
-        sirenGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
-        siren.connect(sirenGain);
-        sirenGain.connect(ctx.destination);
-        siren.start(now + 0.05);
-        siren.stop(now + 1.3);
-      } catch {}
-
-      // 3. 金属バットの快音「カァァァン！！」(0.55秒時点)
-      setTimeout(() => {
-        this.playBatCrack();
-      }, 550);
-
-      // 4. 熱血ホーン・ブラスコード（0.7秒〜 ドミソド！）
-      const hornNotes = [
-        { f: 293.66, t: 0.70, d: 0.25 }, // D4
-        { f: 369.99, t: 0.82, d: 0.25 }, // F#4
-        { f: 440.00, t: 0.94, d: 0.30 }, // A4
-        { f: 587.33, t: 1.08, d: 0.80 }, // D5 (ロングトーン)
-      ];
-      hornNotes.forEach((h) => {
-        this.playFmTone(h.f, 2.5, 1800, h.d, now + h.t, 0.12);
-      });
-
-      // 5. スタジアム歓声（0.7秒〜 わぁぁぁ！）
-      try {
-        const bufferSize = ctx.sampleRate * 1.2;
+        const bufferSize = ctx.sampleRate * 0.18;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-        const crowd = ctx.createBufferSource();
-        crowd.buffer = buffer;
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
         const filter = ctx.createBiquadFilter();
-        filter.type = "bandpass";
-        filter.frequency.setValueAtTime(800, now + 0.7);
-        filter.Q.value = 1.5;
+        filter.type = "highpass";
+        filter.frequency.setValueAtTime(1000, now + t);
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.001, now + 0.7);
-        gain.gain.linearRampToValueAtTime(0.14, now + 1.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
-        crowd.connect(filter);
+        gain.gain.setValueAtTime(0.18, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.18);
+        noise.connect(filter);
         filter.connect(gain);
         gain.connect(ctx.destination);
-        crowd.start(now + 0.7);
-        crowd.stop(now + 1.9);
+        noise.start(now + t);
+        noise.stop(now + t + 0.18);
       } catch {}
+    };
 
-    } else {
-      // ==========================================
-      // 👑 英語編：万能勇者覚醒サウンド
-      // ==========================================
-
-      // 1. サブベース・インパクト（ドォォォン！）
-      try {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(32, now + 0.6);
-        gain.gain.setValueAtTime(0.35, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.9);
-      } catch {}
-
-      // 2. 高速エネルギー充填アルペジオ（シュイイイイン！）
-      const charges = [
-        { f: 220, t: 0.05, d: 0.12 },
-        { f: 330, t: 0.12, d: 0.14 },
-        { f: 440, t: 0.18, d: 0.16 },
-        { f: 554.37, t: 0.24, d: 0.18 },
-        { f: 659.25, t: 0.30, d: 0.22 },
-        { f: 880, t: 0.38, d: 0.35 },
-        { f: 1108.73, t: 0.46, d: 0.45 },
-        { f: 1318.51, t: 0.54, d: 0.60 },
-      ];
-      charges.forEach((c) => {
-        this.playFmTone(c.f, 2.0, 1500, c.d, now + c.t, 0.09);
-      });
-
-      // 3. 覚醒・開闢クリスタルコード（ジャァァァン！！）
-      const chord = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
-      chord.forEach((freq, idx) => {
-        this.playFmTone(freq, 3.5, 1200, 1.4, now + 0.75 + idx * 0.02, 0.08);
-      });
-
-      // 4. ワームホール・ワープスウッシュノイズ（ゴオオオオオ…）
+    const playCymbal = (t: number) => {
       try {
         const bufferSize = ctx.sampleRate * 0.9;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
         const noise = ctx.createBufferSource();
         noise.buffer = buffer;
         const filter = ctx.createBiquadFilter();
-        filter.type = "bandpass";
-        filter.frequency.setValueAtTime(300, now + 0.8);
-        filter.frequency.exponentialRampToValueAtTime(3600, now + 1.5);
-        filter.Q.value = 3.0;
+        filter.type = "highpass";
+        filter.frequency.setValueAtTime(4500, now + t);
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.001, now + 0.8);
-        gain.gain.linearRampToValueAtTime(0.12, now + 1.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.7);
+        gain.gain.setValueAtTime(0.15, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.85);
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(ctx.destination);
-        noise.start(now + 0.8);
-        noise.stop(now + 1.7);
+        noise.start(now + t);
+        noise.stop(now + t + 0.85);
       } catch {}
+    };
+
+    // -------------------------------------------------------------
+    // Helper: DX7 Slap Bass（金属的なアタックと太い低音）
+    // -------------------------------------------------------------
+    const playSlapBass = (freq: number, t: number, dur: number = 0.22) => {
+      // 比 1:2、強いモジュレーション深度
+      this.playFmTone(freq, 2.0, 1600, dur, now + t, 0.22);
+    };
+
+    // -------------------------------------------------------------
+    // Helper: DX7 Crystal Bell / E.Piano（きらめくベル音）
+    // -------------------------------------------------------------
+    const playDxBell = (freq: number, t: number, dur: number = 0.7) => {
+      // 比 1:3.5 (DX7 Rhodes / Bell 特有のきらびやかな金属倍音)
+      this.playFmTone(freq, 3.5, 1300, dur, now + t, 0.11);
+    };
+
+    // -------------------------------------------------------------
+    // Helper: DX7 FM Brass（張りのあるリードブラス）
+    // -------------------------------------------------------------
+    const playDxBrass = (freq: number, t: number, dur: number = 0.3) => {
+      // 比 1:1、中程度のモジュレーション深度で力強いブラス
+      this.playFmTone(freq, 1.0, 2200, dur, now + t, 0.18);
+    };
+
+    // =============================================================
+    // 【Part 1: 0.0s 〜 0.4s】 始まるぞ！イントロビート ＆ スラップベース
+    // =============================================================
+    playKick(0.0);
+    playSlapBass(73.42, 0.0, 0.18); // D2
+    playSlapBass(146.83, 0.14, 0.14); // D3
+    playSlapBass(164.81, 0.26, 0.14); // E3
+
+    // =============================================================
+    // 【Part 2: 0.4s 〜 1.25s】 キャラ登場！疾走感あふれるDX7メロディ
+    // =============================================================
+    playKick(0.42);
+    playSnare(0.85);
+
+    // スラップベースライン
+    playSlapBass(98.0, 0.42, 0.18); // G2
+    playSlapBass(110.0, 0.65, 0.16); // A2
+    playSlapBass(123.47, 0.85, 0.16); // B2
+    playSlapBass(146.83, 1.05, 0.18); // D3
+
+    // DX7 クリスタルベルのコード分散アルペジオ
+    playDxBell(587.33, 0.42, 0.5); // D5
+    playDxBell(739.99, 0.54, 0.5); // F#5
+    playDxBell(880.00, 0.66, 0.5); // A5
+    playDxBell(1174.66, 0.78, 0.6); // 高D6
+    playDxBell(1318.51, 0.95, 0.7); // 高E6
+
+    // 勇壮なFMブラス・主旋律（始まるぞ！高揚メロディ）
+    playDxBrass(293.66, 0.42, 0.20); // D4
+    playDxBrass(369.99, 0.60, 0.20); // F#4
+    playDxBrass(440.00, 0.78, 0.22); // A4
+    playDxBrass(587.33, 0.98, 0.28); // D5
+
+    // =============================================================
+    // 【Part 3: 1.3s 〜 2.0s】 クライマックス・キメ（MISSION START / PLAY BALL!）
+    // =============================================================
+    playSnare(1.28);
+    playKick(1.42);
+    playCymbal(1.42);
+
+    if (isSocial) {
+      // 社会：金属バット快音
+      setTimeout(() => {
+        this.playBatCrack();
+      }, 1400);
     }
+
+    // キメコード 1（1.35s: Gコード）
+    [196.0, 392.0, 493.88, 587.33].forEach((f) => {
+      this.playFmTone(f, 2.0, 1800, 0.15, now + 1.35, 0.14);
+    });
+
+    // キメコード 2（1.50s: Aコード）
+    [220.0, 440.0, 554.37, 659.25].forEach((f) => {
+      this.playFmTone(f, 2.0, 1800, 0.18, now + 1.50, 0.15);
+    });
+
+    // 大キメコード 3（1.70s〜2.5s: 堂々のDメジャー大団円ファンファーレ！）
+    [146.83, 293.66, 369.99, 440.0, 587.33, 880.0, 1174.66].forEach((f) => {
+      this.playFmTone(f, 3.0, 2000, 0.9, now + 1.70, 0.16);
+    });
+
+    // =============================================================
+    // 【Part 4: 2.1s 〜 2.6s】 きらめくクリスタルベルの余韻 ＆ 空間突入
+    // =============================================================
+    playDxBell(1174.66, 1.85, 0.8);
+    playDxBell(1479.98, 1.98, 0.8);
+    playDxBell(1760.00, 2.12, 0.9);
+
+    // 突入スウッシュ
+    try {
+      const bufferSize = ctx.sampleRate * 0.7;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(400, now + 2.0);
+      filter.frequency.exponentialRampToValueAtTime(3600, now + 2.6);
+      filter.Q.value = 2.5;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now + 2.0);
+      gain.gain.linearRampToValueAtTime(0.12, now + 2.25);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.6);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(now + 2.0);
+      noise.stop(now + 2.6);
+    } catch {}
   }
 
   /**
