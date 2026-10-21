@@ -163,6 +163,122 @@ export function splitSentenceByTargetWord(
 }
 
 /**
+ * 単語から意味カテゴリまたは品詞キーを抽出する
+ * 例: "cat::家の中", "cat::町の中", "cat::人・職業", "pos::動詞", "pos::形容詞"
+ */
+function getWordSemanticCategoryKey(word: WordItem): string {
+  if (word.tip) {
+    const m = word.tip.match(/カテゴリ:\s*([^/,\n"]+)/);
+    if (m && m[1].trim()) {
+      return `cat::${m[1].trim().replace(/"/g, "")}`;
+    }
+  }
+  const posClean = (word.partOfSpeech || "").replace(/^#\d+\s*/, "").trim();
+  if (posClean) {
+    return `pos::${posClean}`;
+  }
+  return "pos::その他";
+}
+
+// 単語キャッシュ（grade + category -> WordItem[]）
+let cachedVocabCategoryMap: Map<string, WordItem[]> | null = null;
+
+function getVocabCategoryMap(): Map<string, WordItem[]> {
+  if (cachedVocabCategoryMap) return cachedVocabCategoryMap;
+
+  const map = new Map<string, WordItem[]>();
+  const pool = getActiveVocabPool();
+  const allWords: WordItem[] = [
+    ...(pool.eiken4Words || []),
+    ...(pool.target1800Words || []),
+    ...(pool.eiken1Words || []),
+    ...(pool.standardWords || []),
+  ];
+
+  for (const w of allWords) {
+    const catKey = getWordSemanticCategoryKey(w);
+    const key = `${w.grade}::${catKey}`;
+    const list = map.get(key) || [];
+    list.push(w);
+    map.set(key, list);
+
+    // 品詞レベルのバックアップ用キーも登録
+    const posOnly = (w.partOfSpeech || "").replace(/^#\d+\s*/, "").trim();
+    if (posOnly) {
+      const posKey = `${w.grade}::pos::${posOnly}`;
+      const posList = map.get(posKey) || [];
+      posList.push(w);
+      map.set(posKey, posList);
+    }
+  }
+
+  cachedVocabCategoryMap = map;
+  return map;
+}
+
+/**
+ * 類義カテゴリ・同品詞から賢い誤答選択肢を抽出する（消去法防止）
+ */
+function getSmartEnglishDistractors(
+  word: WordItem,
+  lang: "en" | "ja",
+  count: number = 3
+): string[] {
+  const map = getVocabCategoryMap();
+  const catKey = getWordSemanticCategoryKey(word);
+  const primaryKey = `${word.grade}::${catKey}`;
+  const posOnly = (word.partOfSpeech || "").replace(/^#\d+\s*/, "").trim();
+  const fallbackPosKey = `${word.grade}::pos::${posOnly}`;
+
+  const selected: string[] = [];
+  const correctLabel = (lang === "en" ? word.english : word.japanese).trim();
+
+  const addCandidates = (pool: WordItem[]) => {
+    const shuffled = shuffleArray(
+      pool.filter(
+        (w) =>
+          w.id !== word.id &&
+          w.english.toLowerCase() !== word.english.toLowerCase() &&
+          w.japanese.trim() !== word.japanese.trim()
+      )
+    );
+    for (const cand of shuffled) {
+      if (selected.length >= count) break;
+      const text = (lang === "en" ? cand.english : cand.japanese).trim();
+      if (text && text !== correctLabel && !selected.includes(text)) {
+        selected.push(text);
+      }
+    }
+  };
+
+  // Tier 1: 同一Grade かつ 同一カテゴリ (例: 英検4級 × "町の中", "人・職業", "家の中" など)
+  const tier1Pool = map.get(primaryKey) || [];
+  if (tier1Pool.length >= count) {
+    addCandidates(tier1Pool);
+  }
+
+  // Tier 2: 同一Grade かつ 同一品詞 (例: 動詞なら動詞、形容詞なら形容詞)
+  if (selected.length < count && posOnly) {
+    const tier2Pool = map.get(fallbackPosKey) || [];
+    addCandidates(tier2Pool);
+  }
+
+  // Tier 3: 既存の静的ディストラクター (フォールバック)
+  if (selected.length < count) {
+    const rawList = lang === "en" ? word.distractorsEn : word.distractorsJa;
+    for (const d of rawList) {
+      if (selected.length >= count) break;
+      const text = d.trim();
+      if (text && text !== correctLabel && !selected.includes(text)) {
+        selected.push(text);
+      }
+    }
+  }
+
+  return selected.slice(0, count);
+}
+
+/**
  * 1つのWordItemから、指定されたDuolingo×英検式フォーマットの問題を自動生成する
  */
 export function buildWordQuestion(
@@ -184,13 +300,14 @@ export function buildWordQuestion(
     );
     if (split) {
       const maskedSentence = `${split.before}[  ______  ]${split.after}`;
+      const smartDistractorsEn = getSmartEnglishDistractors(word, "en", 3);
       const choices = shuffleArray([
         {
           id: `${uid}_correct`,
           label: word.english,
           isCorrect: true,
         },
-        ...word.distractorsEn.slice(0, 3).map((d, idx) => ({
+        ...smartDistractorsEn.map((d, idx) => ({
           id: `${uid}_d_${idx}`,
           label: d,
           isCorrect: false,
@@ -219,13 +336,14 @@ export function buildWordQuestion(
 
   // ① 英単語(＋発音) ➔ 日本語4択
   if (format === "en_to_ja") {
+    const smartDistractorsJa = getSmartEnglishDistractors(word, "ja", 3);
     const choices = shuffleArray([
       {
         id: `${uid}_correct`,
         label: word.japanese,
         isCorrect: true,
       },
-      ...word.distractorsJa.slice(0, 3).map((d, idx) => ({
+      ...smartDistractorsJa.map((d, idx) => ({
         id: `${uid}_d_${idx}`,
         label: d,
         isCorrect: false,
@@ -252,13 +370,14 @@ export function buildWordQuestion(
 
   // ② 日本語 ➔ 英単語4択（全選択肢の見た目を統一してヒント漏れを防止＆回答後に発音）
   if (format === "ja_to_en" || format === "sentence_fill") {
+    const smartDistractorsEn = getSmartEnglishDistractors(word, "en", 3);
     const choices = shuffleArray([
       {
         id: `${uid}_correct`,
         label: word.english,
         isCorrect: true,
       },
-      ...word.distractorsEn.slice(0, 3).map((d, idx) => ({
+      ...smartDistractorsEn.map((d, idx) => ({
         id: `${uid}_d_${idx}`,
         label: d,
         isCorrect: false,
@@ -285,13 +404,14 @@ export function buildWordQuestion(
   }
 
   // ③ リスニング：音声のみ ➔ 日本語の意味4択（スペルを見せずに純粋な聴覚理解をテスト！）
+  const smartDistractorsJa = getSmartEnglishDistractors(word, "ja", 3);
   const choices = shuffleArray([
     {
       id: `${uid}_correct`,
       label: word.japanese,
       isCorrect: true,
     },
-    ...word.distractorsJa.slice(0, 3).map((d, idx) => ({
+    ...smartDistractorsJa.map((d, idx) => ({
       id: `${uid}_d_${idx}`,
       label: d,
       isCorrect: false,
