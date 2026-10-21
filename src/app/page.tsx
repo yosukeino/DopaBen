@@ -278,7 +278,7 @@ export default function DopaBenPortalPage() {
 
   const handleSelectStage = (stage: StageInfo) => {
     if (stage.status !== "playable" || !stage.href) return;
-    soundEngine.playStageEntrance();
+    soundEngine.playStageEntrance(stage.id);
     setEntranceStage(stage);
   };
 

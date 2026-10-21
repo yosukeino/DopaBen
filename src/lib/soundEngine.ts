@@ -498,76 +498,161 @@ class SoundEngine {
 
   /**
    * 【神聖・開闢・出撃の儀式音】トップページから各ステージ（教科）突入時の特大儀式サウンド
-   * - 重低音サブベース・インパクト ＋ エネルギー充填アルペジオ ＋ 開闢クリスタルコード ＋ 空間ワープスウッシュ
+   * - 英語: 神聖・覚醒・ファンタジックなFMシンセアルペジオ ＆ 開闢クリスタルコード
+   * - 社会: 熱血球場サイレン ＆ 金属バット快音 ＆ 咆哮ブラス ＆ スタジアム大歓声
    */
-  public playStageEntrance() {
+  public playStageEntrance(stageId: string = "stage-english") {
     if (this.muted) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
     const now = ctx.currentTime;
 
-    // 1. サブベース・インパクト（ドォォォン！）
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(140, now);
-      osc.frequency.exponentialRampToValueAtTime(32, now + 0.6);
-      gain.gain.setValueAtTime(0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.9);
-    } catch {}
+    if (stageId === "stage-social") {
+      // ==========================================
+      // ⚾ 社会編：熱血甲子園出撃サウンド
+      // ==========================================
 
-    // 2. 高速エネルギー充填アルペジオ（シュイイイイン！）
-    const charges = [
-      { f: 220, t: 0.05, d: 0.12 },
-      { f: 330, t: 0.12, d: 0.14 },
-      { f: 440, t: 0.18, d: 0.16 },
-      { f: 554.37, t: 0.24, d: 0.18 },
-      { f: 659.25, t: 0.30, d: 0.22 },
-      { f: 880, t: 0.38, d: 0.35 },
-      { f: 1108.73, t: 0.46, d: 0.45 },
-      { f: 1318.51, t: 0.54, d: 0.60 },
-    ];
-    charges.forEach((c) => {
-      this.playFmTone(c.f, 2.0, 1500, c.d, now + c.t, 0.09);
-    });
+      // 1. サブベース・インパクト
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.6);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.8);
+      } catch {}
 
-    // 3. 覚醒・開闢クリスタルコード（ジャァァァン！！）
-    const chord = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
-    chord.forEach((freq, idx) => {
-      this.playFmTone(freq, 3.5, 1200, 1.2, now + 0.7 + idx * 0.02, 0.07);
-    });
+      // 2. 球場サイレン（ウゥゥゥーーン！！）
+      try {
+        const siren = ctx.createOscillator();
+        const sirenGain = ctx.createGain();
+        siren.type = "sawtooth";
+        siren.frequency.setValueAtTime(320, now + 0.05);
+        siren.frequency.linearRampToValueAtTime(680, now + 0.7);
+        siren.frequency.exponentialRampToValueAtTime(450, now + 1.2);
+        sirenGain.gain.setValueAtTime(0.001, now);
+        sirenGain.gain.linearRampToValueAtTime(0.08, now + 0.2);
+        sirenGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+        siren.connect(sirenGain);
+        sirenGain.connect(ctx.destination);
+        siren.start(now + 0.05);
+        siren.stop(now + 1.3);
+      } catch {}
 
-    // 4. ワームホール・ワープスウッシュノイズ（ゴオオオオオ…）
-    try {
-      const bufferSize = ctx.sampleRate * 0.8;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-      }
-      const noise = ctx.createBufferSource();
-      noise.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.setValueAtTime(300, now + 0.6);
-      filter.frequency.exponentialRampToValueAtTime(3200, now + 1.2);
-      filter.Q.value = 3.0;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.001, now + 0.6);
-      gain.gain.linearRampToValueAtTime(0.12, now + 0.9);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      noise.start(now + 0.6);
-      noise.stop(now + 1.4);
-    } catch {}
+      // 3. 金属バットの快音「カァァァン！！」(0.55秒時点)
+      setTimeout(() => {
+        this.playBatCrack();
+      }, 550);
+
+      // 4. 熱血ホーン・ブラスコード（0.7秒〜 ドミソド！）
+      const hornNotes = [
+        { f: 293.66, t: 0.70, d: 0.25 }, // D4
+        { f: 369.99, t: 0.82, d: 0.25 }, // F#4
+        { f: 440.00, t: 0.94, d: 0.30 }, // A4
+        { f: 587.33, t: 1.08, d: 0.80 }, // D5 (ロングトーン)
+      ];
+      hornNotes.forEach((h) => {
+        this.playFmTone(h.f, 2.5, 1800, h.d, now + h.t, 0.12);
+      });
+
+      // 5. スタジアム歓声（0.7秒〜 わぁぁぁ！）
+      try {
+        const bufferSize = ctx.sampleRate * 1.2;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const crowd = ctx.createBufferSource();
+        crowd.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(800, now + 0.7);
+        filter.Q.value = 1.5;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, now + 0.7);
+        gain.gain.linearRampToValueAtTime(0.14, now + 1.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+        crowd.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        crowd.start(now + 0.7);
+        crowd.stop(now + 1.9);
+      } catch {}
+
+    } else {
+      // ==========================================
+      // 👑 英語編：万能勇者覚醒サウンド
+      // ==========================================
+
+      // 1. サブベース・インパクト（ドォォォン！）
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(32, now + 0.6);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.9);
+      } catch {}
+
+      // 2. 高速エネルギー充填アルペジオ（シュイイイイン！）
+      const charges = [
+        { f: 220, t: 0.05, d: 0.12 },
+        { f: 330, t: 0.12, d: 0.14 },
+        { f: 440, t: 0.18, d: 0.16 },
+        { f: 554.37, t: 0.24, d: 0.18 },
+        { f: 659.25, t: 0.30, d: 0.22 },
+        { f: 880, t: 0.38, d: 0.35 },
+        { f: 1108.73, t: 0.46, d: 0.45 },
+        { f: 1318.51, t: 0.54, d: 0.60 },
+      ];
+      charges.forEach((c) => {
+        this.playFmTone(c.f, 2.0, 1500, c.d, now + c.t, 0.09);
+      });
+
+      // 3. 覚醒・開闢クリスタルコード（ジャァァァン！！）
+      const chord = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+      chord.forEach((freq, idx) => {
+        this.playFmTone(freq, 3.5, 1200, 1.4, now + 0.75 + idx * 0.02, 0.08);
+      });
+
+      // 4. ワームホール・ワープスウッシュノイズ（ゴオオオオオ…）
+      try {
+        const bufferSize = ctx.sampleRate * 0.9;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(300, now + 0.8);
+        filter.frequency.exponentialRampToValueAtTime(3600, now + 1.5);
+        filter.Q.value = 3.0;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, now + 0.8);
+        gain.gain.linearRampToValueAtTime(0.12, now + 1.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.7);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(now + 0.8);
+        noise.stop(now + 1.7);
+      } catch {}
+    }
   }
 
   /**
