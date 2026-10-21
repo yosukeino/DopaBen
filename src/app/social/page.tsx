@@ -53,6 +53,8 @@ import {
   calculateLevelFromTotalLxp,
   calculateOverallRank,
   calculateStatFromCatches,
+  applyKnockProgress,
+  KnockProgressDelta,
   DEFAULT_BASEBALL_PLAYER,
   BAT_EQUIPMENTS,
   PLAYER_RANKS,
@@ -82,6 +84,13 @@ export default function DopaSocPage() {
   const [deck, setDeck] = useState<GeneratedSocialQuestion[]>([]);
   const [deckOptions, setDeckOptions] = useState<QuizDeckOptions>({});
   const [latestSummary, setLatestSummary] = useState<GameSummary | null>(null);
+
+  // 中断時の成果保存トースト
+  const [abortSavedToast, setAbortSavedToast] = useState<{
+    totalQuestions: number;
+    hits: number;
+    earnedLxp: number;
+  } | null>(null);
 
   // 弱点問題ID
   const [weakIds, setWeakIds] = useState<number[]>([]);
@@ -187,36 +196,7 @@ export default function DopaSocPage() {
     setLatestSummary(summary);
     setViewState("result");
 
-    // 通算ノック記録を更新
-    const newCareer = {
-      totalKnocks: player.career.totalKnocks + summary.totalQuestions,
-      totalCatches: player.career.totalCatches + summary.hits,
-      maxCombo: Math.max(player.career.maxCombo, summary.maxCombo),
-      geoCatches: player.career.geoCatches + summary.geoCatches,
-      historyCatches: player.career.historyCatches + summary.historyCatches,
-      civicsCatches: player.career.civicsCatches + summary.civicsCatches,
-    };
-
-    // 正解数から3大ステータスを自動計算・成長！
-    const newStats = {
-      geo: calculateStatFromCatches(newCareer.geoCatches),
-      history: calculateStatFromCatches(newCareer.historyCatches),
-      civics: calculateStatFromCatches(newCareer.civicsCatches),
-    };
-
-    const newTotalLxp = player.totalLxp + summary.earnedLxp;
-    const newExp = player.exp + summary.earnedLxp;
-    const rankInfo = calculateLevelFromTotalLxp(newTotalLxp);
-
-    const updatedPlayer: BaseballPlayerProfile = {
-      ...player,
-      career: newCareer,
-      stats: newStats,
-      exp: newExp,
-      totalLxp: newTotalLxp,
-      level: rankInfo.level,
-    };
-
+    const updatedPlayer = applyKnockProgress(player, summary);
     handleUpdatePlayer(updatedPlayer);
 
     try {
@@ -225,6 +205,22 @@ export default function DopaSocPage() {
     } catch {
       // ignore
     }
+  };
+
+  // 中断時の成果保存処理
+  const handleAbortGame = (delta?: KnockProgressDelta) => {
+    soundEngine.playTap();
+    if (delta && delta.totalQuestions > 0) {
+      const updatedPlayer = applyKnockProgress(player, delta);
+      handleUpdatePlayer(updatedPlayer);
+      setAbortSavedToast({
+        totalQuestions: delta.totalQuestions,
+        hits: delta.hits,
+        earnedLxp: delta.earnedLxp,
+      });
+      setTimeout(() => setAbortSavedToast(null), 5000);
+    }
+    setViewState("lobby");
   };
 
   const overall = calculateOverallRank(player.stats);
@@ -254,10 +250,7 @@ export default function DopaSocPage() {
           deckOptions={deckOptions}
           player={player}
           onFinishGame={handleFinishGame}
-          onAbort={() => {
-            soundEngine.playTap();
-            setViewState("lobby");
-          }}
+          onAbort={handleAbortGame}
         />
       )}
 
@@ -279,6 +272,37 @@ export default function DopaSocPage() {
       {/* ロビー画面 */}
       {viewState === "lobby" && (
         <div className="w-full max-w-md space-y-3.5 pb-12">
+          {/* 中断成果保存トースト */}
+          <AnimatePresence>
+            {abortSavedToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                className="bg-gradient-to-r from-[#0369A1]/90 via-[#0284C7]/90 to-[#0369A1]/90 border border-[#38BDF8] rounded-xl p-3 flex items-center justify-between shadow-lg text-white"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">💾</span>
+                  <div>
+                    <div className="text-xs font-black flex items-center gap-1.5">
+                      <span>特訓成果を記録・保存しました！</span>
+                      <span className="text-[#FACC15]">+{abortSavedToast.earnedLxp} LXP</span>
+                    </div>
+                    <div className="text-[10px] text-sky-100">
+                      ノック {abortSavedToast.totalQuestions}本中 {abortSavedToast.hits}本捕球（ステータス反映済）
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAbortSavedToast(null)}
+                  className="text-white/60 hover:text-white text-xs p-1"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* トップナビゲーション */}
           <div className="flex items-center justify-between">
             <Link

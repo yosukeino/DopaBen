@@ -176,3 +176,50 @@ export function calculateOverallRank(stats: SocialTriStats): {
   if (avg >= 25) return { rank: "E", color: "#94A3B8", average: avg };
   return { rank: "F", color: "#64748B", average: avg };
 }
+
+export interface KnockProgressDelta {
+  totalQuestions: number;
+  hits: number;
+  maxCombo: number;
+  earnedLxp: number;
+  geoCatches: number;
+  historyCatches: number;
+  civicsCatches: number;
+}
+
+/**
+ * ノックセッションの進行成果（中断時・完了時）をプレイヤープロファイルに反映する純粋関数
+ */
+export function applyKnockProgress(
+  player: BaseballPlayerProfile,
+  delta: KnockProgressDelta
+): BaseballPlayerProfile {
+  const newCareer: KnockCareerRecord = {
+    totalKnocks: player.career.totalKnocks + delta.totalQuestions,
+    totalCatches: player.career.totalCatches + delta.hits,
+    maxCombo: Math.max(player.career.maxCombo, delta.maxCombo),
+    geoCatches: player.career.geoCatches + delta.geoCatches,
+    historyCatches: player.career.historyCatches + delta.historyCatches,
+    civicsCatches: player.career.civicsCatches + delta.civicsCatches,
+  };
+
+  const newStats: SocialTriStats = {
+    geo: calculateStatFromCatches(newCareer.geoCatches),
+    history: calculateStatFromCatches(newCareer.historyCatches),
+    civics: calculateStatFromCatches(newCareer.civicsCatches),
+  };
+
+  const newTotalLxp = player.totalLxp + delta.earnedLxp;
+  const newExp = player.exp + delta.earnedLxp;
+  const rankInfo = calculateLevelFromTotalLxp(newTotalLxp);
+
+  return {
+    ...player,
+    career: newCareer,
+    stats: newStats,
+    exp: newExp,
+    totalLxp: newTotalLxp,
+    level: rankInfo.level,
+  };
+}
+

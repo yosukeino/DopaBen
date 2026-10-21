@@ -26,7 +26,10 @@ import { SocialQuestion, SUBJECT_META } from "@/lib/socialData";
 import { soundEngine } from "@/lib/soundEngine";
 import { BaseballCharacter, BaseballPose } from "./BaseballCharacter";
 import { CoachCharacter, CoachPose } from "./CoachCharacter";
-import { BaseballPlayerProfile } from "@/lib/baseballGrowthEngine";
+import {
+  BaseballPlayerProfile,
+  KnockProgressDelta,
+} from "@/lib/baseballGrowthEngine";
 
 export interface GameSummary {
   mode: "knock" | "game9" | "quick" | "endless" | "review";
@@ -55,7 +58,7 @@ interface SocialBaseballGameProps {
   deckOptions: QuizDeckOptions;
   player: BaseballPlayerProfile;
   onFinishGame: (summary: GameSummary) => void;
-  onAbort: () => void;
+  onAbort: (delta?: KnockProgressDelta) => void;
 }
 
 const COACH_QUOTES = [
@@ -85,6 +88,8 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
 
   // 10本ごとの継続確認モーダル
   const [showContinueModal, setShowContinueModal] = useState(false);
+  // 中断確認モーダル
+  const [showAbortModal, setShowAbortModal] = useState(false);
 
   // 捕球ステータス
   const [hits, setHits] = useState(0);
@@ -124,8 +129,38 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
 
   const questionLogsRef = useRef<GameSummary["questionLogs"]>([]);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSavedRef = useRef(false);
 
   const currentItem = deck[currentIndex];
+
+  // 現在のセッション成果デルタを生成
+  const getCurrentDelta = (): KnockProgressDelta => ({
+    totalQuestions: questionLogsRef.current.length,
+    hits,
+    maxCombo,
+    earnedLxp: totalEarnedLxp,
+    geoCatches,
+    historyCatches,
+    civicsCatches,
+  });
+
+  // アンマウント時の安全装置（ブラウザバック等で閉じられても保存）
+  useEffect(() => {
+    return () => {
+      if (!hasSavedRef.current && questionLogsRef.current.length > 0) {
+        hasSavedRef.current = true;
+        onAbort({
+          totalQuestions: questionLogsRef.current.length,
+          hits,
+          maxCombo,
+          earnedLxp: totalEarnedLxp,
+          geoCatches,
+          historyCatches,
+          civicsCatches,
+        });
+      }
+    };
+  }, [hits, maxCombo, totalEarnedLxp, geoCatches, historyCatches, civicsCatches, onAbort]);
 
   // ★ 該当科目のステータスに応じた誤答消去
   const eliminatedChoiceIds = useMemo(() => {
@@ -300,6 +335,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   };
 
   const handleEndKnockSession = () => {
+    hasSavedRef.current = true;
     setShowContinueModal(false);
     soundEngine.playStageVictory();
     onFinishGame({
@@ -318,6 +354,23 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
       civicsCatches,
       questionLogs: questionLogsRef.current,
     });
+  };
+
+  const handleAbortClick = () => {
+    soundEngine.playTap();
+    if (questionLogsRef.current.length === 0) {
+      hasSavedRef.current = true;
+      onAbort();
+    } else {
+      setShowAbortModal(true);
+    }
+  };
+
+  const handleConfirmAbort = () => {
+    hasSavedRef.current = true;
+    setShowAbortModal(false);
+    soundEngine.playStageVictory();
+    onAbort(getCurrentDelta());
   };
 
   const meta = SUBJECT_META[currentItem.question.subject];
@@ -429,10 +482,67 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         )}
       </AnimatePresence>
 
+      {/* 中断確認モーダル */}
+      <AnimatePresence>
+        {showAbortModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 15 }}
+              className="w-full max-w-sm bg-gradient-to-b from-[#1E293B] via-[#0F172A] to-[#0B0D12] border-2 border-[#38BDF8] rounded-3xl p-5 shadow-2xl space-y-4 text-center text-white"
+            >
+              <div className="text-3xl">⚾💾</div>
+
+              <div>
+                <h3 className="text-lg font-black text-[#38BDF8] tracking-wide">
+                  特訓を中断しますか？
+                </h3>
+                <p className="text-xs text-[#94A3B8] mt-1">
+                  ここまでのノック本数や正解数、獲得LXPは<span className="text-[#FACC15] font-bold">すべて保存</span>されます！
+                </p>
+              </div>
+
+              <div className="bg-[#090D16] border border-[#334155] rounded-xl p-2.5 grid grid-cols-3 gap-1 text-center text-xs">
+                <div>
+                  <span className="text-[9px] text-[#94A3B8] block">ノック本数</span>
+                  <span className="font-black text-white">{questionLogsRef.current.length}本</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#10B981] block">捕球(正解)</span>
+                  <span className="font-black text-[#10B981]">{hits}本</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#FACC15] block">獲得LXP</span>
+                  <span className="font-black text-[#FACC15]">+{totalEarnedLxp}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={handleConfirmAbort}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#38BDF8] to-[#0284C7] hover:brightness-110 text-slate-950 font-black text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                  <span>記録を保存してロビーへ戻る</span>
+                </button>
+
+                <button
+                  onClick={() => setShowAbortModal(false)}
+                  className="w-full py-2 rounded-xl bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#CBD5E1] hover:text-white font-bold text-xs active:scale-95 transition"
+                >
+                  特訓を続ける
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* 1. ヘッダーナビゲーション ＆ ステータス */}
       <div className="flex items-center justify-between px-1">
         <button
-          onClick={onAbort}
+          onClick={handleAbortClick}
           className="px-2.5 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#94A3B8] hover:text-white text-xs font-bold flex items-center gap-1 transition"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
