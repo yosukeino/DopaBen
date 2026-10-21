@@ -497,6 +497,80 @@ class SoundEngine {
   }
 
   /**
+   * 【神聖・開闢・出撃の儀式音】トップページから各ステージ（教科）突入時の特大儀式サウンド
+   * - 重低音サブベース・インパクト ＋ エネルギー充填アルペジオ ＋ 開闢クリスタルコード ＋ 空間ワープスウッシュ
+   */
+  public playStageEntrance() {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // 1. サブベース・インパクト（ドォォォン！）
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.6);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.9);
+    } catch {}
+
+    // 2. 高速エネルギー充填アルペジオ（シュイイイイン！）
+    const charges = [
+      { f: 220, t: 0.05, d: 0.12 },
+      { f: 330, t: 0.12, d: 0.14 },
+      { f: 440, t: 0.18, d: 0.16 },
+      { f: 554.37, t: 0.24, d: 0.18 },
+      { f: 659.25, t: 0.30, d: 0.22 },
+      { f: 880, t: 0.38, d: 0.35 },
+      { f: 1108.73, t: 0.46, d: 0.45 },
+      { f: 1318.51, t: 0.54, d: 0.60 },
+    ];
+    charges.forEach((c) => {
+      this.playFmTone(c.f, 2.0, 1500, c.d, now + c.t, 0.09);
+    });
+
+    // 3. 覚醒・開闢クリスタルコード（ジャァァァン！！）
+    const chord = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+    chord.forEach((freq, idx) => {
+      this.playFmTone(freq, 3.5, 1200, 1.2, now + 0.7 + idx * 0.02, 0.07);
+    });
+
+    // 4. ワームホール・ワープスウッシュノイズ（ゴオオオオオ…）
+    try {
+      const bufferSize = ctx.sampleRate * 0.8;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(300, now + 0.6);
+      filter.frequency.exponentialRampToValueAtTime(3200, now + 1.2);
+      filter.Q.value = 3.0;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now + 0.6);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.9);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(now + 0.6);
+      noise.stop(now + 1.4);
+    } catch {}
+  }
+
+  /**
    * 【案A: PC-98/FM TOWNS風 FMシンセ・グリッサンド】出撃・BATTLE START音
    */
   public playAllOutIntro() {

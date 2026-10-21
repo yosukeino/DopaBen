@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
@@ -18,6 +19,7 @@ import {
 import { PlayerProfile } from "@/lib/types";
 import { PixelCharacter } from "@/components/PixelCharacter";
 import { BaseballCharacter } from "@/components/BaseballCharacter";
+import { StageEntranceCutin } from "@/components/StageEntranceCutin";
 import { soundEngine } from "@/lib/soundEngine";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
@@ -256,8 +258,10 @@ const AMBIENT_STARS = [
 ];
 
 export default function DopaBenPortalPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [selectedStageModal, setSelectedStageModal] = useState<StageInfo | null>(null);
+  const [entranceStage, setEntranceStage] = useState<StageInfo | null>(null);
   const [showBossModal, setShowBossModal] = useState<boolean>(false);
   const [cheerCount, setCheerCount] = useState<number>(0);
 
@@ -271,6 +275,12 @@ export default function DopaBenPortalPage() {
       // ignore
     }
   }, []);
+
+  const handleSelectStage = (stage: StageInfo) => {
+    if (stage.status !== "playable" || !stage.href) return;
+    soundEngine.playStageEntrance();
+    setEntranceStage(stage);
+  };
 
   const handleCheer = () => {
     soundEngine.playEvolutionFanfare();
@@ -413,10 +423,10 @@ export default function DopaBenPortalPage() {
                 className="relative"
               >
                 {isPlayable ? (
-                  <Link
-                    href={stage.href || "#"}
-                    onClick={() => soundEngine.playTap()}
-                    className="group block relative bg-white/95 backdrop-blur-md border-2 border-slate-900 hover:border-slate-950 p-3 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0F172A] transition overflow-hidden"
+                  <button
+                    type="button"
+                    onClick={() => handleSelectStage(stage)}
+                    className="w-full text-left group block relative bg-white/95 backdrop-blur-md border-2 border-slate-900 hover:border-slate-950 p-3 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0F172A] transition overflow-hidden cursor-pointer"
                   >
                     {/* カード角の繊細なキラめきアクセント */}
                     {stage.id === "stage-english" && (
@@ -486,7 +496,7 @@ export default function DopaBenPortalPage() {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 ) : (
                   <div
                     onClick={() => {
@@ -838,13 +848,33 @@ export default function DopaBenPortalPage() {
                     handleCheer();
                     setShowBossModal(false);
                   }}
-                  className="w-full py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black text-xs border-2 border-slate-900 shadow-[3px_3px_0px_#0F172A] active:translate-x-[1px] active:translate-y-[1px] transition"
+                  className="w-full py-2.5 rounded-xl bg-red-500 hover:red-600 text-white font-black text-xs border-2 border-slate-900 shadow-[3px_3px_0px_#0F172A] active:translate-x-[1px] active:translate-y-[1px] transition"
                 >
                   期待して待つ！
                 </button>
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* 4. ゲームスタートの儀式：超ド派手ステージ突入カットイン演出                    */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {entranceStage && (
+          <StageEntranceCutin
+            stage={{
+              ...entranceStage,
+              href: entranceStage.href || "/english",
+            }}
+            profile={profile}
+            onComplete={() => {
+              if (entranceStage.href) {
+                router.push(entranceStage.href);
+              }
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
