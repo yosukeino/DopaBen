@@ -226,21 +226,21 @@ export default function DopaBenPortalPage() {
       }}
     >
       {/* ========================================================================= */}
-      {/* 画面全体に散りばめられた動く可愛いステッカー（中学生向けインタラクティブ演出）   */}
+      {/* 画面全体に散りばめられた動く可愛いステッカー（カード背面 z-0 で控えめに浮遊）    */}
       {/* ========================================================================= */}
-      <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {INTERACTIVE_STICKERS.map((stk) => (
           <motion.div
             key={stk.id}
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{
               opacity: 1,
-              scale: [1, 1.1, 1],
-              y: [0, -12, 0],
-              rotate: [stk.rot - 4, stk.rot + 4, stk.rot - 4],
+              scale: [1, 1.08, 1],
+              y: [0, -10, 0],
+              rotate: [stk.rot - 3, stk.rot + 3, stk.rot - 3],
             }}
             transition={{
-              duration: 4.5 + stk.delay,
+              duration: 5 + stk.delay,
               repeat: Infinity,
               ease: "easeInOut",
               delay: stk.delay,
@@ -250,12 +250,12 @@ export default function DopaBenPortalPage() {
             <button
               onClick={handleStickerTap}
               title={stk.label}
-              className="group flex flex-col items-center justify-center p-1.5 rounded-2xl bg-white/80 hover:bg-white backdrop-blur-md border-2 border-slate-900 shadow-[3px_3px_0px_#0F172A] hover:scale-125 active:scale-95 transition cursor-pointer select-none"
+              className="group flex flex-col items-center justify-center p-1 opacity-40 hover:opacity-85 transition-opacity duration-300 cursor-pointer select-none"
             >
-              <span className="text-xl sm:text-2xl filter drop-shadow-sm group-hover:animate-bounce">
+              <span className="text-xl sm:text-2xl filter drop-shadow-sm select-none group-hover:scale-125 transition-transform duration-200">
                 {stk.icon}
               </span>
-              <span className="text-[8px] font-black tracking-tight text-slate-800 bg-amber-100/90 px-1 rounded border border-amber-300 mt-0.5">
+              <span className="text-[8px] font-bold tracking-tight text-slate-500 bg-white/60 px-1 py-0.2 rounded border border-slate-200/80 mt-0.5 select-none">
                 {stk.label}
               </span>
             </button>
@@ -263,7 +263,7 @@ export default function DopaBenPortalPage() {
         ))}
       </div>
 
-      <div className="w-full max-w-xl z-10 space-y-4">
+      <div className="w-full max-w-xl relative z-10 space-y-4">
         {/* ========================================================================= */}
         {/* 1. 中央ヒーローロゴ（透過PNG＋背景サンバーストとシームレス完全連動）             */}
         {/* ========================================================================= */}
