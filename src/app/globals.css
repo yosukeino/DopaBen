@@ -18,6 +18,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* モバイル・タッチデバイスでのホバー状態残留（Sticky Hover）を無効化 */
+@media (hover: none) {
+  button:hover {
+    outline: none !important;
+  }
+}
+
 html,
 body {
   background-color: #0B0D12;

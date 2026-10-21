@@ -233,6 +233,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     let timer: NodeJS.Timeout | null = null;
 
+    // ★ 前問のフォーカス・タップ状態を確実に解除
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     if (currentQuestion.phase === "STAGE2_ALLOUT") {
       soundEngine.playAllOutIntro();
       setBannerType("allout");
@@ -279,6 +284,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       soundEngine.stopSpeech();
       setBannerText(null);
       setAnswerModal(null);
+
+      // ★ 前問のフォーカス・タップ状態を確実に解除
+      if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
 
       if (currentIndex + 1 >= currentDeckSnapshot.length) {
         const timeMs = Date.now() - startTimeRef.current;
@@ -1057,10 +1067,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             </div>
           </div>
 
-            {/* Stage 1: 4択ボタン */}
+            {/* Stage 1: 4択ボタン（設問切り替え時の完全リセット対応） */}
             {currentQuestion.phase === "STAGE1_COMBO" &&
               currentQuestion.choices && (
-                <div className="space-y-2 pt-0.5">
+                <div
+                  key={`q_choices_${currentQuestion.uid}_${currentIndex}`}
+                  className="space-y-2 pt-0.5"
+                >
                   {hasPhantomEye &&
                     eliminatedChoiceIds.length === 0 &&
                     !answerModal && (
@@ -1092,9 +1105,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                     const isSelectedChoice =
                       answerModal?.selectedChoiceId === choice.id;
 
+                    // ★ モバイルでホバー枠線・色が残留しないよう、sm:hover と focus スタイル除去を徹底
                     let choiceStyle = isGirl
-                      ? "bg-gradient-to-r from-[#1D1229] to-[#2A173B] border-white text-white shadow-[3px_3px_0_#13091B] hover:border-[#F43F5E] hover:shadow-[3px_3px_0_#F43F5E]"
-                      : "bg-gradient-to-r from-[#131720] to-[#1a202c] border-white text-white shadow-[3px_3px_0_#0B0D12] hover:border-[#FACC15] hover:shadow-[3px_3px_0_#FACC15]";
+                      ? "bg-gradient-to-r from-[#1D1229] to-[#2A173B] border-white text-white shadow-[3px_3px_0_#13091B] sm:hover:border-[#FB7185] sm:hover:shadow-[3px_3px_0_#F43F5E] focus:outline-none focus:ring-0"
+                      : "bg-gradient-to-r from-[#131720] to-[#1a202c] border-white text-white shadow-[3px_3px_0_#0B0D12] sm:hover:border-[#FACC15] sm:hover:shadow-[3px_3px_0_#FACC15] focus:outline-none focus:ring-0";
                     if (isAnswered) {
                       if (choice.isCorrect) {
                         choiceStyle =
@@ -1111,10 +1125,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
                     return (
                       <motion.button
-                        key={choice.id}
+                        key={`choice_${currentQuestion.uid}_${choice.id}_${idx}`}
                         whileTap={isAnswered ? undefined : { scale: 0.98 }}
                         disabled={isAnswered}
-                        onClick={() => handleSelectChoice(choice)}
+                        onClick={(e) => {
+                          (e.currentTarget as HTMLElement)?.blur();
+                          handleSelectChoice(choice);
+                        }}
                         className={`w-full py-3 px-3.5 sm:px-4 text-left border-2 transition flex items-center justify-between group -skew-x-2 ${choiceStyle}`}
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
@@ -1127,8 +1144,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                                   : isAnswered && isSelectedChoice && !choice.isCorrect
                                   ? "bg-[#EF4444] text-white border-white shadow-[0_0_10px_#EF4444]"
                                   : isGirl
-                                  ? "bg-[#13091B] text-[#FB7185] border-[#FB7185]/80 group-hover:border-white group-hover:bg-[#F43F5E] group-hover:text-white"
-                                  : "bg-[#0B0D12] text-[#FACC15] border-[#FACC15]/80 group-hover:border-white group-hover:bg-[#FACC15] group-hover:text-[#0B0D12]"
+                                  ? "bg-[#13091B] text-[#FB7185] border-[#FB7185]/80 sm:group-hover:border-white sm:group-hover:bg-[#F43F5E] sm:group-hover:text-white"
+                                  : "bg-[#0B0D12] text-[#FACC15] border-[#FACC15]/80 sm:group-hover:border-white sm:group-hover:bg-[#FACC15] sm:group-hover:text-[#0B0D12]"
                               }`}
                             >
                               {/* バッジ上部の光沢スライス */}
@@ -1140,7 +1157,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                           {/* 選択肢テキスト */}
                           <div className="min-w-0">
                             <div className={`font-black text-base sm:text-lg text-white tracking-wide truncate transition-colors ${
-                              isGirl ? "group-hover:text-[#FB7185]" : "group-hover:text-[#FACC15]"
+                              isGirl ? "sm:group-hover:text-[#FB7185]" : "sm:group-hover:text-[#FACC15]"
                             }`}>
                               {choice.label}
                             </div>

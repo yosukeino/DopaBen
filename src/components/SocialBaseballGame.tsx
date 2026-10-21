@@ -123,6 +123,11 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   useEffect(() => {
     if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
 
+    // ★ 前問のフォーカス・タップ状態を確実に解除
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     setSelectedChoiceId(null);
     setIsAnswered(false);
     setPose("stance");
@@ -578,31 +583,41 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         )}
       </div>
 
-      {/* 5. 4択バッティングボタン（ミート力で誤答粉砕エフェクト） */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {/* 5. 4択バッティングボタン（ミート力で誤答粉砕エフェクト ＆ 前問状態完全リセット対応） */}
+      <div
+        key={`q_choices_${currentItem.question.id || currentIndex}`}
+        className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+      >
         {currentItem.choices.map((choice, idx) => {
           const isSelected = selectedChoiceId === choice.id;
           const isEliminated = eliminatedChoiceIds.has(choice.id);
 
-          let btnStyle = "bg-[#1E293B] hover:bg-[#334155] border-[#475569] text-white";
+          // ★ モバイルでホバー色が残留しないよう、sm:hover と active を使用し、focus スタイルを除去
+          let btnStyle =
+            "bg-[#1E293B] sm:hover:bg-[#334155] active:bg-[#334155] border-[#475569] text-white focus:outline-none focus:ring-0";
 
           if (isEliminated) {
-            btnStyle = "bg-[#090D16] border-[#1E293B] text-[#475569] line-through opacity-30 cursor-not-allowed scale-[0.98]";
+            btnStyle =
+              "bg-[#090D16] border-[#1E293B] text-[#475569] line-through opacity-30 cursor-not-allowed scale-[0.98]";
           } else if (isAnswered) {
             if (choice.isCorrect) {
-              btnStyle = "bg-[#10B981] border-white text-slate-950 font-black shadow-lg scale-[1.02]";
+              btnStyle =
+                "bg-[#10B981] border-white text-slate-950 font-black shadow-lg scale-[1.02]";
             } else if (isSelected && !choice.isCorrect) {
-              btnStyle = "bg-[#EF4444] border-white text-white font-black opacity-80";
+              btnStyle =
+                "bg-[#EF4444] border-white text-white font-black opacity-80";
             } else {
-              btnStyle = "bg-[#0F172A] border-[#262D3D] text-[#64748B] opacity-40";
+              btnStyle =
+                "bg-[#0F172A] border-[#262D3D] text-[#64748B] opacity-40";
             }
           }
 
           return (
             <motion.button
-              key={choice.id}
+              key={`choice_${currentItem.question.id}_${choice.id}_${idx}`}
               whileTap={!isAnswered && !isEliminated ? { scale: 0.97 } : {}}
               onClick={(e) => {
+                (e.currentTarget as HTMLElement)?.blur();
                 e.stopPropagation();
                 handleSelectChoice(choice.id, choice.isCorrect, choice.text);
               }}
