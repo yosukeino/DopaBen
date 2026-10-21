@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BatTier, BAT_EQUIPMENTS } from "@/lib/baseballGrowthEngine";
 
-export type BaseballPose = "stance" | "swing" | "homerun" | "miss";
+export type BaseballPose = "stance" | "swing" | "homerun" | "miss" | "catch";
 
 interface BaseballCharacterProps {
   gender?: "boy" | "girl";
@@ -13,6 +13,7 @@ interface BaseballCharacterProps {
   teamColor?: string; // ユニフォーム・帽子のアクセントカラー
   level?: number;     // 1〜10 (レベルが高いほど装飾が豪華に)
   batTier?: BatTier;  // 1〜5 (バットの外見進化)
+  isFielding?: boolean; // ノック守備モード（グラブを構える）
   animate?: boolean;
   showAura?: boolean;
 }
@@ -37,6 +38,7 @@ export const BaseballCharacter: React.FC<BaseballCharacterProps> = ({
   teamColor = "#EF4444",
   level = 1,
   batTier = 1,
+  isFielding = false,
   animate = true,
   showAura = true,
 }) => {
@@ -191,62 +193,89 @@ export const BaseballCharacter: React.FC<BaseballCharacterProps> = ({
   fillRect(13, 22, 4, 2, BLK);
 
   // -------------------------------------------------------------
-  // 5. 腕・進化バット (Arms & Evolved Bat)
+  // 5. 腕・グラブ / 進化バット (Arms, Glove & Evolved Bat)
   // -------------------------------------------------------------
-  if (pose === "swing") {
-    // フルスイング！
-    fillRect(12, 14, 4, 2, teamColor);
-    fillRect(16, 13, 2, 2, SKIN);
+  const GLOVE_BROWN = "#92400E";
+  const GLOVE_DARK = "#78350F";
 
-    // バット軌跡（バットTierの色が反映）
-    setPixel(18, 12, batSub);
-    setPixel(19, 10, batMain);
-    setPixel(20, 8, batMain);
-    setPixel(21, 6, batMain);
-    setPixel(22, 4, batMain);
-
-    // ビームバット(Tier5)の光の尾
-    if (batTier === 5) {
-      setPixel(20, 7, "#38BDF8");
-      setPixel(21, 5, "#C084FC");
+  if (isFielding) {
+    // ★ 守備・ノック捕球モード
+    if (pose === "catch" || pose === "homerun") {
+      // ナイスキャッチ！グラブを高く掲げてガッツポーズ
+      fillRect(6, 11, 2, 4, teamColor);
+      fillRect(16, 11, 2, 4, teamColor);
+      fillRect(5, 9, 3, 2, SKIN);
+      // 右手にグラブ（ナイスキャッチ！）
+      fillRect(15, 8, 4, 3, GLOVE_BROWN);
+      setPixel(16, 7, GLOVE_DARK);
+      // キャッチした白球
+      setPixel(17, 9, WHT);
+    } else if (pose === "miss") {
+      // 後逸・エラー
+      fillRect(8, 14, 3, 2, teamColor);
+      fillRect(13, 14, 3, 2, teamColor);
+      fillRect(7, 16, 2, 2, SKIN);
+      fillRect(15, 16, 2, 2, GLOVE_BROWN);
+    } else {
+      // 守備構え（腰を落として両手グラブを前へ）
+      const bob = frame === 1 ? 1 : 0;
+      fillRect(6, 14 + bob, 3, 2, teamColor);
+      fillRect(15, 14 + bob, 3, 2, teamColor);
+      fillRect(8, 15 + bob, 2, 2, SKIN);
+      // 前に構えたグラブ
+      fillRect(13, 14 + bob, 4, 3, GLOVE_BROWN);
+      setPixel(14, 13 + bob, GLOVE_DARK);
     }
-  } else if (pose === "homerun") {
-    // ガッツポーズ！
-    fillRect(6, 12, 2, 4, teamColor);
-    fillRect(16, 12, 2, 4, teamColor);
-    fillRect(5, 10, 3, 2, SKIN);
-    fillRect(16, 10, 3, 2, SKIN);
-
-    // 右手に高く掲げた進化バット
-    fillRect(19, 6, 2, 7, batMain);
-    fillRect(19, 13, 2, 2, batSub);
-
-    if (batTier >= 4) {
-      // 輝きの光彩
-      setPixel(21, 5, "#FFFFFF");
-      setPixel(18, 4, "#FACC15");
-    }
-  } else if (pose === "miss") {
-    fillRect(9, 14, 3, 2, teamColor);
-    fillRect(12, 15, 3, 2, SKIN);
-    fillRect(15, 18, 2, 4, batSub);
   } else {
-    // 構え (Stance)
-    const bob = frame === 1 ? -1 : 0;
-    fillRect(6, 14 + bob, 3, 2, teamColor);
-    fillRect(5, 12 + bob, 2, 3, SKIN);
+    // 打者モード
+    if (pose === "swing") {
+      // フルスイング！
+      fillRect(12, 14, 4, 2, teamColor);
+      fillRect(16, 13, 2, 2, SKIN);
 
-    // 進化バットの構え
-    setPixel(4, 11 + bob, batSub);
-    setPixel(3, 9 + bob, batMain);
-    setPixel(2, 7 + bob, batMain);
-    setPixel(1, 5 + bob, batMain);
-    setPixel(1, 4 + bob, batMain);
+      setPixel(18, 12, batSub);
+      setPixel(19, 10, batMain);
+      setPixel(20, 8, batMain);
+      setPixel(21, 6, batMain);
+      setPixel(22, 4, batMain);
 
-    if (batTier === 5) {
-      // 雷神ビームバットの放電エフェクト
-      const zapX = frame === 1 ? 0 : 2;
-      setPixel(zapX, 3 + bob, "#38BDF8");
+      if (batTier === 5) {
+        setPixel(20, 7, "#38BDF8");
+        setPixel(21, 5, "#C084FC");
+      }
+    } else if (pose === "homerun") {
+      fillRect(6, 12, 2, 4, teamColor);
+      fillRect(16, 12, 2, 4, teamColor);
+      fillRect(5, 10, 3, 2, SKIN);
+      fillRect(16, 10, 3, 2, SKIN);
+
+      fillRect(19, 6, 2, 7, batMain);
+      fillRect(19, 13, 2, 2, batSub);
+
+      if (batTier >= 4) {
+        setPixel(21, 5, "#FFFFFF");
+        setPixel(18, 4, "#FACC15");
+      }
+    } else if (pose === "miss") {
+      fillRect(9, 14, 3, 2, teamColor);
+      fillRect(12, 15, 3, 2, SKIN);
+      fillRect(15, 18, 2, 4, batSub);
+    } else {
+      // 構え (Stance)
+      const bob = frame === 1 ? -1 : 0;
+      fillRect(6, 14 + bob, 3, 2, teamColor);
+      fillRect(5, 12 + bob, 2, 3, SKIN);
+
+      setPixel(4, 11 + bob, batSub);
+      setPixel(3, 9 + bob, batMain);
+      setPixel(2, 7 + bob, batMain);
+      setPixel(1, 5 + bob, batMain);
+      setPixel(1, 4 + bob, batMain);
+
+      if (batTier === 5) {
+        const zapX = frame === 1 ? 0 : 2;
+        setPixel(zapX, 3 + bob, "#38BDF8");
+      }
     }
   }
 

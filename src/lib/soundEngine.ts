@@ -733,16 +733,27 @@ class SoundEngine {
   }
 
   /**
-   * 超強化版ホームラン打球音（重低音サブベース＋金属快音＋歓声）
+   * 【ノック捕球専用】グラブ捕球アタック音 ＋ 極上DX7風クリスタルチャイム
+   * - カキーンという打球音ではなく、グラブに「バシィッ！」と収まる快音とDX7正解チャイム
    */
-  public playCriticalHomerun() {
-    this.playHomerun();
+  public playKnockCatch(combo: number = 1) {
+    if (this.muted) return;
     const ctx = this.getContext();
-    if (ctx) {
-      // 胃に響く80Hzのサブベースインパクト
-      this.playFmTone(85, 0.5, 600, 0.25, ctx.currentTime, 0.32, 35);
-    }
-    setTimeout(() => this.playCrowdCheer(true), 120);
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 1. グラブ捕球の小気味よい「パシッ！」という革アタック音
+    this.playFmTone(580, 1.414, 800, 0.05, now, 0.16, 120);
+
+    // 2. 今まで通りの心地よいDX7風クリスタルチャイム（ピロリロリン！✨）
+    this.playWeakHit(combo, combo >= 5);
+  }
+
+  /**
+   * 【ノック後逸・エラー】トンネルしたときの残念音
+   */
+  public playKnockMiss() {
+    this.playStrike();
   }
 }
 
