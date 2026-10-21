@@ -21,6 +21,8 @@ import {
   evaluateAtBatAdvanced,
   BattingOutcome,
   AtBatResult,
+  generateSocialQuizDeck,
+  QuizDeckOptions,
 } from "@/lib/socialQuestionEngine";
 import { SocialQuestion, SUBJECT_META } from "@/lib/socialData";
 import { soundEngine } from "@/lib/soundEngine";
@@ -28,7 +30,7 @@ import { BaseballCharacter, BaseballPose } from "./BaseballCharacter";
 import { BaseballPlayerProfile } from "@/lib/baseballGrowthEngine";
 
 export interface GameSummary {
-  mode: "game9" | "quick" | "endless" | "review";
+  mode: "knock" | "game9" | "quick" | "endless" | "review";
   totalQuestions: number;
   hits: number;
   homeruns: number;
@@ -38,6 +40,9 @@ export interface GameSummary {
   runs: number;
   maxCombo: number;
   earnedLxp: number;
+  geoCatches: number;
+  historyCatches: number;
+  civicsCatches: number;
   questionLogs: {
     question: SocialQuestion;
     userChoice: string;
@@ -47,31 +52,43 @@ export interface GameSummary {
 }
 
 interface SocialBaseballGameProps {
-  deck: GeneratedSocialQuestion[];
-  mode: "game9" | "quick" | "endless" | "review";
+  initialDeck: GeneratedSocialQuestion[];
+  deckOptions: QuizDeckOptions;
   player: BaseballPlayerProfile;
   onFinishGame: (summary: GameSummary) => void;
   onAbort: () => void;
 }
 
-const PITCH_TYPES = [
-  { name: "剛速球ストレート", speed: "152km/h", color: "#EF4444" },
-  { name: "カミソリスライダー", speed: "141km/h", color: "#38BDF8" },
-  { name: "落差鋭い魔球フォーク", speed: "136km/h", color: "#FACC15" },
-  { name: "超高速シンカー", speed: "144km/h", color: "#A855F7" },
+const COACH_QUOTES = [
+  "いくぞぉぉ！！声出していけー！！",
+  "足動かせ！ボールの正面に入れ！！",
+  "ナイスキャッチ！その調子だ！！",
+  "まだまだ！ここからが本当の練習だ！！",
+  "グラブを立てろ！気合入れろぉ！！",
+];
+
+const KNOCK_TYPES = [
+  { name: "痛烈な強襲ライナー", speed: "152km/h", color: "#EF4444" },
+  { name: "三遊間を抜く鋭いゴロ", speed: "140km/h", color: "#38BDF8" },
+  { name: "深い位置への大飛球", speed: "135km/h", color: "#FACC15" },
+  { name: "バックスクリーン直撃ノック", speed: "148km/h", color: "#A855F7" },
 ];
 
 export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
-  deck,
-  mode,
+  initialDeck,
+  deckOptions,
   player,
   onFinishGame,
   onAbort,
 }) => {
+  const [deck, setDeck] = useState<GeneratedSocialQuestion[]>(initialDeck);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // 10本ごとの継続確認モーダル
+  const [showContinueModal, setShowContinueModal] = useState(false);
+  const [completedPacksCount, setCompletedPacksCount] = useState(1);
+
   // 野球ステータス
-  const [inning, setInning] = useState(1);
   const [outs, setOuts] = useState(0);
   const [strikes, setStrikes] = useState(0);
   const [runs, setRuns] = useState(0);
@@ -87,11 +104,17 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   const [maxCombo, setMaxCombo] = useState(0);
   const [totalEarnedLxp, setTotalEarnedLxp] = useState(0);
 
+  // 分野別正解数
+  const [geoCatches, setGeoCatches] = useState(0);
+  const [historyCatches, setHistoryCatches] = useState(0);
+  const [civicsCatches, setCivicsCatches] = useState(0);
+
   // 画面演出ステート
   const [pose, setPose] = useState<BaseballPose>("stance");
   const [pitching, setPitching] = useState(false);
   const [ballFlying, setBallFlying] = useState(false);
-  const [currentPitch, setCurrentPitch] = useState(PITCH_TYPES[0]);
+  const [currentKnock, setCurrentKnock] = useState(KNOCK_TYPES[0]);
+  const [coachQuote, setCoachQuote] = useState(COACH_QUOTES[0]);
   const [isFever, setIsFever] = useState(false);
   const [showFeverCutin, setShowFeverCutin] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
@@ -110,34 +133,34 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   const currentItem = deck[currentIndex];
   const isBasesLoaded = bases[0] && bases[1] && bases[2];
 
-  // ★ ミート力（Meet）による誤答消去
+  // ★ 該当科目のステータスに応じた誤答消去（チート級の育成快感）
   const eliminatedChoiceIds = useMemo(() => {
-    if (!currentItem || player.stats.meet < 45) return new Set<string>();
+    if (!currentItem) return new Set<string>();
+    const subj = currentItem.question.subject;
+    const statVal = subj === "地理" ? player.stats.geo : subj === "歴史" ? player.stats.history : player.stats.civics;
+
+    if (statVal < 35) return new Set<string>();
     const distractors = currentItem.choices.filter((c) => !c.isCorrect);
-    const countToEliminate = player.stats.meet >= 80 ? 2 : 1;
+    const countToEliminate = statVal >= 70 ? 2 : 1;
     const toEliminate = distractors.slice(0, countToEliminate).map((c) => c.id);
     return new Set(toEliminate);
-  }, [currentItem, player.stats.meet]);
+  }, [currentItem, player.stats]);
 
   // 設問開始時のリセット
   useEffect(() => {
     if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
-
-    // ★ 前問のフォーカス・タップ状態を確実に解除
-    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
 
     setSelectedChoiceId(null);
     setIsAnswered(false);
     setPose("stance");
     setHitResult(null);
 
-    // ランダム球種決定
-    const randomPitch = PITCH_TYPES[Math.floor(Math.random() * PITCH_TYPES.length)];
-    setCurrentPitch(randomPitch);
+    // コーチのノック演出
+    const randomKnock = KNOCK_TYPES[Math.floor(Math.random() * KNOCK_TYPES.length)];
+    const randomQuote = COACH_QUOTES[Math.floor(Math.random() * COACH_QUOTES.length)];
+    setCurrentKnock(randomKnock);
+    setCoachQuote(randomQuote);
 
-    // ピッチャーの投球
     setPitching(true);
     const timer = setTimeout(() => {
       setPitching(false);
@@ -149,7 +172,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
 
   // 回答処理
   const handleSelectChoice = (choiceId: string, isCorrect: boolean, choiceText: string) => {
-    if (isAnswered || !currentItem || eliminatedChoiceIds.has(choiceId)) return;
+    if (isAnswered || !currentItem || eliminatedChoiceIds.has(choiceId) || showContinueModal) return;
 
     setIsAnswered(true);
     setSelectedChoiceId(choiceId);
@@ -160,6 +183,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
       responseTimeMs: responseTime,
       currentCombo: combo,
       currentBases: bases,
+      subject: currentItem.question.subject,
       stats: player.stats,
       isFever,
     });
@@ -172,13 +196,18 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
     });
 
     if (isCorrect) {
-      // ヒットストップ ＆ 閃光
       setIsFlash(true);
       setTimeout(() => setIsFlash(false), 70);
 
       const newCombo = combo + 1;
       setCombo(newCombo);
       if (newCombo > maxCombo) setMaxCombo(newCombo);
+
+      // 分野別正解数カウント
+      const subj = currentItem.question.subject;
+      if (subj === "地理") setGeoCatches((prev) => prev + 1);
+      else if (subj === "歴史") setHistoryCatches((prev) => prev + 1);
+      else if (subj === "公民") setCivicsCatches((prev) => prev + 1);
 
       // フィーバー突入チェック
       if (newCombo >= 3 && !isFever) {
@@ -222,22 +251,17 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
       setTimeout(() => setBallFlying(false), 650);
       setHitResult(evaluation);
 
-      // テンポ超高速化：待たずに次球へ（HR: 1150ms, ヒット: 750ms）
       autoAdvanceTimerRef.current = setTimeout(() => {
-        advanceNextAtBat(false);
+        advanceNextKnock(false);
       }, evaluation.outcome === "HOMERUN" ? 1150 : 750);
     } else {
-      // 不正解処理
       setCombo(0);
       setIsFever(false);
       setPose("miss");
       soundEngine.playStrike();
 
       const newStrikes = strikes + 1;
-      let isNewOut = false;
-
-      if (newStrikes >= 2 || mode !== "endless") {
-        isNewOut = true;
+      if (newStrikes >= 2) {
         setStrikes(0);
         setOuts((prev) => prev + 1);
         setStrikeouts((prev) => prev + 1);
@@ -248,51 +272,67 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
 
       setHitResult(evaluation);
 
-      // ★ ミス時も1.3秒後に自動で次へ進みテンポを損なわない（画面タップでも即次へ！）
       autoAdvanceTimerRef.current = setTimeout(() => {
-        advanceNextAtBat(false);
+        advanceNextKnock(false);
       }, 1350);
     }
   };
 
-  const advanceNextAtBat = (forceNext: boolean = false) => {
+  // 次のノックへ進む判定（10本区切りの継続判定を含む）
+  const advanceNextKnock = (forceNext: boolean = false) => {
     if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
 
     const nextIndex = currentIndex + 1;
-    let isGameOver = false;
 
-    if (mode === "game9") {
-      if (nextIndex >= 9 || nextIndex >= deck.length) {
-        isGameOver = true;
-      } else {
-        setInning(nextIndex + 1);
-      }
-    } else if (mode === "quick") {
-      if (nextIndex >= deck.length) isGameOver = true;
-    } else if (mode === "endless") {
-      if (outs >= 3 || nextIndex >= deck.length) isGameOver = true;
-    } else {
-      if (nextIndex >= deck.length) isGameOver = true;
+    // ★ 10本終了ごとに鬼コーチの継続確認モーダルが出現！
+    if (nextIndex % 10 === 0 && nextIndex > 0) {
+      soundEngine.playEvolutionFanfare();
+      setShowContinueModal(true);
+      return;
     }
 
-    if (isGameOver) {
-      soundEngine.playStageVictory();
-      onFinishGame({
-        mode,
-        totalQuestions: questionLogsRef.current.length,
-        hits,
-        homeruns,
-        doubles,
-        singles,
-        strikeouts,
-        runs,
-        maxCombo,
-        earnedLxp: totalEarnedLxp,
-        questionLogs: questionLogsRef.current,
-      });
-    } else {
-      setCurrentIndex(nextIndex);
+    if (nextIndex >= deck.length) {
+      // デッキ終了時は自動で補充
+      addMoreKnocks(10);
+      return;
     }
+
+    setCurrentIndex(nextIndex);
+  };
+
+  // 追加ノックを補充して継続
+  const addMoreKnocks = (count: number) => {
+    soundEngine.playPlayBall();
+    const moreQuestions = generateSocialQuizDeck({
+      ...deckOptions,
+      limit: count,
+    });
+    setDeck((prev) => [...prev, ...moreQuestions]);
+    setShowContinueModal(false);
+    setCompletedPacksCount((prev) => prev + 1);
+    setCurrentIndex((prev) => prev + 1);
+  };
+
+  // 終了してリザルトへ
+  const handleEndKnockSession = () => {
+    setShowContinueModal(false);
+    soundEngine.playStageVictory();
+    onFinishGame({
+      mode: "knock",
+      totalQuestions: questionLogsRef.current.length,
+      hits,
+      homeruns,
+      doubles,
+      singles,
+      strikeouts,
+      runs,
+      maxCombo,
+      earnedLxp: totalEarnedLxp,
+      geoCatches,
+      historyCatches,
+      civicsCatches,
+      questionLogs: questionLogsRef.current,
+    });
   };
 
   const meta = SUBJECT_META[currentItem.question.subject];
@@ -300,9 +340,8 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   return (
     <div
       onClick={() => {
-        // 回答済みでミスしている場合、画面のどこをタップしても即座に次打席へ進む超速リカバー
-        if (isAnswered && hitResult?.outcome === "OUT") {
-          advanceNextAtBat(true);
+        if (isAnswered && hitResult?.outcome === "OUT" && !showContinueModal) {
+          advanceNextKnock(true);
         }
       }}
       className={`w-full max-w-md mx-auto space-y-3 pb-8 select-none transition-transform duration-75 relative ${
@@ -336,6 +375,84 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         )}
       </AnimatePresence>
 
+      {/* ★ 10本区切りの鬼コーチ熱血継続モーダル */}
+      <AnimatePresence>
+        {showContinueModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="w-full max-w-sm bg-gradient-to-b from-[#1E293B] via-[#0F172A] to-[#0B0D12] border-4 border-[#FACC15] rounded-3xl p-5 shadow-2xl space-y-4 text-center text-white"
+            >
+              <div className="text-4xl drop-shadow-lg">🧢🔥</div>
+
+              <div>
+                <span className="text-[10px] font-black tracking-widest text-[#EF4444] uppercase block">
+                  KNOCK {questionLogsRef.current.length} 本完了！
+                </span>
+                <h3 className="text-xl font-black italic text-[#FACC15] tracking-wide">
+                  鬼コーチ「まだまだ行けるだろ！！」
+                </h3>
+                <p className="text-xs text-[#CBD5E1] mt-1">
+                  息が上がってんじゃねえぞ！ここからが本当の特訓だ！
+                </p>
+              </div>
+
+              {/* 現在の捕球スタッツ */}
+              <div className="bg-[#090D16] border border-[#334155] rounded-xl p-2.5 grid grid-cols-3 gap-1 text-center text-xs">
+                <div>
+                  <span className="text-[9px] text-[#94A3B8] block">捕球(正解)</span>
+                  <span className="font-black text-white">{hits}本</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#38BDF8] block">MAXコンボ</span>
+                  <span className="font-black text-[#38BDF8]">{maxCombo}連</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#FACC15] block">獲得LXP</span>
+                  <span className="font-black text-[#FACC15]">+{totalEarnedLxp}</span>
+                </div>
+              </div>
+
+              {/* 継続アクションボタン群 */}
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => addMoreKnocks(10)}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#F97316] hover:brightness-110 text-white font-black text-xs shadow-lg active:scale-95 transition flex items-center justify-center gap-1.5"
+                >
+                  <Flame className="w-4 h-4 fill-white" />
+                  <span>コーチ！あと10本お願いします！</span>
+                </button>
+
+                <button
+                  onClick={() => addMoreKnocks(30)}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#FACC15] hover:brightness-110 text-slate-950 font-black text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-1.5"
+                >
+                  <Zap className="w-4 h-4 fill-slate-950" />
+                  <span>ノッてきた！あと30本打ち込んでください！</span>
+                </button>
+
+                <button
+                  onClick={() => addMoreKnocks(100)}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] hover:brightness-110 text-white font-black text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4 fill-white" />
+                  <span>限界突破！！あと100本千本ノック！！</span>
+                </button>
+
+                <button
+                  onClick={handleEndKnockSession}
+                  className="w-full py-2 rounded-xl bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#94A3B8] hover:text-white font-bold text-xs active:scale-95 transition"
+                >
+                  今日はここまでにします（結果発表へ）
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* 1. ヘッダーナビゲーション ＆ ステータス */}
       <div className="flex items-center justify-between px-1">
         <button
@@ -347,7 +464,6 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
-          {/* フィーバーバッジ */}
           {isFever && (
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
@@ -362,7 +478,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
           {combo > 1 && !isFever && (
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-[#EF4444] to-[#F59E0B] text-white text-[11px] font-black animate-pulse">
               <Flame className="w-3.5 h-3.5 fill-white" />
-              <span>{combo} 連打！</span>
+              <span>{combo} 連続捕球！</span>
             </div>
           )}
 
@@ -373,7 +489,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         </div>
       </div>
 
-      {/* 2. 電光掲示板・スコアボード */}
+      {/* 2. 電光掲示板・ノックカウンター */}
       <div
         className={`border-2 rounded-2xl p-3 shadow-md transition ${
           isFever
@@ -382,23 +498,20 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         }`}
       >
         <div className="grid grid-cols-4 items-center text-center divide-x divide-[#1E293B]">
-          {/* 回 / 打席 */}
           <div className="px-1">
-            <span className="text-[9px] font-bold text-[#94A3B8] block">打席 / 回</span>
+            <span className="text-[9px] font-bold text-[#94A3B8] block">ノック本数</span>
             <span className="text-sm font-black text-white">
-              {mode === "game9" ? `${inning}回裏` : `${currentIndex + 1} / ${deck.length}`}
+              第 {currentIndex + 1} 本目
             </span>
           </div>
 
-          {/* 得点 */}
           <div className="px-1">
-            <span className="text-[9px] font-bold text-[#FACC15] block">得点</span>
+            <span className="text-[9px] font-bold text-[#FACC15] block">ナイス捕球</span>
             <span className="text-lg font-black text-[#FACC15] tracking-wider leading-none">
-              {runs}
+              {hits}
             </span>
           </div>
 
-          {/* ランナー状況 */}
           <div className="px-1 flex flex-col items-center justify-center">
             <span className="text-[9px] font-bold text-[#94A3B8] block mb-0.5">
               {isBasesLoaded ? "満塁チャンス" : "ランナー"}
@@ -423,7 +536,6 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
             </div>
           </div>
 
-          {/* カウント (S-O) */}
           <div className="px-1 text-[10px] space-y-0.5 text-left font-black pl-3">
             <div className="flex items-center gap-1">
               <span className="text-[#FACC15] w-2.5">S</span>
@@ -443,7 +555,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         </div>
       </div>
 
-      {/* 3. 甲子園グラウンド ＆ 打席スタジアム */}
+      {/* 3. 甲子園グラウンド ＆ 鬼コーチのノックスタジアム */}
       <div
         className={`relative w-full h-44 rounded-2xl border-2 overflow-hidden shadow-inner flex flex-col justify-between p-3 transition-colors duration-500 ${
           isFever
@@ -453,7 +565,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
       >
         <div className="absolute inset-0 opacity-15 pointer-events-none bg-[repeating-linear-gradient(45deg,#000_0px,#000_20px,transparent_20px,transparent_40px)]" />
 
-        {/* 外野フェンス＆球種インジケータ */}
+        {/* 外野フェンス＆ノック球種インジケータ */}
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/20">
             <span className="text-sm">{meta.icon}</span>
@@ -463,16 +575,15 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
             </span>
           </div>
 
-          {/* ★ ピッチャーの球種リアルタイムカットイン */}
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black bg-black/60 border border-white/20 text-[#CBD5E1]">
-            <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: currentPitch.color }} />
-            <span>{currentPitch.name}</span>
-            <span className="text-[#FACC15]">{currentPitch.speed}</span>
+            <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: currentKnock.color }} />
+            <span>{currentKnock.name}</span>
+            <span className="text-[#FACC15]">{currentKnock.speed}</span>
           </div>
         </div>
 
-        {/* ピッチャー投球とボール演出 */}
-        <div className="relative z-10 flex items-center justify-center">
+        {/* 鬼コーチのノック打球演出 */}
+        <div className="relative z-10 flex flex-col items-center justify-center">
           {pitching && (
             <motion.div
               initial={{ scale: 0.3, y: -20, opacity: 0 }}
@@ -514,11 +625,11 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
               showAura={true}
             />
             <div className="mb-2 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] font-black text-white border border-white/10">
-              第{currentIndex + 1}打席
+              第{currentIndex + 1}本
             </div>
           </div>
 
-          {/* 打球スタッツHUD（飛距離・打球初速・得点） */}
+          {/* 打球スタッツHUD */}
           <AnimatePresence>
             {hitResult && hitResult.outcome === "HOMERUN" && (
               <motion.div
@@ -583,45 +694,35 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         )}
       </div>
 
-      {/* 5. 4択バッティングボタン（ミート力で誤答粉砕エフェクト ＆ 前問状態完全リセット対応） */}
-      <div
-        key={`q_choices_${currentItem.question.id || currentIndex}`}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-2"
-      >
+      {/* 5. 4択バッティングボタン */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {currentItem.choices.map((choice, idx) => {
           const isSelected = selectedChoiceId === choice.id;
           const isEliminated = eliminatedChoiceIds.has(choice.id);
 
-          // ★ モバイルでホバー色が残留しないよう、sm:hover と active を使用し、focus スタイルを除去
-          let btnStyle =
-            "bg-[#1E293B] sm:hover:bg-[#334155] active:bg-[#334155] border-[#475569] text-white focus:outline-none focus:ring-0";
+          let btnStyle = "bg-[#1E293B] hover:bg-[#334155] border-[#475569] text-white";
 
           if (isEliminated) {
-            btnStyle =
-              "bg-[#090D16] border-[#1E293B] text-[#475569] line-through opacity-30 cursor-not-allowed scale-[0.98]";
+            btnStyle = "bg-[#090D16] border-[#1E293B] text-[#475569] line-through opacity-30 cursor-not-allowed scale-[0.98]";
           } else if (isAnswered) {
             if (choice.isCorrect) {
-              btnStyle =
-                "bg-[#10B981] border-white text-slate-950 font-black shadow-lg scale-[1.02]";
+              btnStyle = "bg-[#10B981] border-white text-slate-950 font-black shadow-lg scale-[1.02]";
             } else if (isSelected && !choice.isCorrect) {
-              btnStyle =
-                "bg-[#EF4444] border-white text-white font-black opacity-80";
+              btnStyle = "bg-[#EF4444] border-white text-white font-black opacity-80";
             } else {
-              btnStyle =
-                "bg-[#0F172A] border-[#262D3D] text-[#64748B] opacity-40";
+              btnStyle = "bg-[#0F172A] border-[#262D3D] text-[#64748B] opacity-40";
             }
           }
 
           return (
             <motion.button
-              key={`choice_${currentItem.question.id}_${choice.id}_${idx}`}
+              key={choice.id}
               whileTap={!isAnswered && !isEliminated ? { scale: 0.97 } : {}}
               onClick={(e) => {
-                (e.currentTarget as HTMLElement)?.blur();
                 e.stopPropagation();
                 handleSelectChoice(choice.id, choice.isCorrect, choice.text);
               }}
-              disabled={isAnswered || isEliminated}
+              disabled={isAnswered || isEliminated || showContinueModal}
               className={`p-3 rounded-xl border-2 flex items-center justify-between text-left transition ${btnStyle}`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -633,7 +734,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
 
               {isEliminated && (
                 <span className="text-[9px] font-black text-[#64748B] px-1.5 py-0.5 rounded bg-black/30">
-                  ⚡粉砕消去
+                  ⚡能力粉砕
                 </span>
               )}
               {isAnswered && choice.isCorrect && (
@@ -647,7 +748,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         })}
       </div>
 
-      {/* 6. 不正解時の超速リカバー（画面タップで即スキップ案内） */}
+      {/* 6. 不正解時の超速リカバー案内 */}
       {isAnswered && hitResult?.outcome === "OUT" && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -669,11 +770,11 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              advanceNextAtBat(true);
+              advanceNextKnock(true);
             }}
             className="px-4 py-2 rounded-xl bg-[#FACC15] hover:bg-[#FFE600] text-black font-black text-xs flex items-center gap-1 shadow-sm active:scale-95 transition shrink-0"
           >
-            <span>次の打席へ (タップ)</span>
+            <span>次のノックへ (タップ)</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </motion.div>

@@ -1,9 +1,16 @@
-export interface BaseballStats {
-  meet: number;    // ミート力 (1〜99)
-  power: number;   // パワー (1〜99)
-  speed: number;   // 走力 (1〜99)
-  focus: number;   // 集中力 (1〜99)
-  clutch: number;  // 勝負強さ (1〜99)
+export interface SocialTriStats {
+  geo: number;     // 地理力 (GEOGRAPHY)
+  history: number; // 歴史力 (HISTORY)
+  civics: number;  // 公民力 (CIVICS)
+}
+
+export interface KnockCareerRecord {
+  totalKnocks: number;    // トータルノック本数 (累計ノック受け数)
+  totalCatches: number;   // トータル正解数 (累計ナイスキャッチ)
+  maxCombo: number;       // 最高連続正解数
+  geoCatches: number;     // 地理の正解数
+  historyCatches: number; // 歴史の正解数
+  civicsCatches: number;  // 公民の正解数
 }
 
 export type BatTier = 1 | 2 | 3 | 4 | 5;
@@ -23,7 +30,7 @@ export const BAT_EQUIPMENTS: BatEquipment[] = [
     tier: 1,
     name: "素振り用の木製練習バット",
     badge: "初期装備",
-    color: "#D97706", // 木製
+    color: "#D97706",
     subColor: "#92400E",
     description: "入部時に渡される基本の木製バット。素朴な打感が手に残る。",
     unlockLevel: 1,
@@ -32,7 +39,7 @@ export const BAT_EQUIPMENTS: BatEquipment[] = [
     tier: 2,
     name: "高反発ジュラルミン金属バット",
     badge: "金属音",
-    color: "#CBD5E1", // シルバー
+    color: "#CBD5E1",
     subColor: "#64748B",
     description: "金属特有の快音「カキーン！」がスタジアムに響き渡る名器。",
     unlockLevel: 2,
@@ -41,7 +48,7 @@ export const BAT_EQUIPMENTS: BatEquipment[] = [
     tier: 3,
     name: "漆黒の超々ジュラルミン・ブラック",
     badge: "長打特化",
-    color: "#1E293B", // 漆黒
+    color: "#1E293B",
     subColor: "#EF4444",
     description: "軽量カーボンを複合した漆黒のバット。芯で捉えた打球が鋭く伸びる。",
     unlockLevel: 4,
@@ -50,7 +57,7 @@ export const BAT_EQUIPMENTS: BatEquipment[] = [
     tier: 4,
     name: "栄光の黄金Vバット",
     badge: "甲子園覇者",
-    color: "#FACC15", // ゴールド
+    color: "#FACC15",
     subColor: "#FFE600",
     description: "甲子園優勝記念に贈られる純金コーティングバット。オーラを放つ。",
     unlockLevel: 6,
@@ -59,7 +66,7 @@ export const BAT_EQUIPMENTS: BatEquipment[] = [
     tier: 5,
     name: "雷神のネオンビームバット",
     badge: "神話レジェンド",
-    color: "#22D3EE", // ネオンシアン
+    color: "#22D3EE",
     subColor: "#A855F7",
     description: "青白い雷光をまとい、打球が光の矢となってスタンドに消える究極のバット。",
     unlockLevel: 8,
@@ -76,15 +83,15 @@ export interface PlayerRankInfo {
 
 export const PLAYER_RANKS: PlayerRankInfo[] = [
   { level: 1, title: "ボール拾いルーキー", badge: "新入生", auraTier: 0, requiredTotalLxp: 0 },
-  { level: 2, title: "期待の代打の切り札", badge: "代打枠", auraTier: 0, requiredTotalLxp: 600 },
-  { level: 3, title: "レギュラー定着スタメン", badge: "スタメン", auraTier: 1, requiredTotalLxp: 1500 },
-  { level: 4, title: "韋駄天リードオフマン", badge: "1番打者", auraTier: 1, requiredTotalLxp: 3000 },
-  { level: 5, title: "豪打のクリーンナップ砲", badge: "4番打者", auraTier: 2, requiredTotalLxp: 5500 },
-  { level: 6, title: "学園野球部 副主将", badge: "副キャプテン", auraTier: 2, requiredTotalLxp: 9000 },
-  { level: 7, title: "二刀流・主将エース", badge: "主将", auraTier: 2, requiredTotalLxp: 14000 },
-  { level: 8, title: "甲子園を揺るがす怪物", badge: "全国大会", auraTier: 3, requiredTotalLxp: 21000 },
-  { level: 9, title: "高校日本代表 4番打者", badge: "日本代表", auraTier: 3, requiredTotalLxp: 30000 },
-  { level: 10, title: "球史に刻まれし球聖 (GOD)", badge: "殿堂入り", auraTier: 3, requiredTotalLxp: 42000 },
+  { level: 2, title: "期待の代打の切り札", badge: "代打枠", auraTier: 0, requiredTotalLxp: 500 },
+  { level: 3, title: "レギュラー定着スタメン", badge: "スタメン", auraTier: 1, requiredTotalLxp: 1200 },
+  { level: 4, title: "韋駄天リードオフマン", badge: "1番打者", auraTier: 1, requiredTotalLxp: 2500 },
+  { level: 5, title: "豪打のクリーンナップ砲", badge: "4番打者", auraTier: 2, requiredTotalLxp: 4500 },
+  { level: 6, title: "学園野球部 副主将", badge: "副キャプテン", auraTier: 2, requiredTotalLxp: 7500 },
+  { level: 7, title: "二刀流・主将エース", badge: "主将", auraTier: 2, requiredTotalLxp: 12000 },
+  { level: 8, title: "甲子園を揺るがす怪物", badge: "全国大会", auraTier: 3, requiredTotalLxp: 18000 },
+  { level: 9, title: "高校日本代表 4番打者", badge: "日本代表", auraTier: 3, requiredTotalLxp: 26000 },
+  { level: 10, title: "球史に刻まれし球聖 (GOD)", badge: "殿堂入り", auraTier: 3, requiredTotalLxp: 36000 },
 ];
 
 export interface BaseballPlayerProfile {
@@ -92,11 +99,21 @@ export interface BaseballPlayerProfile {
   gender: "boy" | "girl";
   teamColor: string;
   level: number;
-  exp: number;        // 未使用所持LXP（ステータス強化に消費可能）
-  totalLxp: number;   // 累積LXP（レベルアップ判定）
-  stats: BaseballStats;
+  exp: number;        // 未使用所持LXP
+  totalLxp: number;   // 累積LXP
+  career: KnockCareerRecord; // トータルノック記録
+  stats: SocialTriStats;    // 地理・歴史・公民の3大ステータス (1〜99)
   selectedBatTier: BatTier;
 }
+
+export const DEFAULT_KNOCK_RECORD: KnockCareerRecord = {
+  totalKnocks: 0,
+  totalCatches: 0,
+  maxCombo: 0,
+  geoCatches: 0,
+  historyCatches: 0,
+  civicsCatches: 0,
+};
 
 export const DEFAULT_BASEBALL_PLAYER: BaseballPlayerProfile = {
   name: "熱血球児",
@@ -105,26 +122,23 @@ export const DEFAULT_BASEBALL_PLAYER: BaseballPlayerProfile = {
   level: 1,
   exp: 0,
   totalLxp: 0,
+  career: DEFAULT_KNOCK_RECORD,
   stats: {
-    meet: 15,
-    power: 15,
-    speed: 15,
-    focus: 15,
-    clutch: 15,
+    geo: 10,
+    history: 10,
+    civics: 10,
   },
   selectedBatTier: 1,
 };
 
 /**
- * ステータス1UPに必要なLXPコストを計算
- * パラメータが上がるほど徐々にコストが増加（パワプロ風の育成感）
+ * 分野別の正解数からステータス値 (1〜99) を計算
+ * 1問正解ごとに伸びていき、たくさん解くほどぐんぐん育つ！
  */
-export function getStatUpgradeCost(currentValue: number): number {
-  if (currentValue < 30) return 80;
-  if (currentValue < 50) return 150;
-  if (currentValue < 70) return 260;
-  if (currentValue < 85) return 420;
-  return 650;
+export function calculateStatFromCatches(catches: number): number {
+  // 初期値10 + 正解数に応じた成長カーブ（最大99）
+  const val = 10 + Math.floor(Math.sqrt(catches) * 5.2);
+  return Math.min(99, Math.max(10, val));
 }
 
 /**
@@ -143,15 +157,15 @@ export function calculateLevelFromTotalLxp(totalLxp: number): PlayerRankInfo {
 }
 
 /**
- * 総合評価ランク (G, F, E, D, C, B, A, S, SS) を計算
+ * 総合評価ランク (F, E, D, C, B, A, S, SS) を計算
  */
-export function calculateOverallRank(stats: BaseballStats): {
+export function calculateOverallRank(stats: SocialTriStats): {
   rank: string;
   color: string;
   average: number;
 } {
-  const sum = stats.meet + stats.power + stats.speed + stats.focus + stats.clutch;
-  const avg = Math.round(sum / 5);
+  const sum = stats.geo + stats.history + stats.civics;
+  const avg = Math.round(sum / 3);
 
   if (avg >= 85) return { rank: "SS", color: "#F43F5E", average: avg };
   if (avg >= 75) return { rank: "S", color: "#FACC15", average: avg };

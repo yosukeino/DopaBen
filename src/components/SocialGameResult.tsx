@@ -18,6 +18,9 @@ import {
   ShieldCheck,
   PackageOpen,
   Sparkles,
+  Compass,
+  Hourglass,
+  Scale,
 } from "lucide-react";
 import { GameSummary } from "./SocialBaseballGame";
 import { SUBJECT_META } from "@/lib/socialData";
@@ -45,7 +48,6 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
 
   const missedLogs = summary.questionLogs.filter((log) => !log.isCorrect);
 
-  // 宝箱タップ開封
   const handleOpenChest = () => {
     if (isBoxOpened) return;
     setIsBoxOpened(true);
@@ -59,7 +61,6 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
       colors: ["#FACC15", "#EF4444", "#38BDF8", "#FFFFFF", "#10B981"],
     });
 
-    // LXP カウントアップ
     const start = performance.now();
     const duration = 1100;
     const target = summary.earnedLxp;
@@ -77,7 +78,6 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
   };
 
   useEffect(() => {
-    // 間違えた問題をローカルストレージの復習リストに追加
     if (missedLogs.length > 0) {
       try {
         const stored = localStorage.getItem("dopasoc_weak_question_ids");
@@ -102,19 +102,19 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
       >
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444] text-xs font-black">
           <Trophy className="w-3.5 h-3.5" />
-          <span>GAME SET 試合終了！</span>
+          <span>無限ノック特訓完了！</span>
         </div>
 
         <div>
           <div className="text-3xl font-black italic text-white tracking-wide">
-            熱闘終了！
+            全{summary.totalQuestions}本 完遂！
           </div>
           <div className="text-xs text-[#CBD5E1] mt-0.5">
-            全{summary.totalQuestions}打席の激闘を戦い抜いた！
+            鬼コーチの猛ノックを耐え抜いた！
           </div>
         </div>
 
-        {/* ★ 甲子園ゴールド宝箱タップ開封演出 */}
+        {/* 甲子園ゴールド宝箱タップ開封演出 */}
         {!isBoxOpened ? (
           <motion.div
             whileHover={{ scale: 1.03 }}
@@ -131,7 +131,7 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
             </motion.div>
             <span className="text-xs font-black text-slate-950 flex items-center gap-1 group-hover:scale-105 transition">
               <Sparkles className="w-4 h-4 text-black" />
-              <span>タップして試合報酬を開封！</span>
+              <span>タップして特訓報酬を開封！</span>
             </span>
           </motion.div>
         ) : (
@@ -149,44 +149,54 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
         )}
       </motion.div>
 
-      {/* 2. 試合スコア＆個人打撃成績スタッツ */}
+      {/* 2. ノック成果スタッツ（トータルノック本数、正解数、最高連続正解数） */}
       <div className="bg-[#0F172A] border-2 border-[#334155] p-4 rounded-2xl space-y-3 shadow-md">
         <h3 className="text-xs font-black text-white flex items-center gap-1.5">
           <span>⚾</span>
-          <span>個人打撃スタッツ (BATTING RECORD)</span>
+          <span>今回のノック捕球スタッツ (KNOCK RECORD)</span>
         </h3>
 
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-[#1E293B] p-2.5 rounded-xl border border-[#334155]">
-            <span className="text-[10px] text-[#94A3B8] font-bold block">総得点 (RUNS)</span>
-            <span className="text-xl font-black text-[#FACC15]">{summary.runs}</span>
+            <span className="text-[10px] text-[#94A3B8] font-bold block">ノック本数</span>
+            <span className="text-xl font-black text-white">{summary.totalQuestions}本</span>
           </div>
 
           <div className="bg-[#1E293B] p-2.5 rounded-xl border border-[#334155]">
-            <span className="text-[10px] text-[#94A3B8] font-bold block">打率 (AVG)</span>
-            <span className="text-xl font-black text-white">{battingAverage}</span>
+            <span className="text-[10px] text-[#10B981] font-bold block">ナイス捕球(正解)</span>
+            <span className="text-xl font-black text-[#10B981]">{summary.hits}本</span>
           </div>
 
           <div className="bg-[#1E293B] p-2.5 rounded-xl border border-[#334155]">
-            <span className="text-[10px] text-[#94A3B8] font-bold block">本塁打 (HR)</span>
-            <span className="text-xl font-black text-[#EF4444]">{summary.homeruns}</span>
+            <span className="text-[10px] text-[#38BDF8] font-bold block">最高連続捕球</span>
+            <span className="text-xl font-black text-[#38BDF8]">{summary.maxCombo}連</span>
           </div>
+        </div>
 
-          <div className="bg-[#1E293B] p-2.5 rounded-xl border border-[#334155]">
-            <span className="text-[10px] text-[#94A3B8] font-bold block">安打数 (HITS)</span>
-            <span className="text-base font-black text-white">
-              {summary.hits} / {summary.totalQuestions}
+        {/* 3大分野別の獲得捕球数 */}
+        <div className="pt-2 border-t border-[#334155] grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="bg-[#083344]/50 border border-[#06B6D4]/40 p-2 rounded-xl">
+            <span className="text-[10px] text-[#38BDF8] font-bold flex items-center justify-center gap-1">
+              <Compass className="w-3 h-3" />
+              <span>地理捕球</span>
             </span>
+            <span className="text-base font-black text-white">+{summary.geoCatches}</span>
           </div>
 
-          <div className="bg-[#1E293B] p-2.5 rounded-xl border border-[#334155]">
-            <span className="text-[10px] text-[#94A3B8] font-bold block">最大連打 (COMBO)</span>
-            <span className="text-base font-black text-[#38BDF8]">{summary.maxCombo} 連続</span>
+          <div className="bg-[#451A03]/50 border border-[#F59E0B]/40 p-2 rounded-xl">
+            <span className="text-[10px] text-[#FBBF24] font-bold flex items-center justify-center gap-1">
+              <Hourglass className="w-3 h-3" />
+              <span>歴史捕球</span>
+            </span>
+            <span className="text-base font-black text-white">+{summary.historyCatches}</span>
           </div>
 
-          <div className="bg-[#1E293B] p-2.5 rounded-xl border border-[#334155]">
-            <span className="text-[10px] text-[#94A3B8] font-bold block">三振 (SO)</span>
-            <span className="text-base font-black text-[#94A3B8]">{summary.strikeouts}</span>
+          <div className="bg-[#064E3B]/50 border border-[#10B981]/40 p-2 rounded-xl">
+            <span className="text-[10px] text-[#34D399] font-bold flex items-center justify-center gap-1">
+              <Scale className="w-3 h-3" />
+              <span>公民捕球</span>
+            </span>
+            <span className="text-base font-black text-white">+{summary.civicsCatches}</span>
           </div>
         </div>
       </div>
@@ -196,7 +206,7 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black text-white flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-[#FACC15]" />
-            <span>全打席の一問一答プレイバック ({summary.questionLogs.length}問)</span>
+            <span>全ノックの一問一答プレイバック ({summary.questionLogs.length}問)</span>
           </h3>
           <span className="text-[10px] text-[#94A3B8]">タップで解説表示</span>
         </div>
@@ -301,7 +311,7 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
           className="w-full py-3 rounded-xl bg-[#FACC15] hover:bg-[#FFE600] text-black font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>もう1試合プレイする</span>
+          <span>もう一度ノック特訓を受ける</span>
         </button>
 
         <button
@@ -309,7 +319,7 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
           className="w-full py-2.5 rounded-xl bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#94A3B8] hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>社会科グラウンド（ロビー）へ戻る</span>
+          <span>グラウンド（メニュー）へ戻る</span>
         </button>
       </div>
     </div>

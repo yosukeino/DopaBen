@@ -17,9 +17,14 @@ import {
   ShieldCheck,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Filter,
   Swords,
   TrendingUp,
+  Compass,
+  Hourglass,
+  Scale,
 } from "lucide-react";
 import {
   ALL_SOCIAL_QUESTIONS,
@@ -33,6 +38,7 @@ import {
 import {
   generateSocialQuizDeck,
   GeneratedSocialQuestion,
+  QuizDeckOptions,
 } from "@/lib/socialQuestionEngine";
 import { soundEngine } from "@/lib/soundEngine";
 import { BaseballCharacter } from "@/components/BaseballCharacter";
@@ -46,6 +52,7 @@ import {
   BaseballPlayerProfile,
   calculateLevelFromTotalLxp,
   calculateOverallRank,
+  calculateStatFromCatches,
   DEFAULT_BASEBALL_PLAYER,
   BAT_EQUIPMENTS,
   PLAYER_RANKS,
@@ -53,36 +60,8 @@ import {
 import { PlayerProfile } from "@/lib/types";
 
 const DOPA_PROFILE_KEY = "dopaben_player_profile_v1";
-const SOCIAL_STATS_KEY = "dopasoc_stats_v1";
-const SOCIAL_PLAYER_KEY = "dopasoc_player_v2";
+const SOCIAL_PLAYER_KEY = "dopasoc_player_v3"; // 3大ステータス＆ノック記録対応
 const WEAK_QUESTIONS_KEY = "dopasoc_weak_question_ids";
-
-interface SocialStats {
-  totalGames: number;
-  totalAtBats: number;
-  totalHits: number;
-  totalHomeruns: number;
-  totalRuns: number;
-  highestRuns: number;
-  highestCombo: number;
-}
-
-const DEFAULT_STATS: SocialStats = {
-  totalGames: 0,
-  totalAtBats: 0,
-  totalHits: 0,
-  totalHomeruns: 0,
-  totalRuns: 0,
-  highestRuns: 0,
-  highestCombo: 0,
-};
-
-const TEAM_COLORS = [
-  { name: "クリムゾン", color: "#EF4444" },
-  { name: "ゴールド", color: "#FACC15" },
-  { name: "スカイ", color: "#38BDF8" },
-  { name: "エメラルド", color: "#10B981" },
-];
 
 export default function DopaSocPage() {
   const [viewState, setViewState] = useState<"lobby" | "playing" | "result">("lobby");
@@ -91,24 +70,25 @@ export default function DopaSocPage() {
   // 選手育成プロファイル
   const [player, setPlayer] = useState<BaseballPlayerProfile>(DEFAULT_BASEBALL_PLAYER);
 
-  // 設定・出題フィルター
+  // 出題範囲選択ステート
+  // "ALL" | "地理" | "歴史" | "公民"
   const [selectedSubject, setSelectedSubject] = useState<SocialSubject | "ALL">("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
-  const [selectedStage, setSelectedStage] = useState<1 | 2 | "ALL">("ALL");
 
-  // デッキ・ゲーム進行
-  const [gameMode, setGameMode] = useState<"game9" | "quick" | "endless" | "review">("game9");
+  // 科目アコーディオンの開閉状態
+  const [openAccordion, setOpenAccordion] = useState<SocialSubject | null>(null);
+
+  // ゲーム進行
   const [deck, setDeck] = useState<GeneratedSocialQuestion[]>([]);
+  const [deckOptions, setDeckOptions] = useState<QuizDeckOptions>({});
   const [latestSummary, setLatestSummary] = useState<GameSummary | null>(null);
 
-  // 統計データ
-  const [stats, setStats] = useState<SocialStats>(DEFAULT_STATS);
+  // 弱点問題ID
   const [weakIds, setWeakIds] = useState<number[]>([]);
 
-  // 初回マウント時にローカルストレージから読み込み
+  // 初回マウント時読み込み
   useEffect(() => {
     try {
-      // 共通プロファイル
       const profileJson = localStorage.getItem(DOPA_PROFILE_KEY);
       let globalLxp = 0;
       let globalGender: "boy" | "girl" = "boy";
@@ -118,12 +98,10 @@ export default function DopaSocPage() {
         if (p.gender) globalGender = p.gender;
       }
 
-      // 社会科選手プロファイル
       const storedPlayer = localStorage.getItem(SOCIAL_PLAYER_KEY);
       if (storedPlayer) {
         setPlayer(JSON.parse(storedPlayer));
       } else {
-        // 初期化
         const initPlayer: BaseballPlayerProfile = {
           ...DEFAULT_BASEBALL_PLAYER,
           gender: globalGender,
@@ -133,11 +111,6 @@ export default function DopaSocPage() {
         setPlayer(initPlayer);
       }
 
-      // スタッツ
-      const statsJson = localStorage.getItem(SOCIAL_STATS_KEY);
-      if (statsJson) setStats(JSON.parse(statsJson));
-
-      // 弱点問題ID
       const weakJson = localStorage.getItem(WEAK_QUESTIONS_KEY);
       if (weakJson) setWeakIds(JSON.parse(weakJson));
     } catch {
@@ -150,8 +123,6 @@ export default function DopaSocPage() {
     setPlayer(updated);
     try {
       localStorage.setItem(SOCIAL_PLAYER_KEY, JSON.stringify(updated));
-
-      // グローバルプロファイルのLXPも同期
       const profileJson = localStorage.getItem(DOPA_PROFILE_KEY);
       if (profileJson) {
         const p: PlayerProfile = JSON.parse(profileJson);
@@ -163,81 +134,92 @@ export default function DopaSocPage() {
     }
   };
 
-  const handleSubjectChange = (subj: SocialSubject | "ALL") => {
+  // アコーディオン開閉
+  const toggleAccordion = (subj: SocialSubject) => {
+    soundEngine.playTap();
+    if (openAccordion === subj) {
+      setOpenAccordion(null);
+    } else {
+      setOpenAccordion(subj);
+      setSelectedSubject(subj);
+      setSelectedChapter("ALL");
+    }
+  };
+
+  // 全体または科目一括選択
+  const handleSelectField = (subj: SocialSubject | "ALL") => {
     soundEngine.playTap();
     setSelectedSubject(subj);
     setSelectedChapter("ALL");
+    if (subj === "ALL") {
+      setOpenAccordion(null);
+    } else {
+      setOpenAccordion(subj);
+    }
   };
 
-  // 試合開始
-  const handleStartGame = (mode: "game9" | "quick" | "endless" | "review") => {
+  // 無限ノック開始
+  const handleStartInfiniteKnock = (customSubj?: SocialSubject | "ALL", customChap?: string) => {
     soundEngine.playPlayBall();
 
-    let questionLimit = 10;
-    if (mode === "game9") questionLimit = 9;
-    if (mode === "endless") questionLimit = 30;
-    if (mode === "review") questionLimit = Math.min(20, weakIds.length || 10);
+    const targetSubj = customSubj !== undefined ? customSubj : selectedSubject;
+    const targetChap = customChap !== undefined ? customChap : selectedChapter;
 
-    const generatedDeck = generateSocialQuizDeck({
-      subject: selectedSubject,
-      chapter: selectedChapter,
-      stage: selectedStage,
-      limit: questionLimit,
-      reviewIds: mode === "review" ? weakIds : undefined,
-    });
+    const options: QuizDeckOptions = {
+      subject: targetSubj,
+      chapter: targetChap,
+      limit: 10, // 初回10本、以降はモーダルで10本/30本/100本と無限追加！
+    };
 
-    if (generatedDeck.length === 0) {
-      alert("選択された条件に一致する問題がありません。フィルターを変更してください。");
+    const initialDeck = generateSocialQuizDeck(options);
+    if (initialDeck.length === 0) {
+      alert("選択された単元に問題がありません。別の単元を選んでください。");
       return;
     }
 
-    setGameMode(mode);
-    setDeck(generatedDeck);
+    setDeckOptions(options);
+    setDeck(initialDeck);
     setViewState("playing");
   };
 
-  // 試合終了コールバック
+  // 試合終了・結果反映
   const handleFinishGame = (summary: GameSummary) => {
     setLatestSummary(summary);
     setViewState("result");
 
-    // スタッツ更新
-    const newStats: SocialStats = {
-      totalGames: stats.totalGames + 1,
-      totalAtBats: stats.totalAtBats + summary.totalQuestions,
-      totalHits: stats.totalHits + summary.hits,
-      totalHomeruns: stats.totalHomeruns + summary.homeruns,
-      totalRuns: stats.totalRuns + summary.runs,
-      highestRuns: Math.max(stats.highestRuns, summary.runs),
-      highestCombo: Math.max(stats.highestCombo, summary.maxCombo),
+    // 通算ノック記録を更新
+    const newCareer = {
+      totalKnocks: player.career.totalKnocks + summary.totalQuestions,
+      totalCatches: player.career.totalCatches + summary.hits,
+      maxCombo: Math.max(player.career.maxCombo, summary.maxCombo),
+      geoCatches: player.career.geoCatches + summary.geoCatches,
+      historyCatches: player.career.historyCatches + summary.historyCatches,
+      civicsCatches: player.career.civicsCatches + summary.civicsCatches,
     };
-    setStats(newStats);
 
-    // 選手プロファイルの成長（LXP獲得＆レベルアップ判定）
+    // 正解数から3大ステータスを自動計算・成長！
+    const newStats = {
+      geo: calculateStatFromCatches(newCareer.geoCatches),
+      history: calculateStatFromCatches(newCareer.historyCatches),
+      civics: calculateStatFromCatches(newCareer.civicsCatches),
+    };
+
     const newTotalLxp = player.totalLxp + summary.earnedLxp;
     const newExp = player.exp + summary.earnedLxp;
     const rankInfo = calculateLevelFromTotalLxp(newTotalLxp);
-    const hasLeveledUp = rankInfo.level > player.level;
 
     const updatedPlayer: BaseballPlayerProfile = {
       ...player,
+      career: newCareer,
+      stats: newStats,
       exp: newExp,
       totalLxp: newTotalLxp,
       level: rankInfo.level,
     };
+
     handleUpdatePlayer(updatedPlayer);
 
-    if (hasLeveledUp) {
-      confetti({
-        particleCount: 100,
-        spread: 100,
-        origin: { y: 0.4 },
-        colors: ["#FACC15", "#EF4444", "#38BDF8", "#FFFFFF"],
-      });
-    }
-
     try {
-      localStorage.setItem(SOCIAL_STATS_KEY, JSON.stringify(newStats));
       const weakJson = localStorage.getItem(WEAK_QUESTIONS_KEY);
       if (weakJson) setWeakIds(JSON.parse(weakJson));
     } catch {
@@ -245,18 +227,13 @@ export default function DopaSocPage() {
     }
   };
 
-  const battingAvg =
-    stats.totalAtBats > 0
-      ? (stats.totalHits / stats.totalAtBats).toFixed(3).replace(/^0/, "")
-      : ".000";
-
   const overall = calculateOverallRank(player.stats);
   const currentBat = BAT_EQUIPMENTS.find((b) => b.tier === player.selectedBatTier) || BAT_EQUIPMENTS[0];
 
-  const filteredQuestionCount = ALL_SOCIAL_QUESTIONS.filter((q) => {
+  // 出題対象問題数
+  const targetCount = ALL_SOCIAL_QUESTIONS.filter((q) => {
     if (selectedSubject !== "ALL" && q.subject !== selectedSubject) return false;
     if (selectedChapter !== "ALL" && q.chapter !== selectedChapter) return false;
-    if (selectedStage !== "ALL" && q.stage !== selectedStage) return false;
     return true;
   }).length;
 
@@ -273,8 +250,8 @@ export default function DopaSocPage() {
       {/* 試合中画面 */}
       {viewState === "playing" && (
         <SocialBaseballGame
-          deck={deck}
-          mode={gameMode}
+          initialDeck={deck}
+          deckOptions={deckOptions}
           player={player}
           onFinishGame={handleFinishGame}
           onAbort={() => {
@@ -288,13 +265,9 @@ export default function DopaSocPage() {
       {viewState === "result" && latestSummary && (
         <SocialGameResult
           summary={latestSummary}
-          onPlayAgain={(reviewOnly) => {
+          onPlayAgain={() => {
             soundEngine.playTap();
-            if (reviewOnly) {
-              handleStartGame("review");
-            } else {
-              handleStartGame(gameMode);
-            }
+            handleStartInfiniteKnock();
           }}
           onBackToLobby={() => {
             soundEngine.playTap();
@@ -326,27 +299,22 @@ export default function DopaSocPage() {
             >
               <Zap className="w-3.5 h-3.5 fill-[#FACC15]" />
               <span>{player.exp.toLocaleString()} LXP</span>
-              {player.exp >= 80 && (
-                <span className="w-2 h-2 rounded-full bg-[#EF4444] animate-ping" />
-              )}
             </button>
           </div>
 
-          {/* 選手アバター & 育成ダッシュボードカード */}
+          {/* 1. 選手ステータス ＆ 3大能力カード */}
           <div className="bg-gradient-to-br from-[#1E293B] via-[#1C0D12] to-[#0B0D12] border-2 border-white p-4 sm:p-5 rounded-3xl shadow-p5-red relative overflow-hidden">
             <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#EF4444]/20 rounded-full blur-2xl pointer-events-none" />
 
             <div className="relative z-10 space-y-3">
-              {/* アバターと選手ステータス */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* アバター */}
                   <div
                     onClick={() => {
                       soundEngine.playTap();
                       setIsLockerOpen(true);
                     }}
-                    className="w-16 h-16 rounded-2xl bg-[#090D16] border-2 border-[#EF4444] flex items-center justify-center p-1 relative shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition"
+                    className="w-16 h-16 rounded-2xl bg-[#090D16] border-2 border-[#EF4444] flex items-center justify-center p-1 relative shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition shrink-0"
                   >
                     <BaseballCharacter
                       gender={player.gender}
@@ -370,10 +338,8 @@ export default function DopaSocPage() {
                       </h1>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px]">
-                      <span className="text-[#FACC15] font-black">
-                        装備: {currentBat.name.split("の")[1] || currentBat.name}
-                      </span>
+                    <div className="text-[11px] text-[#FACC15] font-black mt-1">
+                      装備: {currentBat.name.split("の")[1] || currentBat.name}
                     </div>
 
                     {/* 性別切り替え */}
@@ -408,9 +374,9 @@ export default function DopaSocPage() {
                   </div>
                 </div>
 
-                {/* 総合評価ランク */}
+                {/* 総合ランク */}
                 <div className="text-right">
-                  <span className="text-[9px] font-bold text-[#94A3B8] block">選手ランク</span>
+                  <span className="text-[9px] font-bold text-[#94A3B8] block">総合ランク</span>
                   <div
                     style={{ color: overall.color }}
                     className="text-3xl font-black italic tracking-wider leading-none"
@@ -423,241 +389,261 @@ export default function DopaSocPage() {
                 </div>
               </div>
 
-              {/* 次のバット・称号進化プログレスバー */}
-              {(() => {
-                const nextBat = BAT_EQUIPMENTS.find((b) => b.unlockLevel > player.level);
-                if (!nextBat) return null;
-                const nextRank = PLAYER_RANKS.find((r) => r.level === nextBat.unlockLevel);
-                if (!nextRank) return null;
-                const neededLxp = Math.max(0, nextRank.requiredTotalLxp - player.totalLxp);
-                const progressPct = Math.min(100, Math.round((player.totalLxp / nextRank.requiredTotalLxp) * 100));
-
-                return (
-                  <div className="bg-[#090D16]/90 border border-[#FACC15]/40 rounded-xl p-2.5 space-y-1.5 shadow-inner">
-                    <div className="flex items-center justify-between text-[11px] font-black">
-                      <span className="text-[#FACC15] flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-[#FACC15]" />
-                        <span>次の装備「{nextBat.name}」まで</span>
-                      </span>
-                      <span className="text-white">あと {neededLxp.toLocaleString()} LXP</span>
-                    </div>
-
-                    <div className="w-full h-2 bg-[#1E293B] rounded-full overflow-hidden p-0.5 border border-[#334155]">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressPct}%` }}
-                        className="h-full bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#38BDF8] rounded-full"
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* ロッカールーム強化バナー */}
-              <button
-                onClick={() => {
-                  soundEngine.playTap();
-                  setIsLockerOpen(true);
-                }}
-                className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#FACC15] via-[#FFE600] to-[#FACC15] hover:brightness-105 text-slate-950 font-black text-xs flex items-center justify-between shadow-md active:scale-95 transition group"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Swords className="w-4 h-4 text-black" />
-                  <span>ロッカールームで能力アップ ＆ 装備着せ替え</span>
+              {/* 3大ステータス ミニインジケータ */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-xs">
+                <div className="bg-[#083344]/60 border border-[#06B6D4]/40 p-1.5 rounded-xl">
+                  <span className="text-[9px] text-[#38BDF8] font-bold block">地理力</span>
+                  <span className="text-sm font-black text-white">{player.stats.geo}</span>
                 </div>
-                <div className="flex items-center gap-1 text-[11px]">
-                  <span>所持 {player.exp} LXP</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                <div className="bg-[#451A03]/60 border border-[#F59E0B]/40 p-1.5 rounded-xl">
+                  <span className="text-[9px] text-[#FBBF24] font-bold block">歴史力</span>
+                  <span className="text-sm font-black text-white">{player.stats.history}</span>
                 </div>
-              </button>
+                <div className="bg-[#064E3B]/60 border border-[#10B981]/40 p-1.5 rounded-xl">
+                  <span className="text-[9px] text-[#34D399] font-bold block">公民力</span>
+                  <span className="text-sm font-black text-white">{player.stats.civics}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 通算スタッツ */}
+          {/* 2. トータルノック記録（キャリアスタッツ） */}
           <div className="bg-[#111827] border-2 border-[#334155] p-3 rounded-2xl shadow-md">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FACC15]" />
-                <span>通算成績 (CAREER STATS)</span>
+                <span>通算ノック記録 (CAREER STATS)</span>
               </span>
               <span className="text-[10px] font-bold text-[#94A3B8]">
-                {stats.totalGames} 試合参戦
+                正解率{" "}
+                {player.career.totalKnocks > 0
+                  ? Math.round((player.career.totalCatches / player.career.totalKnocks) * 100)
+                  : 0}
+                %
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 text-center">
+            <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-[#0B0D12] p-2 rounded-xl border border-[#262D3D]">
-                <span className="text-[9px] text-[#94A3B8] block">打率</span>
-                <span className="text-sm font-black text-white">{battingAvg}</span>
+                <span className="text-[9px] text-[#94A3B8] block">トータルノック</span>
+                <span className="text-sm font-black text-white">{player.career.totalKnocks} 本</span>
               </div>
               <div className="bg-[#0B0D12] p-2 rounded-xl border border-[#262D3D]">
-                <span className="text-[9px] text-[#94A3B8] block">安打</span>
-                <span className="text-sm font-black text-white">{stats.totalHits}</span>
+                <span className="text-[9px] text-[#10B981] block">ナイス捕球(正解)</span>
+                <span className="text-sm font-black text-[#10B981]">{player.career.totalCatches} 本</span>
               </div>
               <div className="bg-[#0B0D12] p-2 rounded-xl border border-[#262D3D]">
-                <span className="text-[9px] text-[#EF4444] block">本塁打</span>
-                <span className="text-sm font-black text-[#EF4444]">{stats.totalHomeruns}</span>
-              </div>
-              <div className="bg-[#0B0D12] p-2 rounded-xl border border-[#262D3D]">
-                <span className="text-[9px] text-[#FACC15] block">最高得点</span>
-                <span className="text-sm font-black text-[#FACC15]">{stats.highestRuns}点</span>
+                <span className="text-[9px] text-[#38BDF8] block">最高連続捕球</span>
+                <span className="text-sm font-black text-[#38BDF8]">{player.career.maxCombo} 連</span>
               </div>
             </div>
           </div>
 
-          {/* 教科＆単元選択フィルター */}
-          <div className="bg-[#111827] border-2 border-[#334155] p-3.5 rounded-2xl space-y-2.5 shadow-md">
+          {/* 3. メインモード：『無限ノック一問一答』出題範囲セレクター */}
+          <div className="bg-[#111827] border-2 border-[#334155] p-4 rounded-3xl space-y-3 shadow-lg">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-white flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-[#38BDF8]" />
-                <span>出題範囲フィルター</span>
-              </span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#38BDF8]/20 text-[#38BDF8]">
-                該当 {filteredQuestionCount} 問
+              <div>
+                <span className="text-[9px] font-black tracking-widest text-[#EF4444] uppercase block">
+                  MAIN GAME MODE
+                </span>
+                <h2 className="text-sm font-black italic text-white flex items-center gap-1.5">
+                  <span>🧢🔥</span>
+                  <span>無限ノック一問一答 〜出題分野を選択〜</span>
+                </h2>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30">
+                該当 {targetCount} 問
               </span>
             </div>
 
-            {/* 教科切り替えタブ */}
-            <div className="grid grid-cols-4 gap-1.5">
+            {/* ファーストビュー：大きく4択ボタン */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* ① 全分野シャッフル */}
               <button
-                onClick={() => handleSubjectChange("ALL")}
-                className={`py-2 rounded-xl text-xs font-black transition ${
+                onClick={() => handleSelectField("ALL")}
+                className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between ${
                   selectedSubject === "ALL"
-                    ? "bg-white text-slate-950 shadow-sm"
-                    : "bg-[#1E293B] text-[#94A3B8] hover:text-white"
+                    ? "bg-gradient-to-br from-[#B91C1C] to-[#EF4444] border-white text-white shadow-lg scale-[1.01]"
+                    : "bg-[#1E293B] border-[#334155] text-[#CBD5E1] hover:border-white"
                 }`}
               >
-                全教科
+                <div className="flex items-center justify-between">
+                  <span className="text-lg">🔥</span>
+                  <span className="text-[10px] font-black opacity-80">1,331問</span>
+                </div>
+                <div>
+                  <div className="text-xs font-black">全分野シャッフル</div>
+                  <div className="text-[9px] opacity-75">地理・歴史・公民の総力戦</div>
+                </div>
               </button>
+
+              {/* ② 地理全部 */}
+              <button
+                onClick={() => handleSelectField("地理")}
+                className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between ${
+                  selectedSubject === "地理" && selectedChapter === "ALL"
+                    ? "bg-gradient-to-br from-[#083344] to-[#06B6D4] border-white text-white shadow-lg scale-[1.01]"
+                    : "bg-[#1E293B] border-[#334155] text-[#CBD5E1] hover:border-[#06B6D4]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-lg">🌏</span>
+                  <span className="text-[10px] font-black opacity-80">{GEOGRAPHY_QUESTIONS.length}問</span>
+                </div>
+                <div>
+                  <div className="text-xs font-black">地理 全部</div>
+                  <div className="text-[9px] opacity-75">世界と日本・気候・地域</div>
+                </div>
+              </button>
+
+              {/* ③ 歴史全部 */}
+              <button
+                onClick={() => handleSelectField("歴史")}
+                className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between ${
+                  selectedSubject === "歴史" && selectedChapter === "ALL"
+                    ? "bg-gradient-to-br from-[#451A03] to-[#F59E0B] border-white text-white shadow-lg scale-[1.01]"
+                    : "bg-[#1E293B] border-[#334155] text-[#CBD5E1] hover:border-[#F59E0B]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-lg">🏯</span>
+                  <span className="text-[10px] font-black opacity-80">{HISTORY_QUESTIONS.length}問</span>
+                </div>
+                <div>
+                  <div className="text-xs font-black">歴史 全部</div>
+                  <div className="text-[9px] opacity-75">古代から現代の出来事・人物</div>
+                </div>
+              </button>
+
+              {/* ④ 公民全部 */}
+              <button
+                onClick={() => handleSelectField("公民")}
+                className={`p-3 rounded-2xl border-2 text-left transition flex flex-col justify-between ${
+                  selectedSubject === "公民" && selectedChapter === "ALL"
+                    ? "bg-gradient-to-br from-[#064E3B] to-[#10B981] border-white text-white shadow-lg scale-[1.01]"
+                    : "bg-[#1E293B] border-[#334155] text-[#CBD5E1] hover:border-[#10B981]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-lg">⚖️</span>
+                  <span className="text-[10px] font-black opacity-80">{CIVICS_QUESTIONS.length}問</span>
+                </div>
+                <div>
+                  <div className="text-xs font-black">公民 全部</div>
+                  <div className="text-[9px] opacity-75">憲法・政治・経済・国際社会</div>
+                </div>
+              </button>
+            </div>
+
+            {/* 各科目の詳細単元アコーディオン */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-bold text-[#94A3B8] block px-1">
+                ▼ 単元をピンポイントで絞り込む（アコーディオン）:
+              </span>
+
               {(["地理", "歴史", "公民"] as SocialSubject[]).map((subj) => {
+                const isOpen = openAccordion === subj;
                 const meta = SUBJECT_META[subj];
-                const isSelected = selectedSubject === subj;
+                const chapters = SUBJECT_CHAPTERS[subj];
+
                 return (
-                  <button
+                  <div
                     key={subj}
-                    onClick={() => handleSubjectChange(subj)}
-                    className={`py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition ${
-                      isSelected
-                        ? "bg-gradient-to-r text-white shadow-md font-black"
-                        : "bg-[#1E293B] text-[#94A3B8] hover:text-white"
-                    }`}
-                    style={
-                      isSelected
-                        ? { backgroundColor: meta.color }
-                        : {}
-                    }
+                    className="border border-[#334155] rounded-2xl overflow-hidden bg-[#0B0D12]"
                   >
-                    <span>{meta.icon}</span>
-                    <span>{subj}</span>
-                  </button>
+                    <button
+                      onClick={() => toggleAccordion(subj)}
+                      className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1E293B]/70 transition"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-black">
+                        <span>{meta.icon}</span>
+                        <span className="text-white">{subj}の章一覧</span>
+                        <span className="text-[10px] text-[#94A3B8]">({chapters.length}章)</span>
+                      </div>
+                      {isOpen ? (
+                        <ChevronUp className="w-4 h-4 text-[#94A3B8]" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-[#94A3B8]" />
+                      )}
+                    </button>
+
+                    {isOpen && (
+                      <div className="p-2 space-y-1 bg-[#090D16] border-t border-[#334155]/60 text-xs">
+                        <button
+                          onClick={() => {
+                            soundEngine.playTap();
+                            setSelectedSubject(subj);
+                            setSelectedChapter("ALL");
+                          }}
+                          className={`w-full py-1.5 px-2.5 rounded-xl text-left font-bold transition flex items-center justify-between ${
+                            selectedSubject === subj && selectedChapter === "ALL"
+                              ? "bg-white text-slate-950 font-black"
+                              : "text-[#94A3B8] hover:text-white hover:bg-[#1E293B]"
+                          }`}
+                        >
+                          <span>{subj}の全範囲（全問）</span>
+                          <span className="text-[10px]">{meta.count}問</span>
+                        </button>
+
+                        {chapters.map((ch) => {
+                          const isSelected = selectedSubject === subj && selectedChapter === ch;
+                          const chCount = ALL_SOCIAL_QUESTIONS.filter(
+                            (q) => q.subject === subj && q.chapter === ch
+                          ).length;
+
+                          return (
+                            <button
+                              key={ch}
+                              onClick={() => {
+                                soundEngine.playTap();
+                                setSelectedSubject(subj);
+                                setSelectedChapter(ch);
+                              }}
+                              className={`w-full py-1.5 px-2.5 rounded-xl text-left font-bold transition flex items-center justify-between ${
+                                isSelected
+                                  ? "bg-[#FACC15] text-slate-950 font-black shadow-sm"
+                                  : "text-[#CBD5E1] hover:text-white hover:bg-[#1E293B]"
+                              }`}
+                            >
+                              <span className="truncate pr-2">{ch}</span>
+                              <span className="text-[10px] shrink-0 opacity-75">{chCount}問</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
 
-            {/* 章（単元）選択ドロップダウン */}
-            {selectedSubject !== "ALL" && (
-              <div className="space-y-1">
-                <select
-                  value={selectedChapter}
-                  onChange={(e) => {
-                    soundEngine.playTap();
-                    setSelectedChapter(e.target.value);
-                  }}
-                  className="w-full p-2.5 rounded-xl bg-[#0B0D12] border border-[#334155] text-white text-xs font-bold outline-none focus:border-[#38BDF8]"
-                >
-                  <option value="ALL">全ての章（総合問題）</option>
-                  {SUBJECT_CHAPTERS[selectedSubject].map((ch) => (
-                    <option key={ch} value={ch}>
-                      {ch}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* 試合形式選択カード */}
-          <div className="space-y-2 pt-1">
-            <span className="text-xs font-black text-[#CBD5E1] tracking-wide flex items-center gap-1.5 px-1">
-              <span>🏟️</span>
-              <span>試合形式を選択してプレイボール:</span>
-            </span>
-
-            {/* ① 9回熱闘甲子園 */}
+            {/* 無限ノック開始ビッグボタン */}
             <button
-              onClick={() => handleStartGame("game9")}
-              className="w-full p-4 rounded-2xl bg-gradient-to-r from-[#B91C1C] via-[#DC2626] to-[#EF4444] hover:brightness-110 border-2 border-white text-white font-black text-left shadow-p5-red active:scale-[0.99] transition flex items-center justify-between group"
+              onClick={() => handleStartInfiniteKnock()}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#B91C1C] via-[#DC2626] to-[#EF4444] hover:brightness-110 border-2 border-white text-white font-black text-left shadow-p5-red active:scale-[0.99] transition flex items-center justify-between group mt-2"
             >
-              <div className="space-y-1 min-w-0">
+              <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="px-2 py-0.5 rounded text-[9px] bg-black/40 text-[#FACC15] border border-white/20">
-                    メイン看板モード
+                    鬼コーチの猛特訓
                   </span>
-                  <span className="text-xs font-black text-white">全9打席</span>
+                  <span className="text-xs font-black text-white">
+                    {selectedSubject === "ALL"
+                      ? "全分野シャッフル"
+                      : `${selectedSubject} (${selectedChapter === "ALL" ? "全章" : selectedChapter})`}
+                  </span>
                 </div>
                 <div className="text-base font-black italic tracking-wide group-hover:translate-x-0.5 transition">
-                  9回熱闘甲子園バトル
+                  『無限ノック一問一答』プレイボール！
                 </div>
                 <div className="text-[11px] text-[#FEE2E2] font-normal">
-                  長打・ホームランで得点を重ね、フィーバー突入でハイスコアを目指せ！
+                  まずは10本！捕球するほどキャラの地理・歴史・公民ステータスが急成長！
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-black/30 border border-white/30 flex items-center justify-center shrink-0 ml-2 group-hover:scale-110 transition">
-                <Play className="w-5 h-5 fill-white" />
+              <div className="w-11 h-11 rounded-2xl bg-black/30 border border-white/30 flex items-center justify-center shrink-0 ml-2 group-hover:scale-110 transition shadow-md">
+                <Play className="w-6 h-6 fill-white" />
               </div>
             </button>
-
-            {/* ② 10問クイック特訓 */}
-            <button
-              onClick={() => handleStartGame("quick")}
-              className="w-full p-3.5 rounded-2xl bg-[#1E293B] hover:bg-[#334155] border-2 border-[#475569] hover:border-[#38BDF8] text-white text-left shadow-md active:scale-[0.99] transition flex items-center justify-between group"
-            >
-              <div className="space-y-0.5 min-w-0">
-                <div className="text-sm font-black text-white flex items-center gap-1.5">
-                  <span>⚡ 10問サクサクスイング特訓</span>
-                  <span className="text-[10px] text-[#38BDF8] font-bold">サクッと育成</span>
-                </div>
-                <div className="text-[11px] text-[#94A3B8]">
-                  隙間時間の1〜2分で10問を瞬時に打ち返すクイックノック！
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#94A3B8] group-hover:text-white group-hover:translate-x-1 transition shrink-0 ml-2" />
-            </button>
-
-            {/* ③ エンドレス千本ノック */}
-            <button
-              onClick={() => handleStartGame("endless")}
-              className="w-full p-3.5 rounded-2xl bg-[#1E293B] hover:bg-[#334155] border-2 border-[#475569] hover:border-[#F59E0B] text-white text-left shadow-md active:scale-[0.99] transition flex items-center justify-between group"
-            >
-              <div className="space-y-0.5 min-w-0">
-                <div className="text-sm font-black text-white flex items-center gap-1.5">
-                  <span>🔥 エンドレス千本ノック（3アウト制）</span>
-                </div>
-                <div className="text-[11px] text-[#94A3B8]">
-                  3回三振するまで連続で出題！限界までスコアとコンボを伸ばせ！
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#94A3B8] group-hover:text-white group-hover:translate-x-1 transition shrink-0 ml-2" />
-            </button>
-
-            {/* ④ 弱点問題リベンジ打席 */}
-            {weakIds.length > 0 && (
-              <button
-                onClick={() => handleStartGame("review")}
-                className="w-full p-3.5 rounded-2xl bg-[#2D151B] hover:bg-[#3E1A23] border-2 border-[#EF4444] text-white text-left shadow-md active:scale-[0.99] transition flex items-center justify-between group"
-              >
-                <div className="space-y-0.5 min-w-0">
-                  <div className="text-sm font-black text-[#F87171] flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-[#EF4444]" />
-                    <span>弱点リベンジ打席（要復習 {weakIds.length} 問）</span>
-                  </div>
-                  <div className="text-[11px] text-[#CBD5E1]">
-                    過去に間違えた問題だけをピックアップして集中的に克服！
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-[#EF4444] group-hover:translate-x-1 transition shrink-0 ml-2" />
-              </button>
-            )}
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import {
   SocialQuestion,
   SocialSubject,
 } from "./socialData";
-import { BaseballStats } from "./baseballGrowthEngine";
+import { SocialTriStats } from "./baseballGrowthEngine";
 
 export interface SocialChoice {
   id: string;
@@ -17,17 +17,18 @@ export interface GeneratedSocialQuestion {
 }
 
 export type BattingOutcome =
-  | "HOMERUN"   // 特大ホームラン
-  | "DOUBLE"    // 二塁打
-  | "SINGLE"    // ヒット
-  | "OUT";      // 三振・アウト
+  | "HOMERUN"   // 特大ホームラン (超ファインプレー)
+  | "DOUBLE"    // 二塁打 (ナイスキャッチ)
+  | "SINGLE"    // ヒット (好捕)
+  | "OUT";      // 三振・アウト (トンネル/後逸)
 
 export interface AtBatEvaluationInput {
   isCorrect: boolean;
   responseTimeMs: number;
   currentCombo: number;
   currentBases: [boolean, boolean, boolean];
-  stats: BaseballStats;
+  subject: SocialSubject;
+  stats: SocialTriStats;
   isFever: boolean;
 }
 
@@ -40,7 +41,7 @@ export interface AtBatResult {
   lxpGained: number;
   runsScored: number;
   newBases: [boolean, boolean, boolean];
-  isExtraBaseHitBySpeed?: boolean; // 走力による好走塁
+  isExtraBaseHitBySpeed?: boolean;
 }
 
 // 科目ごとの全正解用語プール
@@ -179,16 +180,16 @@ export function generateSocialQuizDeck(
 }
 
 /**
- * 選手の5大ステータス（パワー・ミート・走力・集中力・勝負強さ）を完全連動させた打撃シミュレーション
+ * 選手の3大ステータス（地理・歴史・公民力）を完全連動させたノック打撃シミュレーション
  */
 export function evaluateAtBatAdvanced(input: AtBatEvaluationInput): AtBatResult {
-  const { isCorrect, responseTimeMs, currentCombo, currentBases, stats, isFever } = input;
+  const { isCorrect, responseTimeMs, currentCombo, currentBases, subject, stats, isFever } = input;
 
   if (!isCorrect) {
     return {
       outcome: "OUT",
       title: "空振り三振！",
-      comment: "渾身のボールにバットが空を切る…！次で取り返せ！",
+      comment: "渾身のノックにバットが空を切る…！次で取り返せ！",
       distanceMeters: 0,
       exitVelocityKmh: 0,
       lxpGained: 25,
@@ -197,10 +198,13 @@ export function evaluateAtBatAdvanced(input: AtBatEvaluationInput): AtBatResult 
     };
   }
 
-  // 1. パワーとミートによる判定許容時間の拡張
-  // パワーが高いほど、遅い回答でもホームラン・長打になる！
-  const powerHomerunThreshold = 1800 + (stats.power * 15); // パワー99なら最大3285msまでHR！
-  const powerDoubleThreshold = 3500 + (stats.power * 20);
+  // 科目に対応するステータス値 (10〜99)
+  const subjectStat =
+    subject === "地理" ? stats.geo : subject === "歴史" ? stats.history : stats.civics;
+
+  // 該当科目のステータスが高いほど、判定時間が拡大し、長打・ホームランが出やすい！
+  const homerunThreshold = 1800 + (subjectStat * 16);
+  const doubleThreshold = 3500 + (subjectStat * 20);
 
   let outcome: BattingOutcome = "SINGLE";
   let title = "クリーンヒット！";
@@ -209,48 +213,45 @@ export function evaluateAtBatAdvanced(input: AtBatEvaluationInput): AtBatResult 
   let baseLxp = 120;
 
   // 飛距離(m) と 打球初速(km/h) の算出
-  let distanceMeters = Math.round(75 + (stats.power * 0.35) + Math.random() * 10);
-  let exitVelocityKmh = Math.round(110 + (stats.power * 0.4) + Math.random() * 8);
+  let distanceMeters = Math.round(75 + (subjectStat * 0.35) + Math.random() * 10);
+  let exitVelocityKmh = Math.round(110 + (subjectStat * 0.4) + Math.random() * 8);
 
-  if (responseTimeMs <= powerHomerunThreshold) {
+  if (responseTimeMs <= homerunThreshold) {
     outcome = "HOMERUN";
-    distanceMeters = Math.round(118 + (stats.power * 0.55) + Math.random() * 15);
-    exitVelocityKmh = Math.round(145 + (stats.power * 0.45) + Math.random() * 10);
+    distanceMeters = Math.round(118 + (subjectStat * 0.55) + Math.random() * 15);
+    exitVelocityKmh = Math.round(145 + (subjectStat * 0.45) + Math.random() * 10);
     title = distanceMeters >= 145 ? "場外特大ホームラン！！⚾💥" : "特大ホームラン！！⚾🔥";
     comment = `打球速度${exitVelocityKmh}km/h！スタンド中段へ突き刺さる会心の一撃！`;
     basesToAdvance = 4;
     baseLxp = 380;
-  } else if (responseTimeMs <= powerDoubleThreshold) {
+  } else if (responseTimeMs <= doubleThreshold) {
     outcome = "DOUBLE";
-    distanceMeters = Math.round(92 + (stats.power * 0.4) + Math.random() * 12);
-    exitVelocityKmh = Math.round(125 + (stats.power * 0.35) + Math.random() * 8);
+    distanceMeters = Math.round(92 + (subjectStat * 0.4) + Math.random() * 12);
+    exitVelocityKmh = Math.round(125 + (subjectStat * 0.35) + Math.random() * 8);
     title = "右中間を破る快速ツーベース！⚡";
     comment = "外野の間を真っ二つに破る強烈な長打！";
     basesToAdvance = 2;
     baseLxp = 240;
   }
 
-  // 2. 走力 (speed) による「俊足スチール進塁」
+  // 3大ステータス平均値による好走塁判定
+  const avgStat = (stats.geo + stats.history + stats.civics) / 3;
   let isExtraBaseHitBySpeed = false;
-  if (outcome === "SINGLE" && stats.speed >= 60 && Math.random() < (stats.speed / 130)) {
+  if (outcome === "SINGLE" && avgStat >= 40 && Math.random() < (avgStat / 140)) {
     basesToAdvance = 2;
     isExtraBaseHitBySpeed = true;
     title = "俊足を生かした快速スライディング進塁！💨";
     comment = "快足を飛ばして一気に2塁を陥れる好走塁！";
   }
 
-  // 3. コンボ ＆ 集中力 (focus) ＆ FEVER 倍率
-  const focusMultiplier = 1.0 + (stats.focus / 200); // 集中力99で+50%
+  // コンボ ＆ ステータス ＆ FEVER 倍率
+  const statMultiplier = 1.0 + (subjectStat / 200);
   const comboMultiplier = Math.min(2.5, 1.0 + currentCombo * 0.12);
   const feverMultiplier = isFever ? 2.0 : 1.0;
 
-  // 4. 勝負強さ (clutch) ボーナス（得点圏または満塁）
-  const isScoringPosition = currentBases[1] || currentBases[2];
-  const clutchMultiplier = isScoringPosition ? (1.0 + (stats.clutch / 100)) : 1.0;
+  const totalLxp = Math.round(baseLxp * comboMultiplier * statMultiplier * feverMultiplier);
 
-  const totalLxp = Math.round(baseLxp * comboMultiplier * focusMultiplier * feverMultiplier * clutchMultiplier);
-
-  // 5. ランナー進塁＆得点計算
+  // ランナー進塁＆得点計算
   let runsScored = 0;
   const [b1, b2, b3] = currentBases;
   let nextBases: [boolean, boolean, boolean] = [false, false, false];
@@ -262,8 +263,8 @@ export function evaluateAtBatAdvanced(input: AtBatEvaluationInput): AtBatResult 
     if (b3) runsScored++;
     if (b2) runsScored++;
     if (b1) {
-      if (stats.speed >= 75) {
-        runsScored++; // 走力75以上なら1塁走者も本塁生還！
+      if (avgStat >= 55) {
+        runsScored++;
       } else {
         nextBases[2] = true;
       }
@@ -287,7 +288,6 @@ export function evaluateAtBatAdvanced(input: AtBatEvaluationInput): AtBatResult 
   };
 }
 
-// 下位互換用の簡易ラッパー
 export function evaluateAtBat(
   isCorrect: boolean,
   responseTimeMs: number,
@@ -299,7 +299,8 @@ export function evaluateAtBat(
     responseTimeMs,
     currentCombo,
     currentBases,
-    stats: { meet: 15, power: 15, speed: 15, focus: 15, clutch: 15 },
+    subject: "地理",
+    stats: { geo: 10, history: 10, civics: 10 },
     isFever: false,
   });
 }
