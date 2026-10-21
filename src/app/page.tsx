@@ -274,6 +274,14 @@ export default function DopaBenPortalPage() {
     } catch {
       // ignore
     }
+
+    // 🚀 出撃カットイン用背景画像を即座にバックグラウンド先読み（遅延ゼロ表示）
+    if (typeof window !== "undefined") {
+      const img1 = new Image();
+      img1.src = "/bg-cutin-english.jpg";
+      const img2 = new Image();
+      img2.src = "/bg-cutin-social.jpg";
+    }
   }, []);
 
   const handleSelectStage = (stage: StageInfo) => {
@@ -864,15 +872,15 @@ export default function DopaBenPortalPage() {
       <AnimatePresence>
         {entranceStage && (
           <StageEntranceCutin
+            key={entranceStage.id}
             stage={{
               ...entranceStage,
               href: entranceStage.href || "/english",
             }}
             profile={profile}
             onComplete={() => {
-              if (entranceStage.href) {
-                router.push(entranceStage.href);
-              }
+              const targetHref = entranceStage.href || "/english";
+              router.push(targetHref);
             }}
           />
         )}
