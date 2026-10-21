@@ -1878,113 +1878,96 @@ export default function DopaBenApp() {
               </div>
             </div>
 
-            {/* 5. 正式なメインスタートボタン（再生ボタンと同期して控えめにドクンドクンと脈打つカード） */}
-            <div className="relative group animate-card-heartbeat">
-              {/* 背後で呼吸する控えめな虹色グローオーラ */}
+            {/* 5. 正式なメインスタートボタン（他の黒い情報カードとは形状・色を完全差別化した特大3D立体出撃CTA） */}
+            <div className="relative pt-1 pb-2">
+              {/* 背後で激しく拍動する高輝度ネオングローオーラ */}
               <div
-                className={`pointer-events-none absolute -inset-1 blur-md opacity-50 transition ${
-                  isResume
-                    ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899]"
-                    : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15]"
+                className={`pointer-events-none absolute inset-x-2 -inset-y-1 blur-xl opacity-60 transition ${
+                  isGirl
+                    ? "bg-gradient-to-r from-[#F43F5E] via-[#FB7185] to-[#EC4899] animate-pulse"
+                    : "bg-gradient-to-r from-[#FACC15] via-[#F59E0B] to-[#EF4444] animate-pulse"
                 }`}
               />
 
-              {/* 虹色グラデーション枠コンテナ */}
-              <div
-                className={`relative p-[2px] transition shadow-[0_4px_16px_rgba(0,0,0,0.6)] ${
-                  isResume
-                    ? "bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899]"
-                    : "bg-gradient-to-r from-[#FACC15] via-[#EF4444] to-[#FACC15]"
+              {/* 上部サイバーHUDインジケータ（選択中ミッションの明示） */}
+              <div className="flex items-center justify-between px-2 mb-1.5 relative z-10">
+                <div className="flex items-center gap-1.5 text-[11px] font-black">
+                  <span className={`w-2 h-2 rounded-full animate-ping ${isGirl ? "bg-[#FB7185]" : "bg-[#10B981]"}`} />
+                  <span className={isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}>MISSION READY</span>
+                  <span className="text-slate-500 font-normal">/</span>
+                  <span className="text-white truncate max-w-[190px] drop-shadow-sm font-bold">
+                    {stageBattleInfo.label}
+                  </span>
+                </div>
+                <div className="text-[10px] font-black text-slate-300 bg-slate-900/80 px-2 py-0.5 rounded-full border border-slate-700/80">
+                  進捗: {stageBattleInfo.progress}
+                </div>
+              </div>
+
+              {/* 特大3D立体アーケードプッシュボタン本体（平行四辺形スラッシュ -skew-x-6 ＆ 物理的押し込み厚み） */}
+              <motion.button
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.985 }}
+                onClick={() => {
+                  soundEngine.playTap();
+                  handleStartBattle(stageBattleInfo.stage, false, stageBattleInfo.grade as CodexCategory);
+                }}
+                className={`w-full relative group overflow-hidden border-2 border-white -skew-x-6 transition-all duration-150 select-none cursor-pointer ${
+                  isGirl
+                    ? "bg-gradient-to-r from-[#FDA4AF] via-[#FB7185] to-[#F43F5E] text-white shadow-[0_7px_0_#881337,0_14px_24px_rgba(244,63,94,0.45)] active:translate-y-1.5 active:shadow-[0_1px_0_#881337]"
+                    : "bg-gradient-to-r from-[#FEF08A] via-[#FACC15] to-[#EAB308] text-[#0B0D12] shadow-[0_7px_0_#92400E,0_14px_24px_rgba(250,204,21,0.5)] active:translate-y-1.5 active:shadow-[0_1px_0_#92400E]"
                 }`}
               >
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    soundEngine.playTap();
-                    handleStartBattle(stageBattleInfo.stage, false, stageBattleInfo.grade as CodexCategory);
-                  }}
-                  className={`w-full p-3 flex items-center justify-between gap-3 text-left active:scale-[0.98] transition relative ${
-                    isGirl ? "bg-[#1D1229]" : "bg-[#131720]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3.5 min-w-0 relative z-10">
-                    {/* ファーストビューの主役！虹色オーラ ＆ Twinkle粒子 ＆ ハートビート拍動Playアイコン */}
-                    <div className="relative shrink-0 flex items-center justify-center">
-                      {/* 1. 虹色ネオンオーラ（ブラー＆呼吸発光） */}
-                      <div className="pointer-events-none absolute -inset-2 rounded-lg bg-gradient-to-r from-[#EF4444] via-[#FACC15] via-[#10B981] via-[#06B6D4] to-[#EC4899] animate-dopa-aura blur-md opacity-85" />
+                {/* 表面を斜めに光速で駆け抜けるシャインエフェクト */}
+                <span className="pointer-events-none absolute -inset-y-4 -inset-x-12 w-20 bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-12 animate-glint-sweep" />
 
-                      {/* 2. 周囲にパラパラと弾け舞うトゥインクル粒子 (✦ / ★ / ⚡) */}
-                      <div className="pointer-events-none absolute -inset-3 overflow-visible z-20">
-                        {PLAY_ICON_TWINKLE_PARTICLES.map((p) => (
-                          <span
-                            key={p.id}
-                            className={`absolute animate-twinkle font-black select-none pointer-events-none ${p.color} ${p.size}`}
-                            style={{
-                              top: p.top,
-                              bottom: p.bottom,
-                              left: p.left,
-                              right: p.right,
-                              animationDelay: p.delay,
-                              ["--tw-dur" as string]: p.dur,
-                              ["--tw-x" as string]: p.tx,
-                              ["--tw-y" as string]: p.ty,
-                            }}
-                          >
-                            {p.symbol}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* 3. 虹色グラデーション＆ハートビート拍動するPlayアイコン本体 */}
-                      <div className="relative w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-[#EF4444] via-[#FACC15] via-[#10B981] to-[#06B6D4] text-[#0B0D12] flex items-center justify-center border-2 border-white font-black shadow-[0_0_16px_rgba(250,204,21,0.9),3px_3px_0_#0B0D12] animate-heartbeat overflow-hidden z-10 group-hover:scale-110 transition">
-                        {/* 斜めに走る光沢スイープ */}
-                        <span className="pointer-events-none absolute inset-y-0 w-8 bg-gradient-to-r from-transparent via-white/85 to-transparent animate-glint-sweep" />
-                        <Play className="w-6 h-6 fill-[#0B0D12] text-[#0B0D12] ml-0.5 drop-shadow-sm relative z-10" />
-                      </div>
+                {/* ボタン内コンテンツ（skewを打ち消して真っ直ぐ見やすく表示） */}
+                <div className="skew-x-6 px-4 py-3 sm:py-3.5 flex items-center justify-between gap-3 relative z-10">
+                  {/* 左：特大立体プレイアイコンバッジ */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-12 h-12 sm:w-13 sm:h-13 rounded-xl border-2 border-white flex items-center justify-center shrink-0 shadow-[2px_2px_0_#0B0D12] relative ${
+                      isGirl
+                        ? "bg-[#13091B] text-[#FB7185]"
+                        : "bg-[#0B0D12] text-[#FACC15]"
+                    }`}>
+                      {isResume ? (
+                        <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current ml-0.5 animate-pulse" />
+                      ) : (
+                        <Swords className="w-6 h-6 sm:w-7 sm:h-7 animate-bounce" />
+                      )}
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {/* 控えめでスタイリッシュなサイバーHUDバッジ */}
-                        <span className={`text-[10px] font-bold px-2 py-0.5 -skew-x-6 border flex items-center gap-1 shrink-0 ${
+                    {/* 中央：圧倒的メインアクションテキスト */}
+                    <div className="text-left min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-black px-1.5 py-0.2 rounded ${
                           isGirl
-                            ? "bg-[#13091B] text-[#C4B5FD] border-[#3D2752]"
-                            : "bg-[#0B0D12] text-[#94A3B8] border-[#262D3D]"
+                            ? "bg-[#881337] text-pink-100"
+                            : "bg-[#78350F] text-amber-100"
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            isResume
-                              ? (isGirl ? "bg-[#2DD4BF]" : "bg-[#10B981]")
-                              : (isGirl ? "bg-[#FB7185]" : "bg-[#FACC15]")
-                          }`} />
-                          <span>{isResume ? "続きから" : "出撃"}</span>
+                          {isResume ? "続きから" : "出撃"}
                         </span>
-                        <span className="text-xs sm:text-sm font-black text-white truncate drop-shadow-sm">
-                          {stageBattleInfo.label}
+                        <span className="text-[11px] font-bold opacity-85 truncate">
+                          {stageBattleInfo.sub || stageBattleInfo.label}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[#94A3B8] font-medium truncate mt-0.5">
-                        <span>{stageBattleInfo.sub}</span>
-                        <span className="mx-1.5 opacity-40">|</span>
-                        <span className="text-[#E2E8F0] font-bold">{stageBattleInfo.progress}</span>
+                      <div className="text-base sm:text-lg font-black tracking-wide flex items-center gap-1 mt-0.5 drop-shadow-sm leading-tight">
+                        <span>{isResume ? "続きから出撃する！" : "クエスト出撃！"}</span>
+                        <span className="text-xs sm:text-sm">BATTLE START</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 控えめで上品な右側アクションボタン */}
-                  <div className={`flex items-center gap-1.5 text-xs sm:text-sm font-bold -skew-x-6 shadow-[2px_2px_0_#0B0D12] shrink-0 transition px-3 py-1.5 border ${
+                  {/* 右：躍動するアクションアロー矢印 */}
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 border-white flex items-center justify-center shrink-0 shadow-[2px_2px_0_#0B0D12] group-hover:translate-x-1 transition-transform ${
                     isGirl
-                      ? "text-[#E2E8F0] group-hover:text-white bg-[#13091B] border-[#3D2752] group-hover:border-[#F43F5E]"
-                      : "text-[#E2E8F0] group-hover:text-white bg-[#0B0D12] border-[#262D3D] group-hover:border-[#FACC15]"
+                      ? "bg-[#881337] text-white"
+                      : "bg-[#0B0D12] text-[#FACC15]"
                   }`}>
-                    <span>{isResume ? "続きから" : "出撃"}</span>
-                    {isResume ? (
-                      <Play className={`w-3.5 h-3.5 ml-0.5 ${isGirl ? "fill-[#FB7185] text-[#FB7185]" : "fill-[#FACC15] text-[#FACC15]"}`} />
-                    ) : (
-                      <Zap className={`w-3.5 h-3.5 ${isGirl ? "fill-[#FB7185] text-[#FB7185]" : "fill-[#FACC15] text-[#FACC15]"}`} />
-                    )}
+                    <ChevronRight className="w-6 h-6 stroke-[3]" />
                   </div>
-                </motion.button>
-              </div>
+                </div>
+              </motion.button>
             </div>
 
             {/* 🏆 全国ランキングバトル カード（英検4級 全20問スピードアタック） */}
