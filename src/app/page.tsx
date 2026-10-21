@@ -232,12 +232,12 @@ export default function DopaBenPortalPage() {
             initial={{ scale: 0.92, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ duration: 0.5, type: "spring", damping: 14 }}
-            className="w-full rounded-2xl border-2 border-slate-900 shadow-[4px_4px_0px_#0F172A] bg-white overflow-hidden p-1.5"
+            className="w-full max-w-md flex justify-center py-2"
           >
             <img
               src="/dopaben-hero.jpg"
               alt="ドパベン"
-              className="w-full h-auto object-contain rounded-xl select-none"
+              className="w-full h-auto object-contain select-none"
             />
           </motion.div>
 
