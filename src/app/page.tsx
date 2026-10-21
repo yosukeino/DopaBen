@@ -14,7 +14,6 @@ import {
   X,
   Heart,
   Lock,
-  Star,
 } from "lucide-react";
 import { PlayerProfile } from "@/lib/types";
 import { PixelCharacter } from "@/components/PixelCharacter";
@@ -162,16 +161,98 @@ const STAGES: StageInfo[] = [
   },
 ];
 
-// 中学生向けの画面全体に散らす可愛いインタラクティブステッカー
-const INTERACTIVE_STICKERS = [
-  { id: "heart1", icon: "💖", label: "DOPA!", pos: "top-20 left-4 sm:left-12", rot: -10, delay: 0 },
-  { id: "stamp100", icon: "💯", label: "100点!", pos: "top-24 right-4 sm:right-12", rot: 12, delay: 0.6 },
-  { id: "star1", icon: "⭐", label: "SUPER!", pos: "top-64 left-2 sm:left-10", rot: -8, delay: 1.2 },
-  { id: "lightning1", icon: "⚡", label: "やる気MAX", pos: "top-80 right-3 sm:right-10", rot: 15, delay: 0.4 },
-  { id: "game1", icon: "🎮", label: "LEVEL UP", pos: "bottom-72 left-3 sm:left-10", rot: -12, delay: 1.6 },
-  { id: "clover1", icon: "🍀", label: "LUCKY", pos: "bottom-60 right-3 sm:right-10", rot: 10, delay: 0.8 },
-  { id: "pencil1", icon: "✏️", label: "START!", pos: "bottom-32 left-4 sm:left-12", rot: 20, delay: 1.4 },
-  { id: "fire1", icon: "🔥", label: "COMBO!", pos: "bottom-20 right-4 sm:right-12", rot: -15, delay: 0.2 },
+// =========================================================================
+// キラリと小さく輝く星アニメーションコンポーネント
+// =========================================================================
+const TwinkleStar: React.FC<{
+  className?: string;
+  size?: number;
+  color?: string;
+  delay?: number;
+  duration?: number;
+}> = ({ className = "", size = 15, color = "#FACC15", delay = 0, duration = 2.4 }) => (
+  <motion.svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={color}
+    className={`pointer-events-none select-none inline-block filter drop-shadow-[0_0_6px_rgba(250,204,21,0.5)] ${className}`}
+    initial={{ scale: 0, opacity: 0, rotate: 0 }}
+    animate={{
+      scale: [0, 1.25, 0.9, 0],
+      opacity: [0, 1, 0.85, 0],
+      rotate: [0, 45, 90, 135],
+    }}
+    transition={{
+      duration,
+      repeat: Infinity,
+      repeatDelay: 1.0 + (delay % 2) * 0.5,
+      delay,
+      ease: "easeInOut",
+    }}
+  >
+    <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
+  </motion.svg>
+);
+
+// =========================================================================
+// ふわりと咲いたり舞い踊る桜の花・花びらアニメーションコンポーネント
+// =========================================================================
+const SakuraBlossom: React.FC<{
+  className?: string;
+  size?: number;
+  delay?: number;
+  duration?: number;
+}> = ({ className = "", size = 20, delay = 0, duration = 3.8 }) => (
+  <motion.div
+    className={`pointer-events-none select-none inline-flex items-center justify-center ${className}`}
+    initial={{ scale: 0, opacity: 0, rotate: -25 }}
+    animate={{
+      scale: [0, 1.15, 0.95, 0],
+      opacity: [0, 0.9, 0.8, 0],
+      rotate: [-25, 10, -5, 30],
+      y: [0, -6, 6, 16],
+    }}
+    transition={{
+      duration,
+      repeat: Infinity,
+      repeatDelay: 1.2 + (delay % 2) * 0.6,
+      delay,
+      ease: "easeInOut",
+    }}
+  >
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      className="filter drop-shadow-[0_2px_4px_rgba(244,114,182,0.35)]"
+    >
+      <path d="M16 2 C13 7, 10 9, 16 14 C22 9, 19 7, 16 2 Z" fill="#F472B6" />
+      <path d="M29 11 C24 10, 21 12, 18 16 C22 20, 25 18, 29 11 Z" fill="#FB7185" />
+      <path d="M24 27 C21 23, 19 21, 16 18 C14 23, 17 26, 24 27 Z" fill="#F472B6" />
+      <path d="M8 27 C15 26, 18 23, 16 18 C13 21, 11 23, 8 27 Z" fill="#FDA4AF" />
+      <path d="M3 11 C7 18, 10 20, 14 16 C11 12, 8 10, 3 11 Z" fill="#F472B6" />
+      <circle cx="16" cy="16" r="3.2" fill="#FDE047" />
+    </svg>
+  </motion.div>
+);
+
+// 背景の外周余白にふわりと舞う小さな桜の花びら
+const DRIFTING_PETALS = [
+  { id: "p1", top: "12%", left: "6%", size: 18, delay: 0 },
+  { id: "p2", top: "28%", right: "8%", size: 22, delay: 1.5 },
+  { id: "p3", top: "48%", left: "4%", size: 16, delay: 2.8 },
+  { id: "p4", top: "68%", right: "6%", size: 20, delay: 0.8 },
+  { id: "p5", top: "85%", left: "8%", size: 19, delay: 2.2 },
+];
+
+// 背景の外周余白に小さくキラキラ輝く星々
+const AMBIENT_STARS = [
+  { id: "s1", top: "18%", right: "6%", size: 16, color: "#FACC15", delay: 0.3 },
+  { id: "s2", top: "35%", left: "5%", size: 14, color: "#38BDF8", delay: 1.8 },
+  { id: "s3", top: "58%", right: "5%", size: 15, color: "#F43F5E", delay: 1.1 },
+  { id: "s4", top: "78%", left: "7%", size: 17, color: "#10B981", delay: 2.5 },
 ];
 
 export default function DopaBenPortalPage() {
@@ -201,22 +282,6 @@ export default function DopaBenPortalPage() {
     setCheerCount((prev) => prev + 1);
   };
 
-  // ステッカーをタップしたときの可愛いマイクロ紙吹雪エフェクト
-  const handleStickerTap = (e: React.MouseEvent<HTMLButtonElement>) => {
-    soundEngine.playTap();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (rect.left + rect.width / 2) / window.innerWidth;
-    const y = (rect.top + rect.height / 2) / window.innerHeight;
-    confetti({
-      particleCount: 16,
-      spread: 50,
-      origin: { x, y },
-      colors: ["#FACC15", "#EF4444", "#06B6D4", "#10B981", "#EC4899"],
-      ticks: 80,
-      scalar: 0.85,
-    });
-  };
-
   return (
     <div
       className="min-h-screen w-full text-slate-900 flex flex-col items-center justify-start p-3 sm:p-6 select-none relative overflow-x-hidden bg-white bg-cover bg-top bg-no-repeat"
@@ -226,46 +291,24 @@ export default function DopaBenPortalPage() {
       }}
     >
       {/* ========================================================================= */}
-      {/* 画面全体に散りばめられた動く可愛いステッカー（カード背面 z-0 で控えめに浮遊）    */}
+      {/* 背景の余白にふわりと舞う小さな桜とキラキラ星（邪魔にならない繊細なアンビエント） */}
       {/* ========================================================================= */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {INTERACTIVE_STICKERS.map((stk) => (
-          <motion.div
-            key={stk.id}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{
-              opacity: 1,
-              scale: [1, 1.08, 1],
-              y: [0, -10, 0],
-              rotate: [stk.rot - 3, stk.rot + 3, stk.rot - 3],
-            }}
-            transition={{
-              duration: 5 + stk.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: stk.delay,
-            }}
-            className={`absolute ${stk.pos} pointer-events-auto`}
-          >
-            <button
-              onClick={handleStickerTap}
-              title={stk.label}
-              className="group flex flex-col items-center justify-center p-1 opacity-40 hover:opacity-85 transition-opacity duration-300 cursor-pointer select-none"
-            >
-              <span className="text-xl sm:text-2xl filter drop-shadow-sm select-none group-hover:scale-125 transition-transform duration-200">
-                {stk.icon}
-              </span>
-              <span className="text-[8px] font-bold tracking-tight text-slate-500 bg-white/60 px-1 py-0.2 rounded border border-slate-200/80 mt-0.5 select-none">
-                {stk.label}
-              </span>
-            </button>
-          </motion.div>
+        {DRIFTING_PETALS.map((p) => (
+          <div key={p.id} className="absolute" style={{ top: p.top, left: p.left, right: p.right }}>
+            <SakuraBlossom size={p.size} delay={p.delay} />
+          </div>
+        ))}
+        {AMBIENT_STARS.map((s) => (
+          <div key={s.id} className="absolute" style={{ top: s.top, left: s.left, right: s.right }}>
+            <TwinkleStar size={s.size} color={s.color} delay={s.delay} />
+          </div>
         ))}
       </div>
 
       <div className="w-full max-w-xl relative z-10 space-y-4">
         {/* ========================================================================= */}
-        {/* 1. 中央ヒーローロゴ（透過PNG＋背景サンバーストとシームレス完全連動）             */}
+        {/* 1. 中央ヒーローロゴ（透過PNG＋星のキラめき＋桜の開花アニメーション）             */}
         {/* ========================================================================= */}
         <header className="flex flex-col items-center">
           <motion.div
@@ -285,6 +328,16 @@ export default function DopaBenPortalPage() {
           >
             {/* 背景の柔らかなサンバースト光彩（シームレスに背景と同化） */}
             <div className="absolute inset-0 -top-4 bg-amber-300/35 blur-3xl rounded-full scale-100 pointer-events-none -z-10" />
+
+            {/* ロゴ周囲に小さくキラキラ輝く星たち */}
+            <TwinkleStar className="absolute -top-1 left-3 sm:left-6" size={20} color="#FACC15" delay={0.2} />
+            <TwinkleStar className="absolute top-6 right-3 sm:right-6" size={17} color="#38BDF8" delay={1.4} />
+            <TwinkleStar className="absolute bottom-2 left-6 sm:left-10" size={18} color="#F43F5E" delay={2.1} />
+
+            {/* ロゴの角にふわりと咲く桜 */}
+            <SakuraBlossom className="absolute -top-3 right-5 sm:right-10" size={24} delay={0.8} />
+            <SakuraBlossom className="absolute bottom-1 right-2 sm:right-6" size={20} delay={2.6} />
+
             <img
               src="/dopaben-hero.png"
               alt="ドパベン"
@@ -297,11 +350,15 @@ export default function DopaBenPortalPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mt-2 w-full bg-white/95 backdrop-blur-md border-2 border-slate-900 p-2.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-center justify-between gap-3"
+            className="mt-2 w-full bg-white/95 backdrop-blur-md border-2 border-slate-900 p-2.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-center justify-between gap-3 relative overflow-hidden"
           >
+            {/* ステータスバーの角で小さく輝く星 */}
+            <TwinkleStar className="absolute top-1.5 right-2" size={13} color="#F59E0B" delay={1.0} />
+
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 shadow-inner">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 shadow-inner relative">
                 <GraduationCap className="w-4 h-4 text-amber-600" />
+                <TwinkleStar className="absolute -top-1 -right-1" size={10} color="#FACC15" delay={0.4} />
               </div>
               <div className="text-left">
                 <div className="text-[9px] text-slate-500 font-bold flex items-center gap-1">
@@ -353,6 +410,7 @@ export default function DopaBenPortalPage() {
                   damping: 14,
                 }}
                 whileHover={{ scale: 1.015 }}
+                className="relative"
               >
                 {isPlayable ? (
                   <Link
@@ -360,6 +418,14 @@ export default function DopaBenPortalPage() {
                     onClick={() => soundEngine.playTap()}
                     className="group block relative bg-white/95 backdrop-blur-md border-2 border-slate-900 hover:border-slate-950 p-3 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0F172A] transition overflow-hidden"
                   >
+                    {/* カード角の繊細なキラめきアクセント */}
+                    {stage.id === "stage-english" && (
+                      <TwinkleStar className="absolute top-2 right-24" size={14} color="#FACC15" delay={0.7} />
+                    )}
+                    {stage.id === "stage-social" && (
+                      <TwinkleStar className="absolute top-2 right-24" size={14} color="#EF4444" delay={1.3} />
+                    )}
+
                     <div className="flex items-center gap-3.5">
                       {/* キャラクターアバター */}
                       <div className="w-16 h-16 rounded-xl bg-slate-50 border-2 border-slate-900 p-0.5 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition overflow-hidden">
@@ -390,8 +456,10 @@ export default function DopaBenPortalPage() {
                       {/* 教科タイトルと概要 */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border border-slate-300 ${stage.colors.badgeBg} ${stage.colors.badgeText}`}>
-                            {stage.roleBadge}
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-black border border-slate-300 ${stage.colors.badgeBg} ${stage.colors.badgeText} flex items-center gap-1`}
+                          >
+                            <span>{stage.roleBadge}</span>
                           </span>
                           <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-300">
                             PLAY
@@ -427,6 +495,17 @@ export default function DopaBenPortalPage() {
                     }}
                     className="cursor-pointer block relative bg-white/90 hover:bg-white backdrop-blur-md border-2 border-slate-300 hover:border-slate-900 p-3 rounded-2xl shadow-[3px_3px_0px_#CBD5E1] hover:shadow-[4px_4px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition overflow-hidden group"
                   >
+                    {/* 国語カードの咲く桜アクセント */}
+                    {stage.id === "stage-japanese" && (
+                      <SakuraBlossom className="absolute top-2.5 right-20" size={17} delay={1.5} />
+                    )}
+                    {stage.id === "stage-math" && (
+                      <TwinkleStar className="absolute top-2 right-20" size={13} color="#0284C7" delay={0.9} />
+                    )}
+                    {stage.id === "stage-science" && (
+                      <TwinkleStar className="absolute top-2 right-20" size={13} color="#059669" delay={1.6} />
+                    )}
+
                     <div className="flex items-center gap-3.5">
                       {/* キャラクターアバター (準備中) */}
                       <div className="w-16 h-16 rounded-xl bg-slate-50 border-2 border-slate-300 group-hover:border-slate-900 p-0.5 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition overflow-hidden opacity-90">
@@ -483,7 +562,9 @@ export default function DopaBenPortalPage() {
                       {/* 教科タイトルと概要 */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border border-slate-200 ${stage.colors.pillBg} ${stage.colors.pillText}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-black border border-slate-200 ${stage.colors.pillBg} ${stage.colors.pillText}`}
+                          >
                             {stage.roleBadge}
                           </span>
                           <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-0.5">
@@ -504,7 +585,9 @@ export default function DopaBenPortalPage() {
 
                       {/* 詳細ボタン */}
                       <div className="shrink-0">
-                        <div className={`px-3 py-1.5 rounded-xl ${stage.colors.btnBg} ${stage.colors.btnText} font-black text-xs flex items-center gap-0.5 transition shadow-sm`}>
+                        <div
+                          className={`px-3 py-1.5 rounded-xl ${stage.colors.btnBg} ${stage.colors.btnText} font-black text-xs flex items-center gap-0.5 transition shadow-sm`}
+                        >
                           <span>詳細</span>
                           <ChevronRight className="w-3.5 h-3.5" />
                         </div>
@@ -528,8 +611,11 @@ export default function DopaBenPortalPage() {
             soundEngine.playTap();
             setShowBossModal(true);
           }}
-          className="cursor-pointer w-full bg-gradient-to-r from-red-50/95 via-amber-50/95 to-pink-50/95 backdrop-blur-md border-2 border-slate-900 p-3.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition group"
+          className="cursor-pointer w-full bg-gradient-to-r from-red-50/95 via-amber-50/95 to-pink-50/95 backdrop-blur-md border-2 border-slate-900 p-3.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition group relative overflow-hidden"
         >
+          {/* ボスバナーの角でキラめく星 */}
+          <TwinkleStar className="absolute top-2 right-28" size={15} color="#EF4444" delay={0.4} />
+
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-red-500 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#0F172A]">
               <Flame className="w-6 h-6 text-white animate-bounce" />
@@ -560,7 +646,7 @@ export default function DopaBenPortalPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. モーダル：準備中ステージ詳細プレビュー (白背景ポップスタイル)                 */}
+      {/* 4. モーダル：準備中ステージ詳細プレビュー                                      */}
       {/* ========================================================================= */}
       <AnimatePresence>
         {selectedStageModal && (
@@ -571,6 +657,12 @@ export default function DopaBenPortalPage() {
               exit={{ scale: 0.9, opacity: 0, y: 15 }}
               className="relative w-full max-w-sm bg-white border-3 border-slate-900 rounded-3xl p-5 shadow-[6px_6px_0px_#0F172A] overflow-hidden text-slate-900"
             >
+              {/* モーダル内のキラめきアクセント */}
+              <TwinkleStar className="absolute top-3 left-3" size={14} color="#FACC15" delay={0.2} />
+              {selectedStageModal.id === "stage-japanese" && (
+                <SakuraBlossom className="absolute top-3 right-12" size={18} delay={0.5} />
+              )}
+
               {/* 閉じるボタン */}
               <button
                 onClick={() => {
