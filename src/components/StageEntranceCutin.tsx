@@ -212,6 +212,17 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       </div>
 
       {/* ========================================================================= */}
+      {/* 2.5 画面周辺のピカピカネオンフレーム ＆ コーナーフラッシュ                        */}
+      {/* ========================================================================= */}
+      <div className="absolute inset-2 sm:inset-3 border-2 border-dashed border-white/20 rounded-3xl pointer-events-none animate-cutin-screen-flash z-30 overflow-hidden">
+        {/* 四隅のピカピカL字ネオンコーナー */}
+        <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 shadow-lg ${isSocial ? "border-red-500 shadow-red-500/80" : "border-amber-300 shadow-amber-300/80"}`} />
+        <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 shadow-lg ${isSocial ? "border-orange-500 shadow-orange-500/80" : "border-cyan-400 shadow-cyan-400/80"}`} />
+        <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 shadow-lg ${isSocial ? "border-amber-400 shadow-amber-400/80" : "border-pink-500 shadow-pink-500/80"}`} />
+        <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 shadow-lg ${isSocial ? "border-red-500 shadow-red-500/80" : "border-yellow-300 shadow-yellow-300/80"}`} />
+      </div>
+
+      {/* ========================================================================= */}
       {/* 3. 横から高速カットインする特大スラッシュカード                                */}
       {/* ※ Framer Motion の unit-conversion バグを防ぐため、ピクセル数値で安全に制御      */}
       {/* ========================================================================= */}
@@ -222,12 +233,54 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
           duration: 0.35,
           ease: [0.16, 1, 0.3, 1], // スナップ感のあるイージング
         }}
-        className="relative w-full sm:w-[110vw] h-[340px] sm:h-[390px] -skew-y-3 sm:-skew-y-4 flex items-center justify-center overflow-hidden z-20 shadow-[0_0_80px_rgba(0,0,0,0.95)]"
+        className={`relative w-full sm:w-[110vw] h-[340px] sm:h-[390px] -skew-y-3 sm:-skew-y-4 flex items-center justify-center overflow-hidden z-20 ${
+          isSocial ? "animate-cutin-border-glow-soc" : "animate-cutin-border-glow-eng"
+        }`}
         style={{
-          borderTop: "3.5px solid #FFFFFF",
-          borderBottom: "3.5px solid #FFFFFF",
+          borderTop: "4px solid #FFFFFF",
+          borderBottom: "4px solid #FFFFFF",
         }}
       >
+        {/* 上下フチを爆走する超高速ネオンレーザー */}
+        <div className="absolute top-0 inset-x-0 h-1 overflow-hidden pointer-events-none z-30">
+          <div className="w-1/2 h-full bg-gradient-to-r from-transparent via-white to-transparent animate-cutin-laser blur-[0.5px]" />
+        </div>
+        <div className="absolute bottom-0 inset-x-0 h-1 overflow-hidden pointer-events-none z-30">
+          <div
+            className="w-1/2 h-full bg-gradient-to-r from-transparent via-white to-transparent animate-cutin-laser blur-[0.5px]"
+            style={{ animationDirection: "reverse" }}
+          />
+        </div>
+
+        {/* カード上フチ沿いのピカピカ星スパークル */}
+        <div className="absolute top-[-10px] inset-x-0 flex justify-around pointer-events-none z-30">
+          {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+            <div
+              key={idx}
+              className={`text-sm font-black select-none animate-cutin-sparkle ${
+                isSocial ? "text-amber-300" : "text-yellow-300"
+              }`}
+              style={{ animationDelay: `${(idx * 0.09) % 0.6}s` }}
+            >
+              ✦
+            </div>
+          ))}
+        </div>
+
+        {/* カード下フチ沿いのピカピカ星スパークル */}
+        <div className="absolute bottom-[-10px] inset-x-0 flex justify-around pointer-events-none z-30">
+          {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
+            <div
+              key={idx}
+              className={`text-sm font-black select-none animate-cutin-sparkle ${
+                isSocial ? "text-orange-400" : "text-cyan-300"
+              }`}
+              style={{ animationDelay: `${((6 - idx) * 0.09) % 0.6}s` }}
+            >
+              ✦
+            </div>
+          ))}
+        </div>
         {/* カード背景：生成したアニメ調・バカっぽさ全開の新背景画像 */}
         {cardBgImage ? (
           <div
