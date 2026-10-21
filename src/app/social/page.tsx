@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import {
   ArrowLeft,
   Sparkles,
@@ -17,6 +18,8 @@ import {
   CheckCircle2,
   ChevronRight,
   Filter,
+  Swords,
+  TrendingUp,
 } from "lucide-react";
 import {
   ALL_SOCIAL_QUESTIONS,
@@ -38,10 +41,19 @@ import {
   GameSummary,
 } from "@/components/SocialBaseballGame";
 import { SocialGameResult } from "@/components/SocialGameResult";
+import { BaseballLockerModal } from "@/components/BaseballLockerModal";
+import {
+  BaseballPlayerProfile,
+  calculateLevelFromTotalLxp,
+  calculateOverallRank,
+  DEFAULT_BASEBALL_PLAYER,
+  BAT_EQUIPMENTS,
+} from "@/lib/baseballGrowthEngine";
 import { PlayerProfile } from "@/lib/types";
 
 const DOPA_PROFILE_KEY = "dopaben_player_profile_v1";
 const SOCIAL_STATS_KEY = "dopasoc_stats_v1";
+const SOCIAL_PLAYER_KEY = "dopasoc_player_v2";
 const WEAK_QUESTIONS_KEY = "dopasoc_weak_question_ids";
 
 interface SocialStats {
@@ -72,12 +84,13 @@ const TEAM_COLORS = [
 ];
 
 export default function DopaSocPage() {
-  // 画面遷移
   const [viewState, setViewState] = useState<"lobby" | "playing" | "result">("lobby");
+  const [isLockerOpen, setIsLockerOpen] = useState(false);
 
-  // 設定
-  const [gender, setGender] = useState<"boy" | "girl">("boy");
-  const [teamColor, setTeamColor] = useState<string>("#EF4444");
+  // 選手育成プロファイル
+  const [player, setPlayer] = useState<BaseballPlayerProfile>(DEFAULT_BASEBALL_PLAYER);
+
+  // 設定・出題フィルター
   const [selectedSubject, setSelectedSubject] = useState<SocialSubject | "ALL">("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
   const [selectedStage, setSelectedStage] = useState<1 | 2 | "ALL">("ALL");
@@ -87,39 +100,68 @@ export default function DopaSocPage() {
   const [deck, setDeck] = useState<GeneratedSocialQuestion[]>([]);
   const [latestSummary, setLatestSummary] = useState<GameSummary | null>(null);
 
-  // 永続データ
+  // 統計データ
   const [stats, setStats] = useState<SocialStats>(DEFAULT_STATS);
   const [weakIds, setWeakIds] = useState<number[]>([]);
-  const [playerExp, setPlayerExp] = useState<number>(0);
 
-  // 初回マウント時にローカルストレージからデータ読み込み
+  // 初回マウント時にローカルストレージから読み込み
   useEffect(() => {
     try {
       // 共通プロファイル
       const profileJson = localStorage.getItem(DOPA_PROFILE_KEY);
+      let globalLxp = 0;
+      let globalGender: "boy" | "girl" = "boy";
       if (profileJson) {
         const p: PlayerProfile = JSON.parse(profileJson);
-        setPlayerExp(p.exp ?? 0);
-        if (p.gender) setGender(p.gender);
+        globalLxp = p.exp ?? 0;
+        if (p.gender) globalGender = p.gender;
       }
 
-      // 社会科スタッツ
-      const statsJson = localStorage.getItem(SOCIAL_STATS_KEY);
-      if (statsJson) {
-        setStats(JSON.parse(statsJson));
+      // 社会科選手プロファイル
+      const storedPlayer = localStorage.getItem(SOCIAL_PLAYER_KEY);
+      if (storedPlayer) {
+        setPlayer(JSON.parse(storedPlayer));
+      } else {
+        // 初期化
+        const initPlayer: BaseballPlayerProfile = {
+          ...DEFAULT_BASEBALL_PLAYER,
+          gender: globalGender,
+          exp: globalLxp,
+          totalLxp: globalLxp,
+        };
+        setPlayer(initPlayer);
       }
+
+      // スタッツ
+      const statsJson = localStorage.getItem(SOCIAL_STATS_KEY);
+      if (statsJson) setStats(JSON.parse(statsJson));
 
       // 弱点問題ID
       const weakJson = localStorage.getItem(WEAK_QUESTIONS_KEY);
-      if (weakJson) {
-        setWeakIds(JSON.parse(weakJson));
-      }
+      if (weakJson) setWeakIds(JSON.parse(weakJson));
     } catch {
       // ignore
     }
   }, []);
 
-  // 科目切り替え時に章の選択をリセット
+  // 選手データ保存
+  const handleUpdatePlayer = (updated: BaseballPlayerProfile) => {
+    setPlayer(updated);
+    try {
+      localStorage.setItem(SOCIAL_PLAYER_KEY, JSON.stringify(updated));
+
+      // グローバルプロファイルのLXPも同期
+      const profileJson = localStorage.getItem(DOPA_PROFILE_KEY);
+      if (profileJson) {
+        const p: PlayerProfile = JSON.parse(profileJson);
+        p.exp = updated.exp;
+        localStorage.setItem(DOPA_PROFILE_KEY, JSON.stringify(p));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const handleSubjectChange = (subj: SocialSubject | "ALL") => {
     soundEngine.playTap();
     setSelectedSubject(subj);
@@ -132,7 +174,7 @@ export default function DopaSocPage() {
 
     let questionLimit = 10;
     if (mode === "game9") questionLimit = 9;
-    if (mode === "endless") questionLimit = 30; // 3アウトまで
+    if (mode === "endless") questionLimit = 30;
     if (mode === "review") questionLimit = Math.min(20, weakIds.length || 10);
 
     const generatedDeck = generateSocialQuizDeck({
@@ -169,36 +211,47 @@ export default function DopaSocPage() {
       highestCombo: Math.max(stats.highestCombo, summary.maxCombo),
     };
     setStats(newStats);
+
+    // 選手プロファイルの成長（LXP獲得＆レベルアップ判定）
+    const newTotalLxp = player.totalLxp + summary.earnedLxp;
+    const newExp = player.exp + summary.earnedLxp;
+    const rankInfo = calculateLevelFromTotalLxp(newTotalLxp);
+    const hasLeveledUp = rankInfo.level > player.level;
+
+    const updatedPlayer: BaseballPlayerProfile = {
+      ...player,
+      exp: newExp,
+      totalLxp: newTotalLxp,
+      level: rankInfo.level,
+    };
+    handleUpdatePlayer(updatedPlayer);
+
+    if (hasLeveledUp) {
+      confetti({
+        particleCount: 100,
+        spread: 100,
+        origin: { y: 0.4 },
+        colors: ["#FACC15", "#EF4444", "#38BDF8", "#FFFFFF"],
+      });
+    }
+
     try {
       localStorage.setItem(SOCIAL_STATS_KEY, JSON.stringify(newStats));
-
-      // DopaBen全体プロファイルのLXP加算
-      const profileJson = localStorage.getItem(DOPA_PROFILE_KEY);
-      if (profileJson) {
-        const p: PlayerProfile = JSON.parse(profileJson);
-        p.exp = (p.exp ?? 0) + summary.earnedLxp;
-        p.totalLxp = (p.totalLxp ?? 0) + summary.earnedLxp;
-        localStorage.setItem(DOPA_PROFILE_KEY, JSON.stringify(p));
-        setPlayerExp(p.exp);
-      }
-
-      // 弱点問題ID更新
       const weakJson = localStorage.getItem(WEAK_QUESTIONS_KEY);
-      if (weakJson) {
-        setWeakIds(JSON.parse(weakJson));
-      }
+      if (weakJson) setWeakIds(JSON.parse(weakJson));
     } catch {
       // ignore
     }
   };
 
-  // 打率計算
   const battingAvg =
     stats.totalAtBats > 0
       ? (stats.totalHits / stats.totalAtBats).toFixed(3).replace(/^0/, "")
       : ".000";
 
-  // 現在のフィルターで該当する問題数
+  const overall = calculateOverallRank(player.stats);
+  const currentBat = BAT_EQUIPMENTS.find((b) => b.tier === player.selectedBatTier) || BAT_EQUIPMENTS[0];
+
   const filteredQuestionCount = ALL_SOCIAL_QUESTIONS.filter((q) => {
     if (selectedSubject !== "ALL" && q.subject !== selectedSubject) return false;
     if (selectedChapter !== "ALL" && q.chapter !== selectedChapter) return false;
@@ -208,13 +261,20 @@ export default function DopaSocPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0B0D12] bg-halftone text-white flex flex-col items-center justify-start p-4 sm:p-6 select-none">
+      {/* 選手育成・ロッカールームモーダル */}
+      <BaseballLockerModal
+        isOpen={isLockerOpen}
+        onClose={() => setIsLockerOpen(false)}
+        player={player}
+        onUpdatePlayer={handleUpdatePlayer}
+      />
+
       {/* 試合中画面 */}
       {viewState === "playing" && (
         <SocialBaseballGame
           deck={deck}
           mode={gameMode}
-          gender={gender}
-          teamColor={teamColor}
+          player={player}
           onFinishGame={handleFinishGame}
           onAbort={() => {
             soundEngine.playTap();
@@ -244,7 +304,7 @@ export default function DopaSocPage() {
 
       {/* ロビー画面 */}
       {viewState === "lobby" && (
-        <div className="w-full max-w-md space-y-4 pb-12">
+        <div className="w-full max-w-md space-y-3.5 pb-12">
           {/* トップナビゲーション */}
           <div className="flex items-center justify-between">
             <Link
@@ -256,62 +316,75 @@ export default function DopaSocPage() {
               <span>教科選択へ戻る</span>
             </Link>
 
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-lg bg-[#111827] border border-[#334155] text-xs font-black text-[#FACC15] flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 fill-[#FACC15]" />
-                <span>{playerExp.toLocaleString()} LXP</span>
-              </span>
-            </div>
+            <button
+              onClick={() => {
+                soundEngine.playTap();
+                setIsLockerOpen(true);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-[#111827] border border-[#334155] hover:border-[#FACC15] text-xs font-black text-[#FACC15] flex items-center gap-1.5 transition active:scale-95 shadow-sm"
+            >
+              <Zap className="w-3.5 h-3.5 fill-[#FACC15]" />
+              <span>{player.exp.toLocaleString()} LXP</span>
+              {player.exp >= 80 && (
+                <span className="w-2 h-2 rounded-full bg-[#EF4444] animate-ping" />
+              )}
+            </button>
           </div>
 
-          {/* メインヒーローカード */}
-          <div className="bg-gradient-to-br from-[#1E293B] via-[#1C0D12] to-[#0B0D12] border-2 border-white p-5 rounded-2xl shadow-p5-red relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-36 h-36 bg-[#EF4444]/20 rounded-full blur-2xl pointer-events-none" />
+          {/* 選手アバター & 育成ダッシュボードカード */}
+          <div className="bg-gradient-to-br from-[#1E293B] via-[#1C0D12] to-[#0B0D12] border-2 border-white p-4 sm:p-5 rounded-3xl shadow-p5-red relative overflow-hidden">
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#EF4444]/20 rounded-full blur-2xl pointer-events-none" />
 
             <div className="relative z-10 space-y-3">
+              {/* アバターと選手ステータス */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">⚾</span>
-                  <div>
-                    <span className="text-[10px] font-black tracking-widest text-[#EF4444] uppercase">
-                      Baseball × Social Studies Battle
-                    </span>
-                    <h1 className="text-xl font-black italic text-white tracking-wide">
-                      DopaSoc 〜熱闘！社会科ベースボール〜
-                    </h1>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-xs text-[#CBD5E1] leading-relaxed">
-                中学社会の一問一答（全1,331問）をフルスイングで打ち返せ！
-                地理・歴史・公民の知識で甲子園の頂点を目指せ！
-              </p>
-
-              {/* キャラクター＆チームカラーカスタマイズ */}
-              <div className="pt-2 flex items-center justify-between border-t border-[#334155]">
-                {/* ミニプレビュー */}
-                <div className="flex items-center gap-2.5">
-                  <div className="w-12 h-12 rounded-xl bg-[#090D16] border border-[#475569] flex items-center justify-center p-1">
+                <div className="flex items-center gap-3">
+                  {/* アバター */}
+                  <div
+                    onClick={() => {
+                      soundEngine.playTap();
+                      setIsLockerOpen(true);
+                    }}
+                    className="w-16 h-16 rounded-2xl bg-[#090D16] border-2 border-[#EF4444] flex items-center justify-center p-1 relative shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition"
+                  >
                     <BaseballCharacter
-                      gender={gender}
+                      gender={player.gender}
                       pose="stance"
-                      size={44}
-                      teamColor={teamColor}
+                      size={58}
+                      teamColor={player.teamColor}
+                      level={player.level}
+                      batTier={player.selectedBatTier}
                       animate={true}
+                      showAura={true}
                     />
                   </div>
+
                   <div>
-                    <span className="text-[10px] text-[#94A3B8] font-bold block">部員設定</span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#EF4444] text-white">
+                        Lv.{player.level}
+                      </span>
+                      <h1 className="text-base font-black italic text-white tracking-wide">
+                        {player.name}
+                      </h1>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+                      <span className="text-[#FACC15] font-black">
+                        装備: {currentBat.name.split("の")[1] || currentBat.name}
+                      </span>
+                    </div>
+
+                    {/* 性別切り替え */}
+                    <div className="flex items-center gap-1 mt-1.5">
                       <button
                         onClick={() => {
                           soundEngine.playTap();
-                          setGender("boy");
+                          handleUpdatePlayer({ ...player, gender: "boy" });
                         }}
-                        className={`px-2 py-0.5 rounded text-[10px] font-black transition ${
-                          gender === "boy"
-                            ? "bg-[#38BDF8] text-slate-950 font-black"
+                        className={`px-2 py-0.5 rounded text-[9px] font-black transition ${
+                          player.gender === "boy"
+                            ? "bg-[#38BDF8] text-slate-950"
                             : "text-[#94A3B8] hover:text-white"
                         }`}
                       >
@@ -320,11 +393,11 @@ export default function DopaSocPage() {
                       <button
                         onClick={() => {
                           soundEngine.playTap();
-                          setGender("girl");
+                          handleUpdatePlayer({ ...player, gender: "girl" });
                         }}
-                        className={`px-2 py-0.5 rounded text-[10px] font-black transition ${
-                          gender === "girl"
-                            ? "bg-[#F43F5E] text-white font-black"
+                        className={`px-2 py-0.5 rounded text-[9px] font-black transition ${
+                          player.gender === "girl"
+                            ? "bg-[#F43F5E] text-white"
                             : "text-[#94A3B8] hover:text-white"
                         }`}
                       >
@@ -334,30 +407,44 @@ export default function DopaSocPage() {
                   </div>
                 </div>
 
-                {/* チームカラー選択 */}
-                <div className="flex items-center gap-1.5">
-                  {TEAM_COLORS.map((tc) => (
-                    <button
-                      key={tc.color}
-                      onClick={() => {
-                        soundEngine.playTap();
-                        setTeamColor(tc.color);
-                      }}
-                      style={{ backgroundColor: tc.color }}
-                      className={`w-5 h-5 rounded-full border-2 transition ${
-                        teamColor === tc.color ? "border-white scale-110 shadow-sm" : "border-transparent opacity-60"
-                      }`}
-                      title={tc.name}
-                    />
-                  ))}
+                {/* 総合評価ランク */}
+                <div className="text-right">
+                  <span className="text-[9px] font-bold text-[#94A3B8] block">選手ランク</span>
+                  <div
+                    style={{ color: overall.color }}
+                    className="text-3xl font-black italic tracking-wider leading-none"
+                  >
+                    {overall.rank}
+                  </div>
+                  <span className="text-[10px] text-[#CBD5E1] font-bold">
+                    能力値 {overall.average}
+                  </span>
                 </div>
               </div>
+
+              {/* ロッカールーム強化バナー */}
+              <button
+                onClick={() => {
+                  soundEngine.playTap();
+                  setIsLockerOpen(true);
+                }}
+                className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#FACC15] via-[#FFE600] to-[#FACC15] hover:brightness-105 text-slate-950 font-black text-xs flex items-center justify-between shadow-md active:scale-95 transition group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Swords className="w-4 h-4 text-black" />
+                  <span>ロッカールームで能力アップ ＆ 装備着せ替え</span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px]">
+                  <span>所持 {player.exp} LXP</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* 通算スタッツ（打率、ホームラン、総得点） */}
-          <div className="bg-[#111827] border-2 border-[#334155] p-3.5 rounded-2xl shadow-md">
-            <div className="flex items-center justify-between mb-2">
+          {/* 通算スタッツ */}
+          <div className="bg-[#111827] border-2 border-[#334155] p-3 rounded-2xl shadow-md">
+            <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-[#FACC15]" />
                 <span>通算成績 (CAREER STATS)</span>
@@ -388,7 +475,7 @@ export default function DopaSocPage() {
           </div>
 
           {/* 教科＆単元選択フィルター */}
-          <div className="bg-[#111827] border-2 border-[#334155] p-4 rounded-2xl space-y-3 shadow-md">
+          <div className="bg-[#111827] border-2 border-[#334155] p-3.5 rounded-2xl space-y-2.5 shadow-md">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-white flex items-center gap-1.5">
                 <Filter className="w-3.5 h-3.5 text-[#38BDF8]" />
@@ -439,9 +526,6 @@ export default function DopaSocPage() {
             {/* 章（単元）選択ドロップダウン */}
             {selectedSubject !== "ALL" && (
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-[#94A3B8]">
-                  章・単元の指定:
-                </label>
                 <select
                   value={selectedChapter}
                   onChange={(e) => {
@@ -459,56 +543,10 @@ export default function DopaSocPage() {
                 </select>
               </div>
             )}
-
-            {/* 難易度ステージ選択 */}
-            <div className="flex items-center justify-between pt-1 text-xs">
-              <span className="text-[10px] font-bold text-[#94A3B8]">難易度:</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    soundEngine.playTap();
-                    setSelectedStage("ALL");
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition ${
-                    selectedStage === "ALL"
-                      ? "bg-[#475569] text-white"
-                      : "text-[#94A3B8] hover:text-white"
-                  }`}
-                >
-                  すべて
-                </button>
-                <button
-                  onClick={() => {
-                    soundEngine.playTap();
-                    setSelectedStage(1);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition ${
-                    selectedStage === 1
-                      ? "bg-[#10B981] text-slate-950"
-                      : "text-[#94A3B8] hover:text-white"
-                  }`}
-                >
-                  標準 (Stage 1)
-                </button>
-                <button
-                  onClick={() => {
-                    soundEngine.playTap();
-                    setSelectedStage(2);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition ${
-                    selectedStage === 2
-                      ? "bg-[#EF4444] text-white"
-                      : "text-[#94A3B8] hover:text-white"
-                  }`}
-                >
-                  発展 (Stage 2)
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* ゲームモード出撃カード */}
-          <div className="space-y-2.5 pt-1">
+          {/* 試合形式選択カード */}
+          <div className="space-y-2 pt-1">
             <span className="text-xs font-black text-[#CBD5E1] tracking-wide flex items-center gap-1.5 px-1">
               <span>🏟️</span>
               <span>試合形式を選択してプレイボール:</span>
@@ -522,15 +560,15 @@ export default function DopaSocPage() {
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="px-2 py-0.5 rounded text-[9px] bg-black/40 text-[#FACC15] border border-white/20">
-                    おすすめ看板モード
+                    メイン看板モード
                   </span>
-                  <span className="text-xs font-black text-white">全9打席勝負</span>
+                  <span className="text-xs font-black text-white">全9打席</span>
                 </div>
                 <div className="text-base font-black italic tracking-wide group-hover:translate-x-0.5 transition">
                   9回熱闘甲子園バトル
                 </div>
                 <div className="text-[11px] text-[#FEE2E2] font-normal">
-                  1打席1問勝負！クリーンヒットやホームランで得点を重ねて優勝を目指せ！
+                  長打・ホームランで得点を重ね、フィーバー突入でハイスコアを目指せ！
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-black/30 border border-white/30 flex items-center justify-center shrink-0 ml-2 group-hover:scale-110 transition">
@@ -546,7 +584,7 @@ export default function DopaSocPage() {
               <div className="space-y-0.5 min-w-0">
                 <div className="text-sm font-black text-white flex items-center gap-1.5">
                   <span>⚡ 10問サクサクスイング特訓</span>
-                  <span className="text-[10px] text-[#38BDF8] font-bold">手軽に復習</span>
+                  <span className="text-[10px] text-[#38BDF8] font-bold">サクッと育成</span>
                 </div>
                 <div className="text-[11px] text-[#94A3B8]">
                   隙間時間の1〜2分で10問を瞬時に打ち返すクイックノック！
