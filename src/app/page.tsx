@@ -266,8 +266,11 @@ export default function DopaBenPortalPage() {
   const [cheerCount, setCheerCount] = useState<number>(0);
 
   useEffect(() => {
-    // 画面マウント時（および戻ってきた時）にカットイン状態を完全リセット
+    // 画面マウント時（および英語・社会から戻ってきた時）にカットイン状態を完全リセット＆最上部へスクロール
     setEntranceStage(null);
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
 
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -333,7 +336,7 @@ export default function DopaBenPortalPage() {
         {/* ========================================================================= */}
         <header className="flex flex-col items-center">
           <motion.div
-            initial={{ scale: 0.88, opacity: 0, y: 12 }}
+            initial={false}
             animate={{
               scale: 1,
               opacity: 1,
@@ -368,9 +371,8 @@ export default function DopaBenPortalPage() {
 
           {/* プレイヤー総合ステータスバー */}
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
             className="mt-2 w-full bg-white/95 backdrop-blur-md border-2 border-slate-900 p-2.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-center justify-between gap-3 relative overflow-hidden"
           >
             {/* ステータスバーの角で小さく輝く星 */}
@@ -413,22 +415,11 @@ export default function DopaBenPortalPage() {
             return (
               <motion.div
                 key={stage.id}
-                initial={{
-                  x: isLeft ? -70 : 70,
-                  opacity: 0,
-                  scale: 0.96,
-                }}
+                initial={false}
                 animate={{
                   x: 0,
                   opacity: 1,
                   scale: 1,
-                }}
-                transition={{
-                  duration: 0.5,
-                  delay: 0.1 + idx * 0.08,
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 14,
                 }}
                 whileHover={{ scale: 1.015 }}
                 className="relative"

@@ -70,10 +70,10 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       } catch {}
     }, 1350);
 
-    // 2.20s〜: ホワイトアウト閃光（ハイパースペース突入）
+    // 2.40s〜: 突入直前の短い閃光フラッシュ（真っ白で長時間止まるのを防止）
     const t2 = setTimeout(() => {
       setPhase("warp");
-    }, 2200);
+    }, 2400);
 
     // 2.65s: 各ステージメニューへ遷移
     const t3 = setTimeout(() => {
