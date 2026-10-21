@@ -727,6 +727,7 @@ export default function DopaBenApp() {
       gamePoints: stats.gamePoints,
       maxCombo: stats.maxCombo,
       course: "eiken4",
+      subject: "english",
     });
 
     setIsSubmittingScore(false);
@@ -798,6 +799,7 @@ export default function DopaBenApp() {
         gamePoints: summary.rankingStats.gamePoints,
         maxCombo: summary.rankingStats.maxCombo,
         course: "eiken4",
+        subject: "english",
       }).then((res) => {
         setIsSubmittingScore(false);
         if (res.success && res.record) {

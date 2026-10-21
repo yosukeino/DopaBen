@@ -73,3 +73,35 @@ CREATE POLICY "Allow upsert on dopaben_vocab_entries"
   ON public.dopaben_vocab_entries FOR ALL
   USING (true)
   WITH CHECK (true);
+
+-- 3. 全国ランキングバトル記録テーブル（英語・社会・数学・理科・国語 共通対応）
+CREATE TABLE IF NOT EXISTS public.dopaben_rankings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject TEXT NOT NULL DEFAULT 'english', -- 'english', 'social', 'math' など
+  course TEXT NOT NULL DEFAULT 'eiken4',   -- 'eiken4', 'social_all' など
+  player_uuid TEXT NOT NULL DEFAULT '',    -- 端末UUID（匿名識別用）
+  player_name TEXT NOT NULL,               -- プレイヤーの表示名
+  score INTEGER NOT NULL,                  -- 正解数 (0..20)
+  total_questions INTEGER NOT NULL DEFAULT 20,
+  time_ms INTEGER NOT NULL,                -- 所要時間（ミリ秒）
+  game_points INTEGER NOT NULL DEFAULT 0,  -- 総合スコア（ポイント）
+  max_combo INTEGER NOT NULL DEFAULT 0,    -- 最大コンボ数
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_dopaben_rankings_board ON public.dopaben_rankings (subject, course, score DESC, time_ms ASC);
+CREATE INDEX IF NOT EXISTS idx_dopaben_rankings_course_board ON public.dopaben_rankings (course, score DESC, time_ms ASC);
+CREATE INDEX IF NOT EXISTS idx_dopaben_rankings_uuid ON public.dopaben_rankings (player_uuid);
+CREATE INDEX IF NOT EXISTS idx_dopaben_rankings_created ON public.dopaben_rankings (created_at DESC);
+
+ALTER TABLE public.dopaben_rankings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read on dopaben_rankings" ON public.dopaben_rankings;
+CREATE POLICY "Allow public read on dopaben_rankings"
+  ON public.dopaben_rankings FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Allow anon insert on dopaben_rankings" ON public.dopaben_rankings;
+CREATE POLICY "Allow anon insert on dopaben_rankings"
+  ON public.dopaben_rankings FOR INSERT
+  WITH CHECK (true);

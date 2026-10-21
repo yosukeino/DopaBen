@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   fetchTopRankings,
+  getLastRankingOnlineStatus,
   getOrCreatePlayerUuid,
   getSavedPlayerName,
   normalizePlayerName,
@@ -27,6 +28,7 @@ interface RankingBoardModalProps {
   onClose: () => void;
   onStartRankingBattle: () => void;
   course?: string;
+  subject?: string;
 }
 
 export const RankingBoardModal: React.FC<RankingBoardModalProps> = ({
@@ -34,16 +36,19 @@ export const RankingBoardModal: React.FC<RankingBoardModalProps> = ({
   onClose,
   onStartRankingBattle,
   course = "eiken4",
+  subject = "english",
 }) => {
   const [rankings, setRankings] = useState<RankingRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
   const [userUuid, setUserUuid] = useState("");
   const [savedName, setSavedName] = useState("");
 
   const loadData = async () => {
     setIsLoading(true);
-    const list = await fetchTopRankings(course, 50);
+    const list = await fetchTopRankings(course, 50, subject);
     setRankings(list);
+    setIsOnline(getLastRankingOnlineStatus());
     setIsLoading(false);
   };
 
@@ -83,13 +88,23 @@ export const RankingBoardModal: React.FC<RankingBoardModalProps> = ({
                 <Trophy className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <h2 className="text-base sm:text-lg font-black tracking-wide text-white">
                     全国ランキングバトル
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     英検4級 全20問
                   </span>
+                  {isOnline ? (
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      全国DB同期中
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                      端末ローカル集計
+                    </span>
+                  )}
                 </div>
                 <p className="text-[10px] text-slate-400">
                   正解数 ＆ クリアスピードで競うスピードアタック！

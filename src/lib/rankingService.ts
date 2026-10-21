@@ -8,11 +8,13 @@ export interface RankingSubmission {
   timeMs: number;         // 所要時間（ミリ秒）
   gamePoints: number;     // 総合スコア（正解点 + スピードボーナス + コンボボーナス）
   maxCombo: number;       // 最大連続正解数
-  course: string;         // 'eiken4' | 'eiken4_all'
+  course: string;         // 'eiken4' | 'eiken4_all' など
+  subject?: string;       // 'english' | 'social' など
 }
 
 export interface RankingRecord {
   id: string;
+  subject?: string;
   playerUuid: string;
   playerName: string;
   score: number;
@@ -232,16 +234,51 @@ function saveLocalRanking(sub: RankingSubmission): RankingRecord {
   return record;
 }
 
+let lastFetchIsOnline = false;
+
+export function getLastRankingOnlineStatus(): boolean {
+  return lastFetchIsOnline;
+}
+
 /**
- * ランキング送信（Supabase ＋ localStorage ハイブリッド）
+ * ランキング送信（/api/rankings ＋ Supabase ＋ localStorage ハイブリッド）
  */
-export async function submitRankingScore(submission: RankingSubmission): Promise<{ success: boolean; record: RankingRecord; isOnline: boolean }> {
+export async function submitRankingScore(
+  submission: RankingSubmission
+): Promise<{ success: boolean; record: RankingRecord; isOnline: boolean }> {
   const uuid = submission.playerUuid || getOrCreatePlayerUuid();
   savePlayerName(submission.playerName);
 
   const localRecord = saveLocalRanking({ ...submission, playerUuid: uuid });
 
-  // Supabase への送信を試行
+  // 1. Next.js API ルート (/api/rankings) への送信
+  try {
+    const res = await fetch("/api/rankings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...submission,
+        playerUuid: uuid,
+        subject: submission.subject || "english",
+        course: submission.course || "eiken4",
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.record) {
+        lastFetchIsOnline = true;
+        return {
+          success: true,
+          isOnline: true,
+          record: data.record,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("POST /api/rankings failed, trying direct Supabase fallback:", err);
+  }
+
+  // 2. Supabase への直接送信フォールバック
   if (isSupabaseConfigured && supabase) {
     try {
       const payload = {
@@ -253,9 +290,9 @@ export async function submitRankingScore(submission: RankingSubmission): Promise
         game_points: submission.gamePoints,
         max_combo: submission.maxCombo,
         course: submission.course || "eiken4",
+        subject: submission.subject || "english",
       };
 
-      // dopaben_rankings または word_quiz_scores への保存
       const { data, error } = await supabase
         .from("dopaben_rankings")
         .insert(payload)
@@ -263,11 +300,13 @@ export async function submitRankingScore(submission: RankingSubmission): Promise
         .single();
 
       if (!error && data) {
+        lastFetchIsOnline = true;
         return {
           success: true,
           isOnline: true,
           record: {
             id: data.id,
+            subject: data.subject || submission.subject || "english",
             playerUuid: data.player_uuid,
             playerName: data.player_name,
             score: data.score,
@@ -293,18 +332,46 @@ export async function submitRankingScore(submission: RankingSubmission): Promise
 }
 
 /**
- * ランキング一覧を取得（Supabase優先、失敗時はlocalStorage）
+ * ランキング一覧を取得（/api/rankings 優先、失敗時はSupabase、最終ローカル）
  */
-export async function fetchTopRankings(course = "eiken4", limit = 50): Promise<RankingRecord[]> {
+export async function fetchTopRankings(
+  course = "eiken4",
+  limit = 50,
+  subject = "english"
+): Promise<RankingRecord[]> {
+  // 1. Next.js API Route (/api/rankings) からの取得
+  try {
+    const res = await fetch(
+      `/api/rankings?course=${encodeURIComponent(course)}&subject=${encodeURIComponent(
+        subject
+      )}&limit=${limit}`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.rankings) && data.rankings.length > 0) {
+        lastFetchIsOnline = true;
+        return data.rankings;
+      }
+    }
+  } catch (err) {
+    console.warn("GET /api/rankings failed, trying direct Supabase fallback:", err);
+  }
+
+  // 2. Supabase 直接取得フォールバック
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("dopaben_rankings")
         .select("*")
-        .eq("course", course)
+        .eq("course", course);
+      if (subject) {
+        query = query.eq("subject", subject);
+      }
+
+      const { data, error } = await query
         .order("score", { ascending: false })
         .order("time_ms", { ascending: true })
-        .limit(limit * 2);
+        .limit(limit * 3);
 
       if (!error && data && data.length > 0) {
         // 重複プレイヤー（同一UUIDまたは同名）は自己ベストのみを抽出
@@ -313,6 +380,7 @@ export async function fetchTopRankings(course = "eiken4", limit = 50): Promise<R
           const key = row.player_uuid || normalizePlayerName(row.player_name);
           const rec: RankingRecord = {
             id: row.id,
+            subject: row.subject || subject,
             playerUuid: row.player_uuid,
             playerName: row.player_name,
             score: row.score,
@@ -333,10 +401,11 @@ export async function fetchTopRankings(course = "eiken4", limit = 50): Promise<R
         const sorted = Array.from(bestByUser.values());
         sorted.sort((a, b) => {
           if (b.score !== a.score) return b.score - a.score;
-          if (b.gamePoints !== a.gamePoints) return b.gamePoints - a.gamePoints;
-          return a.timeMs - b.timeMs;
+          if (a.timeMs !== b.timeMs) return a.timeMs - b.timeMs;
+          return b.gamePoints - a.gamePoints;
         });
 
+        lastFetchIsOnline = true;
         return sorted.slice(0, limit);
       }
     } catch (e) {
@@ -344,7 +413,8 @@ export async function fetchTopRankings(course = "eiken4", limit = 50): Promise<R
     }
   }
 
-  // ローカルフォールバック
+  // 3. ローカルフォールバック
+  lastFetchIsOnline = false;
   const localList = getLocalRankings().filter((r) => r.course === course);
   return localList.slice(0, limit);
 }
