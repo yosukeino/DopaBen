@@ -183,43 +183,42 @@ export default function DopaBenPortalPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#FAFBFD] text-slate-900 flex flex-col items-center justify-start p-3 sm:p-6 select-none relative overflow-x-hidden">
-      {/* 背景の軽やかな浮遊デコレーション（sunbousai.jp 風・白背景用） */}
+    <div
+      className="min-h-screen w-full text-slate-900 flex flex-col items-center justify-start p-3 sm:p-6 select-none relative overflow-x-hidden bg-white bg-cover bg-top bg-no-repeat"
+      style={{
+        backgroundImage: "url('/dopaben-bg.jpg')",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* 背景の軽やかな浮遊デコレーション（sunbousai.jp 風・微細な浮遊感） */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
         <motion.div
-          animate={{ y: [0, -18, 0], x: [0, 10, 0], rotate: [0, 12, 0] }}
+          animate={{ y: [0, -15, 0], x: [0, 8, 0], rotate: [0, 10, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-16 left-6 text-2xl text-amber-300 opacity-60"
+          className="absolute top-16 left-6 text-2xl text-amber-400 opacity-60"
         >
           ✦
         </motion.div>
         <motion.div
-          animate={{ y: [0, 20, 0], x: [0, -12, 0] }}
+          animate={{ y: [0, 16, 0], x: [0, -10, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-36 right-8 text-2xl text-red-300 opacity-50"
+          className="absolute top-40 right-8 text-2xl text-red-400 opacity-50"
         >
           ⚾
         </motion.div>
         <motion.div
-          animate={{ y: [0, -16, 0], x: [0, 12, 0] }}
+          animate={{ y: [0, -14, 0], x: [0, 10, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-40 left-10 text-2xl text-sky-300 opacity-50"
+          className="absolute bottom-40 left-10 text-2xl text-sky-400 opacity-50"
         >
           📐
         </motion.div>
         <motion.div
-          animate={{ y: [0, 18, 0], x: [0, -10, 0] }}
+          animate={{ y: [0, 16, 0], x: [0, -8, 0] }}
           transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-          className="absolute bottom-56 right-10 text-2xl text-emerald-300 opacity-50"
+          className="absolute bottom-56 right-10 text-2xl text-emerald-400 opacity-50"
         >
           🧪
-        </motion.div>
-        <motion.div
-          animate={{ y: [0, -22, 0], rotate: [0, 360] }}
-          transition={{ duration: 16, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 text-3xl text-pink-300 opacity-40"
-        >
-          ★
         </motion.div>
       </div>
 
