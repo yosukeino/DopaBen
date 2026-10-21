@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Flame, Sparkles, Swords, Zap } from "lucide-react";
@@ -38,6 +39,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
   profile,
   onComplete,
 }) => {
+  const router = useRouter();
   const [phase, setPhase] = useState<"opening" | "engage" | "warp">("opening");
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -45,15 +47,22 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
   const isEnglish = stage.id === "stage-english";
   const isSocial = stage.id === "stage-social";
 
-  // 背景画像URL
+  // 軽量化されたWebP背景画像URL
   const bgImage = isEnglish
-    ? "/bg-cutin-english.jpg"
+    ? "/bg-cutin-english.webp"
     : isSocial
-    ? "/bg-cutin-social.jpg"
+    ? "/bg-cutin-social.webp"
     : null;
 
   useEffect(() => {
-    // 確実なタイムライン実行 (計2.65秒のDX7ジングルと完全同期)
+    // 演出中に遷移先ページのチャンクを確実に先読み（遅延ゼロ遷移）
+    if (stage.href) {
+      try {
+        router.prefetch(stage.href);
+      } catch {}
+    }
+
+    // 確実なタイムライン実行 (計2.65秒の出撃ジングルと完全同期)
     // 0.0s〜: 背景 ＆ キャラクター即時登場（不発ゼロ保証）
     // 1.35s〜: クライマックスキメ (MISSION START / PLAY BALL 炸裂 ＆ 紙吹雪)
     const t1 = setTimeout(() => {

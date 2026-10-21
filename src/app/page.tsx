@@ -286,15 +286,24 @@ export default function DopaBenPortalPage() {
       router.prefetch("/english");
       router.prefetch("/social");
 
-      const img1 = new Image();
-      img1.src = "/bg-cutin-english.jpg";
-      const img2 = new Image();
-      img2.src = "/bg-cutin-social.jpg";
+      // 軽量WebPアセットの事前キャッシュ
+      const preloadImages = [
+        "/bg-cutin-english.webp",
+        "/bg-cutin-social.webp",
+        "/dopaben-hero.webp",
+        "/dopaben-bg.webp",
+      ];
+      preloadImages.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+      });
     }
   }, [router]);
 
   const handleSelectStage = (stage: StageInfo) => {
     if (stage.status !== "playable" || !stage.href) return;
+    // 押下時にも即座に prefetch を再度キック
+    router.prefetch(stage.href);
     soundEngine.playStageEntrance(stage.id);
     setEntranceStage(stage);
   };
@@ -313,7 +322,7 @@ export default function DopaBenPortalPage() {
     <div
       className="min-h-screen w-full text-slate-900 flex flex-col items-center justify-start p-3 sm:p-6 select-none relative overflow-x-hidden bg-white bg-cover bg-top bg-no-repeat"
       style={{
-        backgroundImage: "url('/dopaben-bg.jpg')",
+        backgroundImage: "url('/dopaben-bg.webp')",
         backgroundAttachment: "fixed",
       }}
     >
@@ -366,7 +375,7 @@ export default function DopaBenPortalPage() {
             <SakuraBlossom className="absolute bottom-1 right-2 sm:right-6" size={20} delay={2.6} />
 
             <img
-              src="/dopaben-hero.png"
+              src="/dopaben-hero.webp"
               alt="ドパベン"
               className="w-full h-auto object-contain select-none filter drop-shadow-[0_10px_20px_rgba(251,146,60,0.25)]"
             />
