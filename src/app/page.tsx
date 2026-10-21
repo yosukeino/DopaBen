@@ -14,6 +14,7 @@ import {
   X,
   Heart,
   Lock,
+  Star,
 } from "lucide-react";
 import { PlayerProfile } from "@/lib/types";
 import { PixelCharacter } from "@/components/PixelCharacter";
@@ -27,18 +28,19 @@ interface StageInfo {
   stageNumber: string;
   subject: string;
   codeName: string;
+  roleBadge: string;
   tagline: string;
   status: "playable" | "coming_soon";
   href?: string;
   side: "left" | "right";
   colors: {
     accent: string;
-    border: string;
     badgeBg: string;
     badgeText: string;
     btnBg: string;
     btnText: string;
-    lightBg: string;
+    pillBg: string;
+    pillText: string;
   };
   characterType: "hero" | "baseball" | "math" | "science" | "japanese";
   detailLore: string;
@@ -51,18 +53,19 @@ const STAGES: StageInfo[] = [
     stageNumber: "01",
     subject: "英語",
     codeName: "DopaEng",
-    tagline: "英検4級・ターゲット1800",
+    roleBadge: "👑 万能勇者",
+    tagline: "英検4級(700語)・ターゲット1800",
     status: "playable",
     href: "/english",
     side: "left",
     colors: {
       accent: "#EAB308",
-      border: "#CA8A04",
-      badgeBg: "bg-emerald-100",
-      badgeText: "text-emerald-700",
-      btnBg: "bg-[#FACC15] hover:bg-[#EAB308]",
+      badgeBg: "bg-amber-100",
+      badgeText: "text-amber-800",
+      btnBg: "bg-gradient-to-r from-[#FACC15] to-[#F59E0B] hover:from-[#FDE047] hover:to-[#FACC15]",
       btnText: "text-slate-950",
-      lightBg: "bg-amber-50/50",
+      pillBg: "bg-amber-50",
+      pillText: "text-amber-700",
     },
     characterType: "hero",
     detailLore: "学園の万能勇者！四択英単語バトルでLXPを獲得し、五角形ステータスを覚醒させろ！",
@@ -73,18 +76,19 @@ const STAGES: StageInfo[] = [
     stageNumber: "02",
     subject: "社会",
     codeName: "DopaSoc",
-    tagline: "熱闘！歴史・地理・公民",
+    roleBadge: "⚾ 全員野球部",
+    tagline: "中学社会(歴史・地理・公民) 1,331問",
     status: "playable",
     href: "/social",
     side: "right",
     colors: {
       accent: "#EF4444",
-      border: "#DC2626",
-      badgeBg: "bg-emerald-100",
-      badgeText: "text-emerald-700",
-      btnBg: "bg-[#EF4444] hover:bg-[#DC2626]",
+      badgeBg: "bg-red-100",
+      badgeText: "text-red-700",
+      btnBg: "bg-gradient-to-r from-[#EF4444] to-[#F97316] hover:from-[#F87171] hover:to-[#EF4444]",
       btnText: "text-white",
-      lightBg: "bg-red-50/50",
+      pillBg: "bg-red-50",
+      pillText: "text-red-700",
     },
     characterType: "baseball",
     detailLore: "全員野球部！一問一答で打席に立ち、ホームランを連発して敵を打ち砕け！",
@@ -95,17 +99,18 @@ const STAGES: StageInfo[] = [
     stageNumber: "03",
     subject: "数学",
     codeName: "DopaMath",
-    tagline: "電脳暗算パズル",
+    roleBadge: "🧮 電脳パズル",
+    tagline: "暗算コンボ・幾何学迷宮",
     status: "coming_soon",
     side: "left",
     colors: {
       accent: "#0284C7",
-      border: "#0369A1",
       badgeBg: "bg-sky-100",
       badgeText: "text-sky-700",
-      btnBg: "bg-slate-100 hover:bg-slate-200",
-      btnText: "text-slate-700",
-      lightBg: "bg-sky-50/50",
+      btnBg: "bg-sky-50 hover:bg-sky-100 border border-sky-300",
+      btnText: "text-sky-700",
+      pillBg: "bg-sky-50",
+      pillText: "text-sky-700",
     },
     characterType: "math",
     detailLore: "電脳パズル部！数式コンボと幾何結界で戦うスピード計算バトル。",
@@ -116,17 +121,18 @@ const STAGES: StageInfo[] = [
     stageNumber: "04",
     subject: "理科",
     codeName: "DopaSci",
-    tagline: "元素調合サイエンス",
+    roleBadge: "🧪 錬金実験",
+    tagline: "元素調合・実験サイエンス",
     status: "coming_soon",
     side: "right",
     colors: {
       accent: "#059669",
-      border: "#047857",
       badgeBg: "bg-emerald-100",
       badgeText: "text-emerald-700",
-      btnBg: "bg-slate-100 hover:bg-slate-200",
-      btnText: "text-slate-700",
-      lightBg: "bg-emerald-50/50",
+      btnBg: "bg-emerald-50 hover:bg-emerald-100 border border-emerald-300",
+      btnText: "text-emerald-700",
+      pillBg: "bg-emerald-50",
+      pillText: "text-emerald-700",
     },
     characterType: "science",
     detailLore: "錬金実験部！元素フラスコを調合してモンスターにぶつける実験バトル。",
@@ -137,22 +143,35 @@ const STAGES: StageInfo[] = [
     stageNumber: "05",
     subject: "国語",
     codeName: "DopaJap",
-    tagline: "言霊四字熟語一閃",
+    roleBadge: "🌸 言霊サムライ",
+    tagline: "四字熟語一閃・言霊チェイン",
     status: "coming_soon",
     side: "left",
     colors: {
       accent: "#E11D48",
-      border: "#BE185D",
       badgeBg: "bg-rose-100",
       badgeText: "text-rose-700",
-      btnBg: "bg-slate-100 hover:bg-slate-200",
-      btnText: "text-slate-700",
-      lightBg: "bg-rose-50/50",
+      btnBg: "bg-rose-50 hover:bg-rose-100 border border-rose-300",
+      btnText: "text-rose-700",
+      pillBg: "bg-rose-50",
+      pillText: "text-rose-700",
     },
     characterType: "japanese",
     detailLore: "言霊文芸部！筆を構えて四字熟語チェインを紡ぎ、言霊抜刀術で切り裂け！",
     specialMove: "【百人一首・言霊千本桜】 紡いだ言葉の桜吹雪で華麗な連続撃を放つ！",
   },
+];
+
+// 中学生向けの画面全体に散らす可愛いインタラクティブステッカー
+const INTERACTIVE_STICKERS = [
+  { id: "heart1", icon: "💖", label: "DOPA!", pos: "top-20 left-4 sm:left-12", rot: -10, delay: 0 },
+  { id: "stamp100", icon: "💯", label: "100点!", pos: "top-24 right-4 sm:right-12", rot: 12, delay: 0.6 },
+  { id: "star1", icon: "⭐", label: "SUPER!", pos: "top-64 left-2 sm:left-10", rot: -8, delay: 1.2 },
+  { id: "lightning1", icon: "⚡", label: "やる気MAX", pos: "top-80 right-3 sm:right-10", rot: 15, delay: 0.4 },
+  { id: "game1", icon: "🎮", label: "LEVEL UP", pos: "bottom-72 left-3 sm:left-10", rot: -12, delay: 1.6 },
+  { id: "clover1", icon: "🍀", label: "LUCKY", pos: "bottom-60 right-3 sm:right-10", rot: 10, delay: 0.8 },
+  { id: "pencil1", icon: "✏️", label: "START!", pos: "bottom-32 left-4 sm:left-12", rot: 20, delay: 1.4 },
+  { id: "fire1", icon: "🔥", label: "COMBO!", pos: "bottom-20 right-4 sm:right-12", rot: -15, delay: 0.2 },
 ];
 
 export default function DopaBenPortalPage() {
@@ -182,6 +201,22 @@ export default function DopaBenPortalPage() {
     setCheerCount((prev) => prev + 1);
   };
 
+  // ステッカーをタップしたときの可愛いマイクロ紙吹雪エフェクト
+  const handleStickerTap = (e: React.MouseEvent<HTMLButtonElement>) => {
+    soundEngine.playTap();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+    confetti({
+      particleCount: 16,
+      spread: 50,
+      origin: { x, y },
+      colors: ["#FACC15", "#EF4444", "#06B6D4", "#10B981", "#EC4899"],
+      ticks: 80,
+      scalar: 0.85,
+    });
+  };
+
   return (
     <div
       className="min-h-screen w-full text-slate-900 flex flex-col items-center justify-start p-3 sm:p-6 select-none relative overflow-x-hidden bg-white bg-cover bg-top bg-no-repeat"
@@ -190,53 +225,70 @@ export default function DopaBenPortalPage() {
         backgroundAttachment: "fixed",
       }}
     >
-      {/* 背景の軽やかな浮遊デコレーション（sunbousai.jp 風・微細な浮遊感） */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <motion.div
-          animate={{ y: [0, -15, 0], x: [0, 8, 0], rotate: [0, 10, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-16 left-6 text-2xl text-amber-400 opacity-60"
-        >
-          ✦
-        </motion.div>
-        <motion.div
-          animate={{ y: [0, 16, 0], x: [0, -10, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-40 right-8 text-2xl text-red-400 opacity-50"
-        >
-          ⚾
-        </motion.div>
-        <motion.div
-          animate={{ y: [0, -14, 0], x: [0, 10, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-40 left-10 text-2xl text-sky-400 opacity-50"
-        >
-          📐
-        </motion.div>
-        <motion.div
-          animate={{ y: [0, 16, 0], x: [0, -8, 0] }}
-          transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-          className="absolute bottom-56 right-10 text-2xl text-emerald-400 opacity-50"
-        >
-          🧪
-        </motion.div>
+      {/* ========================================================================= */}
+      {/* 画面全体に散りばめられた動く可愛いステッカー（中学生向けインタラクティブ演出）   */}
+      {/* ========================================================================= */}
+      <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden">
+        {INTERACTIVE_STICKERS.map((stk) => (
+          <motion.div
+            key={stk.id}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{
+              opacity: 1,
+              scale: [1, 1.1, 1],
+              y: [0, -12, 0],
+              rotate: [stk.rot - 4, stk.rot + 4, stk.rot - 4],
+            }}
+            transition={{
+              duration: 4.5 + stk.delay,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: stk.delay,
+            }}
+            className={`absolute ${stk.pos} pointer-events-auto`}
+          >
+            <button
+              onClick={handleStickerTap}
+              title={stk.label}
+              className="group flex flex-col items-center justify-center p-1.5 rounded-2xl bg-white/80 hover:bg-white backdrop-blur-md border-2 border-slate-900 shadow-[3px_3px_0px_#0F172A] hover:scale-125 active:scale-95 transition cursor-pointer select-none"
+            >
+              <span className="text-xl sm:text-2xl filter drop-shadow-sm group-hover:animate-bounce">
+                {stk.icon}
+              </span>
+              <span className="text-[8px] font-black tracking-tight text-slate-800 bg-amber-100/90 px-1 rounded border border-amber-300 mt-0.5">
+                {stk.label}
+              </span>
+            </button>
+          </motion.div>
+        ))}
       </div>
 
       <div className="w-full max-w-xl z-10 space-y-4">
         {/* ========================================================================= */}
-        {/* 1. 中央ヒーローロゴ（白背景画像・シンプル配置）                                */}
+        {/* 1. 中央ヒーローロゴ（透過PNG＋背景サンバーストとシームレス完全連動）             */}
         {/* ========================================================================= */}
         <header className="flex flex-col items-center">
           <motion.div
-            initial={{ scale: 0.92, opacity: 0, y: 10 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, type: "spring", damping: 14 }}
-            className="w-full max-w-md flex justify-center py-2"
+            initial={{ scale: 0.88, opacity: 0, y: 12 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              y: [0, -6, 0],
+            }}
+            transition={{
+              duration: 0.55,
+              type: "spring",
+              damping: 14,
+              y: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
+            }}
+            className="w-full max-w-sm sm:max-w-md flex justify-center py-1 select-none relative"
           >
+            {/* 背景の柔らかなサンバースト光彩（シームレスに背景と同化） */}
+            <div className="absolute inset-0 -top-4 bg-amber-300/35 blur-3xl rounded-full scale-100 pointer-events-none -z-10" />
             <img
-              src="/dopaben-hero.jpg"
+              src="/dopaben-hero.png"
               alt="ドパベン"
-              className="w-full h-auto object-contain select-none"
+              className="w-full h-auto object-contain select-none filter drop-shadow-[0_10px_20px_rgba(251,146,60,0.25)]"
             />
           </motion.div>
 
@@ -245,16 +297,19 @@ export default function DopaBenPortalPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mt-3 w-full bg-white border-2 border-slate-900 p-2.5 rounded-2xl shadow-[3px_3px_0px_#0F172A] flex items-center justify-between gap-3"
+            className="mt-2 w-full bg-white/95 backdrop-blur-md border-2 border-slate-900 p-2.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 shadow-inner">
                 <GraduationCap className="w-4 h-4 text-amber-600" />
               </div>
               <div className="text-left">
-                <div className="text-[9px] text-slate-500 font-bold">学園生</div>
+                <div className="text-[9px] text-slate-500 font-bold flex items-center gap-1">
+                  <span>学園生</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                </div>
                 <div className="text-xs font-black text-slate-900">
-                  {profile ? `${profile.name} (Lv.${profile.level})` : "生徒"}
+                  {profile ? `${profile.name} (Lv.${profile.level})` : "生徒 (Lv.1)"}
                 </div>
               </div>
             </div>
@@ -262,15 +317,15 @@ export default function DopaBenPortalPage() {
             <div className="text-right">
               <div className="text-[9px] text-slate-500 font-bold">ストックLXP</div>
               <div className="text-xs font-black text-amber-600 flex items-center justify-end gap-1">
-                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                <span>{(profile?.exp ?? 0).toLocaleString()}</span>
+                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500 animate-pulse" />
+                <span>{(profile?.exp ?? 0).toLocaleString()} LXP</span>
               </div>
             </div>
           </motion.div>
         </header>
 
         {/* ========================================================================= */}
-        {/* 2. ステージ選択（左右からスライドインするカード群）                          */}
+        {/* 2. ステージ選択（左右からスライドインするポップカード群）                    */}
         {/* ========================================================================= */}
         <div className="space-y-3">
           {STAGES.map((stage, idx) => {
@@ -297,13 +352,13 @@ export default function DopaBenPortalPage() {
                   stiffness: 100,
                   damping: 14,
                 }}
-                whileHover={{ scale: 1.01 }}
+                whileHover={{ scale: 1.015 }}
               >
                 {isPlayable ? (
                   <Link
                     href={stage.href || "#"}
                     onClick={() => soundEngine.playTap()}
-                    className="group block relative bg-white border-2 border-slate-900 hover:border-slate-950 p-3 rounded-2xl shadow-[4px_4px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0F172A] transition overflow-hidden"
+                    className="group block relative bg-white/95 backdrop-blur-md border-2 border-slate-900 hover:border-slate-950 p-3 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0F172A] transition overflow-hidden"
                   >
                     <div className="flex items-center gap-3.5">
                       {/* キャラクターアバター */}
@@ -334,18 +389,21 @@ export default function DopaBenPortalPage() {
 
                       {/* 教科タイトルと概要 */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[10px] font-mono font-black text-slate-400">
-                            {stage.codeName}
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border border-slate-300 ${stage.colors.badgeBg} ${stage.colors.badgeText}`}>
+                            {stage.roleBadge}
                           </span>
                           <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-300">
                             PLAY
                           </span>
                         </div>
-                        <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
-                          {stage.subject}
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight flex items-center gap-1.5">
+                          <span>{stage.subject}</span>
+                          <span className="text-[11px] font-mono font-bold text-slate-400">
+                            {stage.codeName}
+                          </span>
                         </h2>
-                        <p className="text-[11px] text-slate-500 font-bold truncate">
+                        <p className="text-[11px] text-slate-500 font-bold truncate mt-0.5">
                           {stage.tagline}
                         </p>
                       </div>
@@ -353,7 +411,7 @@ export default function DopaBenPortalPage() {
                       {/* 出撃ボタン */}
                       <div className="shrink-0">
                         <div
-                          className={`px-3.5 py-1.5 rounded-xl border-2 border-slate-900 ${stage.colors.btnBg} ${stage.colors.btnText} font-black text-xs flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] group-hover:scale-105 transition`}
+                          className={`px-3.5 py-2 rounded-xl border-2 border-slate-900 ${stage.colors.btnBg} ${stage.colors.btnText} font-black text-xs flex items-center gap-1 shadow-[2px_2px_0px_#0F172A] group-hover:scale-105 transition`}
                         >
                           <span>あそぶ</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -367,7 +425,7 @@ export default function DopaBenPortalPage() {
                       soundEngine.playTap();
                       setSelectedStageModal(stage);
                     }}
-                    className="cursor-pointer block relative bg-white/90 hover:bg-white border-2 border-slate-300 hover:border-slate-900 p-3 rounded-2xl shadow-[3px_3px_0px_#CBD5E1] hover:shadow-[3px_3px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition overflow-hidden group"
+                    className="cursor-pointer block relative bg-white/90 hover:bg-white backdrop-blur-md border-2 border-slate-300 hover:border-slate-900 p-3 rounded-2xl shadow-[3px_3px_0px_#CBD5E1] hover:shadow-[4px_4px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition overflow-hidden group"
                   >
                     <div className="flex items-center gap-3.5">
                       {/* キャラクターアバター (準備中) */}
@@ -424,26 +482,29 @@ export default function DopaBenPortalPage() {
 
                       {/* 教科タイトルと概要 */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[10px] font-mono font-black text-slate-400">
-                            {stage.codeName}
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border border-slate-200 ${stage.colors.pillBg} ${stage.colors.pillText}`}>
+                            {stage.roleBadge}
                           </span>
                           <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 flex items-center gap-0.5">
                             <Lock className="w-2.5 h-2.5" />
                             準備中
                           </span>
                         </div>
-                        <h2 className="text-base sm:text-lg font-black text-slate-700 group-hover:text-slate-900 tracking-tight leading-tight">
-                          {stage.subject}
+                        <h2 className="text-base sm:text-lg font-black text-slate-700 group-hover:text-slate-900 tracking-tight leading-tight flex items-center gap-1.5">
+                          <span>{stage.subject}</span>
+                          <span className="text-[11px] font-mono font-bold text-slate-400">
+                            {stage.codeName}
+                          </span>
                         </h2>
-                        <p className="text-[11px] text-slate-400 font-medium truncate">
+                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
                           {stage.tagline}
                         </p>
                       </div>
 
                       {/* 詳細ボタン */}
                       <div className="shrink-0">
-                        <div className="px-3 py-1.5 rounded-xl border border-slate-300 group-hover:border-slate-900 bg-slate-100 group-hover:bg-slate-200 text-slate-600 group-hover:text-slate-900 font-bold text-xs flex items-center gap-0.5 transition">
+                        <div className={`px-3 py-1.5 rounded-xl ${stage.colors.btnBg} ${stage.colors.btnText} font-black text-xs flex items-center gap-0.5 transition shadow-sm`}>
                           <span>詳細</span>
                           <ChevronRight className="w-3.5 h-3.5" />
                         </div>
@@ -467,7 +528,7 @@ export default function DopaBenPortalPage() {
             soundEngine.playTap();
             setShowBossModal(true);
           }}
-          className="cursor-pointer w-full bg-gradient-to-r from-red-50 via-amber-50 to-pink-50 border-2 border-slate-900 p-3.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition group"
+          className="cursor-pointer w-full bg-gradient-to-r from-red-50/95 via-amber-50/95 to-pink-50/95 backdrop-blur-md border-2 border-slate-900 p-3.5 rounded-2xl shadow-[4px_4px_0px_#0F172A] hover:shadow-[5px_5px_0px_#0F172A] active:translate-x-[2px] active:translate-y-[2px] transition group"
         >
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-red-500 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#0F172A]">
@@ -489,7 +550,10 @@ export default function DopaBenPortalPage() {
             </div>
 
             <div className="shrink-0">
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition" />
+              <div className="px-2.5 py-1 rounded-xl bg-red-500 text-white font-black text-xs flex items-center gap-0.5 shadow-sm group-hover:scale-105 transition">
+                <span>討伐計画</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </div>
             </div>
           </div>
         </motion.div>
