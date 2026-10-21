@@ -47,11 +47,11 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
   const isEnglish = stage.id === "stage-english";
   const isSocial = stage.id === "stage-social";
 
-  // 軽量化されたWebP背景画像URL
-  const bgImage = isEnglish
-    ? "/bg-cutin-english.webp"
+  // 横カットインカード用のアニメ調・高彩度WebP背景画像
+  const cardBgImage = isEnglish
+    ? "/cutin-card-english.webp"
     : isSocial
-    ? "/bg-cutin-social.webp"
+    ? "/cutin-card-social.webp"
     : null;
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
     }
 
     // 確実なタイムライン実行 (計2.65秒の出撃ジングルと完全同期)
-    // 0.0s〜: 背景 ＆ キャラクター即時登場（不発ゼロ保証）
+    // 0.0s〜: 左から特大カードが超高速カットイン！
     // 1.35s〜: クライマックスキメ (MISSION START / PLAY BALL 炸裂 ＆ 紙吹雪)
     const t1 = setTimeout(() => {
       setPhase("engage");
@@ -94,43 +94,27 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, [isSocial]);
+  }, [isSocial, router, stage.href]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black select-none flex items-center justify-center">
       {/* ========================================================================= */}
-      {/* 1. 背景イラスト：全画面フルスクリーン表示                                     */}
+      {/* 1. 全体背景：ダークサイバー空間 ＆ 放射状集中線                               */}
       {/* ========================================================================= */}
-      <div className="absolute inset-0 overflow-hidden">
-        {bgImage && (
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[2600ms] scale-105"
-            style={{ backgroundImage: `url('${bgImage}')` }}
-          >
-            {/* イラストを活かす薄いコントラストグラデーション */}
-            <div
-              className={`absolute inset-0 ${
-                isSocial
-                  ? "bg-gradient-to-t from-black/85 via-black/20 to-black/70"
-                  : "bg-gradient-to-t from-black/85 via-black/20 to-black/70"
-              }`}
-            />
-          </div>
-        )}
-
+      <div className="absolute inset-0 bg-[#060810]">
         {/* 放射状スピード集中線 */}
         <div
-          className="absolute inset-0 opacity-30 mix-blend-screen pointer-events-none"
+          className="absolute inset-0 opacity-25 mix-blend-screen pointer-events-none"
           style={{
-            backgroundImage: `radial-gradient(circle at center, transparent 35%, rgba(255,255,255,0.4) 100%),
+            backgroundImage: `radial-gradient(circle at center, transparent 30%, rgba(255,255,255,0.4) 100%),
               repeating-conic-gradient(from 0deg, transparent 0deg 4deg, rgba(255,255,255,0.18) 4deg 8deg)`,
           }}
         />
 
-        {/* 英語：桜吹雪パーティクル */}
+        {/* 英語：桜吹雪パーティクル（背後で優雅に舞う） */}
         {isEnglish && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {Array.from({ length: 24 }).map((_, i) => (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-60">
+            {Array.from({ length: 20 }).map((_, i) => (
               <motion.div
                 key={i}
                 initial={{
@@ -149,21 +133,21 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                   ease: "easeInOut",
                   repeat: Infinity,
                 }}
-                className="absolute w-4 h-4 bg-gradient-to-br from-pink-200 via-rose-300 to-pink-400 rounded-full rounded-tr-none shadow-[0_0_10px_rgba(244,114,182,0.9)] opacity-90"
-                style={{ left: `${(i * 4.5) % 100}%` }}
+                className="absolute w-4 h-4 bg-gradient-to-br from-pink-200 via-rose-300 to-pink-400 rounded-full rounded-tr-none shadow-[0_0_10px_rgba(244,114,182,0.9)]"
+                style={{ left: `${(i * 5) % 100}%` }}
               />
             ))}
           </div>
         )}
 
-        {/* 社会：燃え盛る火の粉パーティクル */}
+        {/* 社会：燃え盛る火の粉パーティクル（背後で熱く舞い上がる） */}
         {isSocial && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {Array.from({ length: 26 }).map((_, i) => (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-60">
+            {Array.from({ length: 22 }).map((_, i) => (
               <motion.div
                 key={i}
                 initial={{
-                  x: (i * 4) % 100 + "%",
+                  x: (i * 4.5) % 100 + "%",
                   y: 750,
                   scale: Math.random() * 0.8 + 0.5,
                 }}
@@ -178,7 +162,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
                   ease: "easeOut",
                   repeat: Infinity,
                 }}
-                className="absolute w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-red-600 via-orange-400 to-yellow-300 shadow-[0_0_14px_#F97316] opacity-90"
+                className="absolute w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-red-600 via-orange-400 to-yellow-300 shadow-[0_0_14px_#F97316]"
               />
             ))}
           </div>
@@ -186,13 +170,13 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. 上下のサイバーアラートストライプ                                           */}
+      {/* 2. 上下のサイバーアラートストライプ（上下逆方向に超高速ループ）                   */}
       {/* ========================================================================= */}
-      <div className="absolute top-0 inset-x-0 h-10 sm:h-12 bg-black/85 backdrop-blur-md border-b-2 border-white flex items-center overflow-hidden z-20 shadow-2xl">
+      <div className="absolute top-0 inset-x-0 h-9 sm:h-11 bg-black/90 backdrop-blur-md border-b-2 border-white flex items-center overflow-hidden z-30 shadow-2xl">
         <motion.div
           animate={{ x: [0, -450] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
-          className={`whitespace-nowrap flex items-center gap-6 text-[11px] sm:text-xs font-black tracking-widest ${
+          className={`whitespace-nowrap flex items-center gap-6 text-[10px] sm:text-xs font-black tracking-widest ${
             isSocial ? "text-[#EF4444]" : "text-[#FACC15]"
           }`}
         >
@@ -209,11 +193,11 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
         </motion.div>
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 h-10 sm:h-12 bg-black/85 backdrop-blur-md border-t-2 border-white flex items-center overflow-hidden z-20 shadow-2xl">
+      <div className="absolute bottom-0 inset-x-0 h-9 sm:h-11 bg-black/90 backdrop-blur-md border-t-2 border-white flex items-center overflow-hidden z-30 shadow-2xl">
         <motion.div
           animate={{ x: [-450, 0] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
-          className={`whitespace-nowrap flex items-center gap-6 text-[11px] sm:text-xs font-black tracking-widest ${
+          className={`whitespace-nowrap flex items-center gap-6 text-[10px] sm:text-xs font-black tracking-widest ${
             isSocial ? "text-[#F97316]" : "text-[#38BDF8]"
           }`}
         >
@@ -231,140 +215,222 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. キャラクター ＆ 必殺技（確実に100%表示されるソリッドDOM構造）                */}
+      {/* 3. 横から高速カットインする特大スラッシュカード（案1：ペルソナ調正当進化）        */}
       {/* ========================================================================= */}
-      <div className="relative z-10 w-full max-w-xl px-4 flex flex-col items-center justify-center text-center">
-        {/* 上部バッジ：ステージ名 */}
-        <div className="flex items-center gap-2 mb-2 animate-bounce">
-          <span className={`px-3.5 py-1 rounded-full font-black text-xs sm:text-sm tracking-wider shadow-[3px_3px_0_#000] -skew-x-12 border-2 border-white ${
-            isSocial ? "bg-red-600 text-white" : "bg-amber-400 text-slate-950"
-          }`}>
-            STAGE {stage.stageNumber}
-          </span>
-          <span className="text-sm sm:text-base font-black tracking-widest text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] uppercase">
-            {stage.subject}編 // {stage.roleBadge}
-          </span>
-        </div>
-
-        {/* 中央：ドット絵キャラクターのクロス登場（背景画像の上にクッキリ浮かび上がる） */}
-        <div className="relative flex items-center justify-center my-2 w-full max-w-md h-36 sm:h-40">
-          {/* 回転する光輪エフェクト */}
+      <motion.div
+        initial={{ x: "-120%", skewY: -4, opacity: 0 }}
+        animate={{ x: 0, skewY: -4, opacity: 1 }}
+        transition={{
+          duration: 0.35,
+          ease: [0.16, 1, 0.3, 1], // 強烈なスナップ感のあるイージング
+        }}
+        className="relative w-full sm:w-[108vw] h-[340px] sm:h-[390px] flex items-center justify-center overflow-hidden z-20 shadow-[0_0_70px_rgba(0,0,0,0.95)]"
+        style={{
+          borderTop: "3.5px solid #FFFFFF",
+          borderBottom: "3.5px solid #FFFFFF",
+        }}
+      >
+        {/* カード背景：生成したアニメ調・バカっぽさ全開の新背景画像 */}
+        {cardBgImage ? (
           <div
-            className={`absolute w-44 h-44 sm:w-52 sm:h-52 rounded-full border-2 border-dashed animate-spin pointer-events-none ${
-              isSocial ? "border-red-400/50" : "border-amber-400/50"
-            }`}
-            style={{ animationDuration: "12s" }}
-          />
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+            style={{ backgroundImage: `url('${cardBgImage}')` }}
+          >
+            {/* イラストの迫力を残しつつ文字やドット絵を浮かび上がらせるスマートグラデーション */}
+            <div
+              className={`absolute inset-0 ${
+                isSocial
+                  ? "bg-gradient-to-r from-red-950/80 via-black/50 to-orange-950/80"
+                  : "bg-gradient-to-r from-blue-950/80 via-black/50 to-pink-950/80"
+              }`}
+            />
+          </div>
+        ) : (
           <div
-            className={`absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full blur-2xl pointer-events-none animate-pulse ${
-              isSocial
-                ? "bg-gradient-to-tr from-red-600/40 to-orange-500/40"
-                : "bg-gradient-to-tr from-amber-400/40 to-cyan-400/40"
-            }`}
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, ${stage.colors.accent} 0%, #0F172A 50%, #020617 100%)`,
+            }}
           />
+        )}
 
-          {/* 👑 英語：男子高生 ＆ 女子高生のクロス登場！ */}
-          {isEnglish && (
-            <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
-              {/* 男子高生（左） */}
-              <div className="flex flex-col items-center transform transition duration-500 scale-110">
-                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <PixelCharacter
-                    gender="boy"
-                    stage={profile?.level ?? 1}
-                    size={96}
-                    mood="attack"
-                    showAura={true}
-                    animateFrames={true}
-                  />
+        {/* スラッシュカード内部を走る光の帯エフェクト */}
+        <motion.div
+          initial={{ x: "-100%" }}
+          animate={{ x: "200%" }}
+          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+          className="absolute inset-y-0 w-32 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 pointer-events-none"
+        />
+
+        {/* ======================================================================= */}
+        {/* 内部コンテンツ（カードの傾き -4deg を相殺して見やすく整える）                */}
+        {/* ======================================================================= */}
+        <div className="relative z-10 w-full max-w-xl px-4 flex flex-col items-center justify-center text-center skew-y-4">
+          {/* 上部バッジ：ステージ名 */}
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.25 }}
+            className="flex items-center gap-2 mb-1"
+          >
+            <span
+              className={`px-3.5 py-0.5 rounded-full font-black text-xs sm:text-sm tracking-wider shadow-[3px_3px_0_#000] -skew-x-12 border-2 border-white ${
+                isSocial ? "bg-red-600 text-white" : "bg-amber-400 text-slate-950"
+              }`}
+            >
+              STAGE {stage.stageNumber}
+            </span>
+            <span className="text-xs sm:text-sm font-black tracking-widest text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] uppercase">
+              {stage.subject}編 // {stage.roleBadge}
+            </span>
+          </motion.div>
+
+          {/* 中央：ドット絵キャラクターのクロス登場（背景画像の上にクッキリ浮上） */}
+          <div className="relative flex items-center justify-center my-1 w-full max-w-md h-36 sm:h-40">
+            {/* 回転する光輪エフェクト */}
+            <div
+              className={`absolute w-44 h-44 sm:w-52 sm:h-52 rounded-full border-2 border-dashed animate-spin pointer-events-none ${
+                isSocial ? "border-red-400/50" : "border-amber-400/50"
+              }`}
+              style={{ animationDuration: "12s" }}
+            />
+            <div
+              className={`absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full blur-2xl pointer-events-none animate-pulse ${
+                isSocial
+                  ? "bg-gradient-to-tr from-red-600/40 to-orange-500/40"
+                  : "bg-gradient-to-tr from-amber-400/40 to-cyan-400/40"
+              }`}
+            />
+
+            {/* 👑 英語：男子高生 ＆ 女子高生のクロス登場！ */}
+            {isEnglish && (
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 280, damping: 15 }}
+                className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]"
+              >
+                {/* 男子高生（左） */}
+                <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                  <div className="p-1.5 rounded-2xl bg-black/70 backdrop-blur-md border-2 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                    <PixelCharacter
+                      gender="boy"
+                      stage={profile?.level ?? 1}
+                      size={96}
+                      mood="attack"
+                      showAura={true}
+                      animateFrames={true}
+                    />
+                  </div>
+                  <span className="text-[10px] font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
+                    英語勇者（男子）
+                  </span>
                 </div>
-                <span className="text-[10px] font-black bg-blue-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
-                  英語勇者（男子）
-                </span>
-              </div>
 
-              {/* 中央の電撃アイコン */}
-              <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white text-slate-950 font-black text-sm flex items-center justify-center shadow-[0_0_15px_#FACC15] -mt-3 shrink-0 animate-pulse">
-                ⚡️
-              </div>
-
-              {/* 女子高生（右） */}
-              <div className="flex flex-col items-center transform transition duration-500 scale-110">
-                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.8)]">
-                  <PixelCharacter
-                    gender="girl"
-                    stage={profile?.level ?? 1}
-                    size={96}
-                    mood="attack"
-                    showAura={true}
-                    animateFrames={true}
-                  />
+                {/* 中央の電撃アイコン */}
+                <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white text-slate-950 font-black text-sm flex items-center justify-center shadow-[0_0_15px_#FACC15] -mt-3 shrink-0 animate-pulse">
+                  ⚡️
                 </div>
-                <span className="text-[10px] font-black bg-pink-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
-                  英語勇者（女子）
-                </span>
-              </div>
-            </div>
-          )}
 
-          {/* ⚾ 社会：野球少年 ＆ 鬼コーチの熱血出撃！ */}
-          {isSocial && (
-            <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
-              {/* 鬼コーチ（左） */}
-              <div className="flex flex-col items-center transform transition duration-500 scale-110">
-                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]">
-                  <CoachCharacter pose="ready" size={96} animate={true} />
+                {/* 女子高生（右） */}
+                <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                  <div className="p-1.5 rounded-2xl bg-black/70 backdrop-blur-md border-2 border-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.8)]">
+                    <PixelCharacter
+                      gender="girl"
+                      stage={profile?.level ?? 1}
+                      size={96}
+                      mood="attack"
+                      showAura={true}
+                      animateFrames={true}
+                    />
+                  </div>
+                  <span className="text-[10px] font-black bg-pink-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
+                    英語勇者（女子）
+                  </span>
                 </div>
-                <span className="text-[10px] font-black bg-red-700 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
-                  熱血鬼コーチ
-                </span>
-              </div>
+              </motion.div>
+            )}
 
-              {/* 中央の炎アイコン */}
-              <div className="w-8 h-8 rounded-full bg-red-600 border-2 border-white text-white font-black text-sm flex items-center justify-center shadow-[0_0_18px_#EF4444] -mt-3 shrink-0 animate-pulse">
-                🔥
-              </div>
-
-              {/* 野球少年（右） */}
-              <div className="flex flex-col items-center transform transition duration-500 scale-110">
-                <div className="p-1.5 rounded-2xl bg-black/60 backdrop-blur-md border-2 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]">
-                  <BaseballCharacter
-                    gender="boy"
-                    pose="stance"
-                    size={96}
-                    teamColor="#EF4444"
-                    level={3}
-                    batTier={2}
-                    animate={true}
-                    showAura={true}
-                  />
+            {/* ⚾ 社会：野球少年 ＆ 鬼コーチの熱血出撃！ */}
+            {isSocial && (
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 280, damping: 15 }}
+                className="relative z-10 flex items-center justify-center gap-3 sm:gap-6 drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]"
+              >
+                {/* 鬼コーチ（左） */}
+                <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                  <div className="p-1.5 rounded-2xl bg-black/70 backdrop-blur-md border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]">
+                    <CoachCharacter pose="ready" size={96} animate={true} />
+                  </div>
+                  <span className="text-[10px] font-black bg-red-700 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
+                    熱血鬼コーチ
+                  </span>
                 </div>
-                <span className="text-[10px] font-black bg-orange-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
-                  熱血打線 4番
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* 必殺技コールバナー */}
-        <div className="space-y-1.5 mt-2">
-          <div className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex items-center justify-center gap-2">
-            <Flame className={`w-5 h-5 ${isSocial ? "text-red-500 fill-red-500" : "text-amber-400 fill-amber-400"} animate-bounce`} />
-            <span>{stage.subject}編 覚醒出撃！</span>
-            <Flame className={`w-5 h-5 ${isSocial ? "text-red-500 fill-red-500" : "text-amber-400 fill-amber-400"} animate-bounce`} />
+                {/* 中央の炎アイコン */}
+                <div className="w-8 h-8 rounded-full bg-red-600 border-2 border-white text-white font-black text-sm flex items-center justify-center shadow-[0_0_18px_#EF4444] -mt-3 shrink-0 animate-pulse">
+                  🔥
+                </div>
+
+                {/* 野球少年（右） */}
+                <div className="flex flex-col items-center transform transition duration-500 scale-110">
+                  <div className="p-1.5 rounded-2xl bg-black/70 backdrop-blur-md border-2 border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]">
+                    <BaseballCharacter
+                      gender="boy"
+                      pose="stance"
+                      size={96}
+                      teamColor="#EF4444"
+                      level={3}
+                      batTier={2}
+                      animate={true}
+                      showAura={true}
+                    />
+                  </div>
+                  <span className="text-[10px] font-black bg-orange-600 text-white px-2.5 py-0.5 rounded-full -mt-2 border border-white shadow-md">
+                    熱血打線 4番
+                  </span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* その他の教科用フォールバック */}
+            {!isEnglish && !isSocial && (
+              <div className="w-24 h-24 rounded-2xl bg-white/10 border-2 border-white flex items-center justify-center text-4xl">
+                ⚔️
+              </div>
+            )}
           </div>
 
-          <div className="inline-block px-4 py-1.5 rounded-2xl bg-black/85 border-2 border-white/60 backdrop-blur-md shadow-2xl">
-            <span className={`text-xs sm:text-sm font-black ${isSocial ? "text-red-400" : "text-amber-300"}`}>
-              {stage.specialMove.split(" ")[0]}
-            </span>
-            <span className="text-[11px] font-bold text-slate-200 ml-2 hidden sm:inline">
-              {stage.specialMove.split(" ").slice(1).join(" ")}
-            </span>
-          </div>
+          {/* 下段：必殺技コールバナー */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.25, duration: 0.25 }}
+            className="space-y-1 mt-1"
+          >
+            <div className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex items-center justify-center gap-2">
+              <Flame
+                className={`w-5 h-5 ${isSocial ? "text-red-500 fill-red-500" : "text-amber-400 fill-amber-400"} animate-bounce`}
+              />
+              <span>{stage.subject}編 覚醒出撃！</span>
+              <Flame
+                className={`w-5 h-5 ${isSocial ? "text-red-500 fill-red-500" : "text-amber-400 fill-amber-400"} animate-bounce`}
+              />
+            </div>
+
+            <div className="inline-block px-4 py-1 rounded-2xl bg-black/85 border-2 border-white/60 backdrop-blur-md shadow-2xl">
+              <span className={`text-xs sm:text-sm font-black ${isSocial ? "text-red-400" : "text-amber-300"}`}>
+                {stage.specialMove.split(" ")[0]}
+              </span>
+              <span className="text-[11px] font-bold text-slate-200 ml-2 hidden sm:inline">
+                {stage.specialMove.split(" ").slice(1).join(" ")}
+              </span>
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ========================================================================= */}
       {/* 4. クライマックス：MISSION START / PLAY BALL 炸裂エンブレム                   */}
@@ -376,7 +442,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
             animate={{ scale: [2.5, 1, 1.05], opacity: 1 }}
             exit={{ scale: 3.2, opacity: 0 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4"
+            className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none px-4"
           >
             <div
               className={`px-8 py-3.5 sm:px-14 sm:py-5 border-4 border-white font-black text-3xl sm:text-5xl tracking-widest uppercase -skew-x-12 shadow-[0_0_80px_rgba(0,0,0,0.95),8px_8px_0_#000000] ${
@@ -395,7 +461,7 @@ export const StageEntranceCutin: React.FC<StageEntranceCutinProps> = ({
       {/* 5. ラスト：ホワイトアウト・ハイパースペース突入                                */}
       {/* ========================================================================= */}
       <div
-        className={`absolute inset-0 bg-white z-40 pointer-events-none flex items-center justify-center transition-opacity duration-400 ${
+        className={`absolute inset-0 bg-white z-50 pointer-events-none flex items-center justify-center transition-opacity duration-400 ${
           phase === "warp" ? "opacity-100" : "opacity-0"
         }`}
       >

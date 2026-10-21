@@ -288,8 +288,8 @@ export default function DopaBenPortalPage() {
 
       // 軽量WebPアセットの事前キャッシュ
       const preloadImages = [
-        "/bg-cutin-english.webp",
-        "/bg-cutin-social.webp",
+        "/cutin-card-english.webp",
+        "/cutin-card-social.webp",
         "/dopaben-hero.webp",
         "/dopaben-bg.webp",
       ];
