@@ -684,6 +684,66 @@ class SoundEngine {
     this.playFmTone(440, 2.0, 900, 0.4, now, 0.14, 880);
     this.playFmTone(880, 2.0, 1200, 0.35, now + 0.35, 0.16);
   }
+
+  /**
+   * スタジアムの地鳴りのような大歓声・どよめき（ホワイトノイズ＋バンドパスフィルタ）
+   */
+  public playCrowdCheer(isHuge: boolean = false) {
+    if (this.muted) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const duration = isHuge ? 1.6 : 0.9;
+      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      // ホワイトノイズ生成
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      // 観客の熱気を感じるバンドパスフィルタ (800Hz〜1500Hz)
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(800, now);
+      filter.frequency.exponentialRampToValueAtTime(1400, now + duration * 0.25);
+      filter.frequency.exponentialRampToValueAtTime(650, now + duration);
+      filter.Q.value = 1.6;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.005, now);
+      gain.gain.linearRampToValueAtTime(isHuge ? 0.22 : 0.13, now + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + duration);
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * 超強化版ホームラン打球音（重低音サブベース＋金属快音＋歓声）
+   */
+  public playCriticalHomerun() {
+    this.playHomerun();
+    const ctx = this.getContext();
+    if (ctx) {
+      // 胃に響く80Hzのサブベースインパクト
+      this.playFmTone(85, 0.5, 600, 0.25, ctx.currentTime, 0.32, 35);
+    }
+    setTimeout(() => this.playCrowdCheer(true), 120);
+  }
 }
 
 export const soundEngine = new SoundEngine();

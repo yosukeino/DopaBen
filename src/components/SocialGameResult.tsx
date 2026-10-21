@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   Trophy,
@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldCheck,
+  PackageOpen,
+  Sparkles,
 } from "lucide-react";
 import { GameSummary } from "./SocialBaseballGame";
 import { SUBJECT_META } from "@/lib/socialData";
@@ -34,6 +36,7 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [displayedLxp, setDisplayedLxp] = useState(0);
+  const [isBoxOpened, setIsBoxOpened] = useState(false);
 
   const battingAverage =
     summary.totalQuestions > 0
@@ -42,19 +45,23 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
 
   const missedLogs = summary.questionLogs.filter((log) => !log.isCorrect);
 
-  useEffect(() => {
-    // 勝利ファンファーレと紙吹雪
-    soundEngine.playStageVictory();
+  // 宝箱タップ開封
+  const handleOpenChest = () => {
+    if (isBoxOpened) return;
+    setIsBoxOpened(true);
+    soundEngine.playBatCrack();
+    soundEngine.playEvolutionFanfare();
+
     confetti({
-      particleCount: 90,
-      spread: 90,
+      particleCount: 120,
+      spread: 100,
       origin: { y: 0.5 },
-      colors: ["#EF4444", "#FACC15", "#10B981", "#38BDF8", "#FFFFFF"],
+      colors: ["#FACC15", "#EF4444", "#38BDF8", "#FFFFFF", "#10B981"],
     });
 
     // LXP カウントアップ
     const start = performance.now();
-    const duration = 1000;
+    const duration = 1100;
     const target = summary.earnedLxp;
 
     const tick = (now: number) => {
@@ -67,7 +74,9 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
       }
     };
     requestAnimationFrame(tick);
+  };
 
+  useEffect(() => {
     // 間違えた問題をローカルストレージの復習リストに追加
     if (missedLogs.length > 0) {
       try {
@@ -89,7 +98,7 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-[#1E293B] via-[#1C0D12] to-[#0B0D12] border-2 border-white p-5 rounded-2xl shadow-p5-red text-center space-y-3 relative overflow-hidden"
+        className="bg-gradient-to-br from-[#1E293B] via-[#1C0D12] to-[#0B0D12] border-2 border-white p-5 rounded-3xl shadow-p5-red text-center space-y-3 relative overflow-hidden"
       >
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EF4444]/20 border border-[#EF4444]/40 text-[#EF4444] text-xs font-black">
           <Trophy className="w-3.5 h-3.5" />
@@ -105,14 +114,39 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
           </div>
         </div>
 
-        {/* 獲得LXP */}
-        <div className="bg-[#090D16] border border-[#334155] p-3 rounded-xl flex items-center justify-between">
-          <span className="text-xs text-[#94A3B8] font-bold">獲得ストックLXP:</span>
-          <span className="text-xl font-black text-[#FACC15] flex items-center gap-1">
-            <Zap className="w-5 h-5 fill-[#FACC15]" />
-            <span>+{displayedLxp.toLocaleString()} LXP</span>
-          </span>
-        </div>
+        {/* ★ 甲子園ゴールド宝箱タップ開封演出 */}
+        {!isBoxOpened ? (
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleOpenChest}
+            className="cursor-pointer bg-gradient-to-r from-[#B45309] via-[#F59E0B] to-[#FACC15] p-4 rounded-2xl border-2 border-white shadow-2xl flex flex-col items-center justify-center space-y-1.5 group"
+          >
+            <motion.div
+              animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+              className="text-4xl drop-shadow-lg"
+            >
+              🎁
+            </motion.div>
+            <span className="text-xs font-black text-slate-950 flex items-center gap-1 group-hover:scale-105 transition">
+              <Sparkles className="w-4 h-4 text-black" />
+              <span>タップして試合報酬を開封！</span>
+            </span>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-[#090D16] border border-[#FACC15] p-3 rounded-2xl flex items-center justify-between shadow-lg"
+          >
+            <span className="text-xs text-[#94A3B8] font-bold">獲得ストックLXP:</span>
+            <span className="text-2xl font-black text-[#FACC15] flex items-center gap-1">
+              <Zap className="w-5 h-5 fill-[#FACC15]" />
+              <span>+{displayedLxp.toLocaleString()} LXP</span>
+            </span>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* 2. 試合スコア＆個人打撃成績スタッツ */}
@@ -221,7 +255,6 @@ export const SocialGameResult: React.FC<SocialGameResultProps> = ({
                   </div>
                 </div>
 
-                {/* 展開された詳細情報 */}
                 {isExpanded && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}

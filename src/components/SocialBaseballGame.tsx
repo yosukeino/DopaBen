@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import {
   GeneratedSocialQuestion,
-  evaluateAtBat,
+  evaluateAtBatAdvanced,
   BattingOutcome,
+  AtBatResult,
 } from "@/lib/socialQuestionEngine";
 import { SocialQuestion, SUBJECT_META } from "@/lib/socialData";
 import { soundEngine } from "@/lib/soundEngine";
@@ -53,6 +54,13 @@ interface SocialBaseballGameProps {
   onAbort: () => void;
 }
 
+const PITCH_TYPES = [
+  { name: "剛速球ストレート", speed: "152km/h", color: "#EF4444" },
+  { name: "カミソリスライダー", speed: "141km/h", color: "#38BDF8" },
+  { name: "落差鋭い魔球フォーク", speed: "136km/h", color: "#FACC15" },
+  { name: "超高速シンカー", speed: "144km/h", color: "#A855F7" },
+];
+
 export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   deck,
   mode,
@@ -83,20 +91,13 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   const [pose, setPose] = useState<BaseballPose>("stance");
   const [pitching, setPitching] = useState(false);
   const [ballFlying, setBallFlying] = useState(false);
+  const [currentPitch, setCurrentPitch] = useState(PITCH_TYPES[0]);
   const [isFever, setIsFever] = useState(false);
   const [showFeverCutin, setShowFeverCutin] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
-  const [hitBanner, setHitBanner] = useState<{
-    show: boolean;
-    title: string;
-    sub: string;
-    outcome: BattingOutcome;
-  }>({
-    show: false,
-    title: "",
-    sub: "",
-    outcome: "SINGLE",
-  });
+  const [isFlash, setIsFlash] = useState(false);
+
+  const [hitResult, setHitResult] = useState<AtBatResult | null>(null);
 
   // 設問状態
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
@@ -104,43 +105,60 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
   const questionLogsRef = useRef<GameSummary["questionLogs"]>([]);
-  const currentItem = deck[currentIndex];
+  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const currentItem = deck[currentIndex];
   const isBasesLoaded = bases[0] && bases[1] && bases[2];
+
+  // ★ ミート力（Meet）による誤答消去
+  const eliminatedChoiceIds = useMemo(() => {
+    if (!currentItem || player.stats.meet < 45) return new Set<string>();
+    const distractors = currentItem.choices.filter((c) => !c.isCorrect);
+    const countToEliminate = player.stats.meet >= 80 ? 2 : 1;
+    const toEliminate = distractors.slice(0, countToEliminate).map((c) => c.id);
+    return new Set(toEliminate);
+  }, [currentItem, player.stats.meet]);
 
   // 設問開始時のリセット
   useEffect(() => {
+    if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+
     setSelectedChoiceId(null);
     setIsAnswered(false);
     setPose("stance");
-    setHitBanner({ show: false, title: "", sub: "", outcome: "SINGLE" });
+    setHitResult(null);
+
+    // ランダム球種決定
+    const randomPitch = PITCH_TYPES[Math.floor(Math.random() * PITCH_TYPES.length)];
+    setCurrentPitch(randomPitch);
 
     // ピッチャーの投球
     setPitching(true);
     const timer = setTimeout(() => {
       setPitching(false);
       setQuestionStartTime(Date.now());
-    }, 380);
+    }, 320);
 
     return () => clearTimeout(timer);
   }, [currentIndex]);
 
   // 回答処理
   const handleSelectChoice = (choiceId: string, isCorrect: boolean, choiceText: string) => {
-    if (isAnswered || !currentItem) return;
+    if (isAnswered || !currentItem || eliminatedChoiceIds.has(choiceId)) return;
 
     setIsAnswered(true);
     setSelectedChoiceId(choiceId);
     const responseTime = Date.now() - questionStartTime;
 
-    // 選手のステータス補正
-    // ミート力が高いほど即答時間の許容範囲が拡大
-    const meetBonus = (player.stats.meet - 15) * 15; // 最大+1260ms
-    const adjustedResponseTime = Math.max(200, responseTime - meetBonus);
+    const evaluation = evaluateAtBatAdvanced({
+      isCorrect,
+      responseTimeMs: responseTime,
+      currentCombo: combo,
+      currentBases: bases,
+      stats: player.stats,
+      isFever,
+    });
 
-    const evaluation = evaluateAtBat(isCorrect, adjustedResponseTime, combo, bases);
-
-    // ログ記録
     questionLogsRef.current.push({
       question: currentItem.question,
       userChoice: choiceText,
@@ -149,43 +167,37 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
     });
 
     if (isCorrect) {
+      // ヒットストップ ＆ 閃光
+      setIsFlash(true);
+      setTimeout(() => setIsFlash(false), 70);
+
       const newCombo = combo + 1;
       setCombo(newCombo);
       if (newCombo > maxCombo) setMaxCombo(newCombo);
 
-      // フィーバー突入チェック (3連打で発動)
-      let currentFever = isFever;
+      // フィーバー突入チェック
       if (newCombo >= 3 && !isFever) {
         setIsFever(true);
-        currentFever = true;
         setShowFeverCutin(true);
-        soundEngine.playBatCrack();
-        setTimeout(() => setShowFeverCutin(false), 1200);
+        setTimeout(() => setShowFeverCutin(false), 1100);
       }
 
-      // フィーバー＆勝負強さのボーナス倍率
-      let multiplier = currentFever ? 2.0 : 1.0;
-      if (isBasesLoaded) multiplier += (player.stats.clutch / 100);
-
-      const finalLxp = Math.round(evaluation.lxpGained * multiplier);
-      setTotalEarnedLxp((prev) => prev + finalLxp);
+      setTotalEarnedLxp((prev) => prev + evaluation.lxpGained);
       setRuns((prev) => prev + evaluation.runsScored);
       setBases(evaluation.newBases);
       setStrikes(0);
 
-      // 成績加算
       setHits((prev) => prev + 1);
       if (evaluation.outcome === "HOMERUN") {
         setHomeruns((prev) => prev + 1);
         setPose("homerun");
-        soundEngine.playHomerun();
+        soundEngine.playCriticalHomerun();
 
-        // 強烈な画面揺れエフェクト
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 500);
 
         confetti({
-          particleCount: 80,
+          particleCount: 90,
           spread: 90,
           origin: { y: 0.6 },
           colors: [player.teamColor, "#FACC15", "#38BDF8", "#FFFFFF"],
@@ -194,6 +206,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         setDoubles((prev) => prev + 1);
         setPose("swing");
         soundEngine.playBatCrack();
+        soundEngine.playCrowdCheer(false);
       } else {
         setSingles((prev) => prev + 1);
         setPose("swing");
@@ -201,23 +214,17 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
       }
 
       setBallFlying(true);
-      setTimeout(() => setBallFlying(false), 800);
+      setTimeout(() => setBallFlying(false), 650);
+      setHitResult(evaluation);
 
-      setHitBanner({
-        show: true,
-        title: evaluation.title,
-        sub: evaluation.comment,
-        outcome: evaluation.outcome,
-      });
-
-      // 自動で次の打席へ進む
-      setTimeout(() => {
+      // テンポ超高速化：待たずに次球へ（HR: 1150ms, ヒット: 750ms）
+      autoAdvanceTimerRef.current = setTimeout(() => {
         advanceNextAtBat(false);
-      }, evaluation.outcome === "HOMERUN" ? 2000 : 1400);
+      }, evaluation.outcome === "HOMERUN" ? 1150 : 750);
     } else {
       // 不正解処理
       setCombo(0);
-      setIsFever(false); // フィーバー終了
+      setIsFever(false);
       setPose("miss");
       soundEngine.playStrike();
 
@@ -234,16 +241,18 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         setStrikes(newStrikes);
       }
 
-      setHitBanner({
-        show: true,
-        title: isNewOut ? "空振り三振！アウト！" : "ストライク！",
-        sub: `正解: 「${currentItem.question.answer}」`,
-        outcome: "OUT",
-      });
+      setHitResult(evaluation);
+
+      // ★ ミス時も1.3秒後に自動で次へ進みテンポを損なわない（画面タップでも即次へ！）
+      autoAdvanceTimerRef.current = setTimeout(() => {
+        advanceNextAtBat(false);
+      }, 1350);
     }
   };
 
   const advanceNextAtBat = (forceNext: boolean = false) => {
+    if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+
     const nextIndex = currentIndex + 1;
     let isGameOver = false;
 
@@ -285,10 +294,21 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
 
   return (
     <div
-      className={`w-full max-w-md mx-auto space-y-3 pb-8 select-none transition-transform duration-75 ${
-        isShaking ? "translate-y-1.5 rotate-[0.8deg] scale-[1.02]" : ""
+      onClick={() => {
+        // 回答済みでミスしている場合、画面のどこをタップしても即座に次打席へ進む超速リカバー
+        if (isAnswered && hitResult?.outcome === "OUT") {
+          advanceNextAtBat(true);
+        }
+      }}
+      className={`w-full max-w-md mx-auto space-y-3 pb-8 select-none transition-transform duration-75 relative ${
+        isShaking ? "translate-y-2 rotate-[1deg] scale-[1.03]" : ""
       }`}
     >
+      {/* ヒットストップ・全画面ホワイト閃光 */}
+      {isFlash && (
+        <div className="fixed inset-0 z-50 bg-white/70 pointer-events-none transition-opacity" />
+      )}
+
       {/* 熱闘FEVERカットイン演出 */}
       <AnimatePresence>
         {showFeverCutin && (
@@ -428,7 +448,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
       >
         <div className="absolute inset-0 opacity-15 pointer-events-none bg-[repeating-linear-gradient(45deg,#000_0px,#000_20px,transparent_20px,transparent_40px)]" />
 
-        {/* 外野フェンス＆帯 */}
+        {/* 外野フェンス＆球種インジケータ */}
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/20">
             <span className="text-sm">{meta.icon}</span>
@@ -438,8 +458,11 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
             </span>
           </div>
 
-          <div className="px-2 py-0.5 rounded text-[10px] font-black bg-black/50 text-[#CBD5E1] border border-white/10 truncate max-w-[200px]">
-            {currentItem.question.chapter}
+          {/* ★ ピッチャーの球種リアルタイムカットイン */}
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black bg-black/60 border border-white/20 text-[#CBD5E1]">
+            <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: currentPitch.color }} />
+            <span>{currentPitch.name}</span>
+            <span className="text-[#FACC15]">{currentPitch.speed}</span>
           </div>
         </div>
 
@@ -449,7 +472,7 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
             <motion.div
               initial={{ scale: 0.3, y: -20, opacity: 0 }}
               animate={{ scale: 1.2, y: 30, opacity: 1 }}
-              transition={{ duration: 0.38, ease: "easeIn" }}
+              transition={{ duration: 0.32, ease: "easeIn" }}
               className="text-2xl drop-shadow-lg"
             >
               ⚾
@@ -460,11 +483,11 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
             <motion.div
               initial={{ scale: 1, x: 0, y: 20 }}
               animate={{
-                scale: [1, 2.2, 0.3],
-                x: [0, 90, 180],
-                y: [20, -90, -160],
+                scale: [1, 2.4, 0.2],
+                x: [0, 100, 200],
+                y: [20, -100, -180],
               }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.65 }}
               className="text-3xl drop-shadow-2xl absolute"
             >
               ⚾💨
@@ -490,26 +513,42 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
             </div>
           </div>
 
-          {/* 打撃結果のトースト */}
+          {/* 打球スタッツHUD（飛距離・打球初速・得点） */}
           <AnimatePresence>
-            {hitBanner.show && (
+            {hitResult && hitResult.outcome === "HOMERUN" && (
+              <motion.div
+                initial={{ scale: 0.4, rotate: -8, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="absolute inset-x-2 top-8 z-40 bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#EF4444] p-3 rounded-2xl border-4 border-white shadow-2xl text-center text-slate-950 font-black"
+              >
+                <div className="text-xl sm:text-2xl italic tracking-tighter drop-shadow leading-tight">
+                  💥 {hitResult.title}
+                </div>
+                <div className="flex items-center justify-center gap-3 text-xs font-black mt-1 bg-black/85 text-white py-1 px-3 rounded-lg">
+                  <span className="text-[#FACC15]">飛距離: {hitResult.distanceMeters}m</span>
+                  <span className="text-[#38BDF8]">初速: {hitResult.exitVelocityKmh}km/h</span>
+                  <span className="text-[#F43F5E]">得点: +{hitResult.runsScored}点</span>
+                </div>
+              </motion.div>
+            )}
+
+            {hitResult && hitResult.outcome !== "HOMERUN" && (
               <motion.div
                 initial={{ scale: 0.6, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0 }}
-                className={`p-2.5 rounded-xl border-2 text-center shadow-2xl max-w-[190px] ${
-                  hitBanner.outcome === "HOMERUN"
-                    ? "bg-gradient-to-r from-[#EF4444] to-[#F59E0B] border-white text-white"
-                    : hitBanner.outcome === "OUT"
+                className={`p-2.5 rounded-xl border-2 text-center shadow-2xl max-w-[200px] ${
+                  hitResult.outcome === "OUT"
                     ? "bg-[#1E293B] border-[#EF4444] text-[#F87171]"
                     : "bg-[#0F172A] border-[#38BDF8] text-white"
                 }`}
               >
                 <div className="text-xs font-black tracking-wide leading-tight">
-                  {hitBanner.title}
+                  {hitResult.title}
                 </div>
                 <div className="text-[10px] opacity-90 line-clamp-1 mt-0.5 font-bold">
-                  {hitBanner.sub}
+                  {hitResult.comment}
                 </div>
               </motion.div>
             )}
@@ -539,13 +578,17 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         )}
       </div>
 
-      {/* 5. 4択バッティングボタン */}
+      {/* 5. 4択バッティングボタン（ミート力で誤答粉砕エフェクト） */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {currentItem.choices.map((choice, idx) => {
           const isSelected = selectedChoiceId === choice.id;
+          const isEliminated = eliminatedChoiceIds.has(choice.id);
+
           let btnStyle = "bg-[#1E293B] hover:bg-[#334155] border-[#475569] text-white";
 
-          if (isAnswered) {
+          if (isEliminated) {
+            btnStyle = "bg-[#090D16] border-[#1E293B] text-[#475569] line-through opacity-30 cursor-not-allowed scale-[0.98]";
+          } else if (isAnswered) {
             if (choice.isCorrect) {
               btnStyle = "bg-[#10B981] border-white text-slate-950 font-black shadow-lg scale-[1.02]";
             } else if (isSelected && !choice.isCorrect) {
@@ -558,9 +601,12 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
           return (
             <motion.button
               key={choice.id}
-              whileTap={!isAnswered ? { scale: 0.97 } : {}}
-              onClick={() => handleSelectChoice(choice.id, choice.isCorrect, choice.text)}
-              disabled={isAnswered}
+              whileTap={!isAnswered && !isEliminated ? { scale: 0.97 } : {}}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectChoice(choice.id, choice.isCorrect, choice.text);
+              }}
+              disabled={isAnswered || isEliminated}
               className={`p-3 rounded-xl border-2 flex items-center justify-between text-left transition ${btnStyle}`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -570,6 +616,11 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
                 <span className="text-xs font-black truncate">{choice.text}</span>
               </div>
 
+              {isEliminated && (
+                <span className="text-[9px] font-black text-[#64748B] px-1.5 py-0.5 rounded bg-black/30">
+                  ⚡粉砕消去
+                </span>
+              )}
               {isAnswered && choice.isCorrect && (
                 <CheckCircle2 className="w-4 h-4 text-slate-950 shrink-0" />
               )}
@@ -581,8 +632,8 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
         })}
       </div>
 
-      {/* 6. 不正解時の解説・「次へ進む」ボタン */}
-      {isAnswered && (
+      {/* 6. 不正解時の超速リカバー（画面タップで即スキップ案内） */}
+      {isAnswered && hitResult?.outcome === "OUT" && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -601,10 +652,13 @@ export const SocialBaseballGame: React.FC<SocialBaseballGameProps> = ({
           </div>
 
           <button
-            onClick={() => advanceNextAtBat(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              advanceNextAtBat(true);
+            }}
             className="px-4 py-2 rounded-xl bg-[#FACC15] hover:bg-[#FFE600] text-black font-black text-xs flex items-center gap-1 shadow-sm active:scale-95 transition shrink-0"
           >
-            <span>次の打席へ</span>
+            <span>次の打席へ (タップ)</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </motion.div>

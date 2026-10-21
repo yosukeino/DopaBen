@@ -48,6 +48,7 @@ import {
   calculateOverallRank,
   DEFAULT_BASEBALL_PLAYER,
   BAT_EQUIPMENTS,
+  PLAYER_RANKS,
 } from "@/lib/baseballGrowthEngine";
 import { PlayerProfile } from "@/lib/types";
 
@@ -421,6 +422,36 @@ export default function DopaSocPage() {
                   </span>
                 </div>
               </div>
+
+              {/* 次のバット・称号進化プログレスバー */}
+              {(() => {
+                const nextBat = BAT_EQUIPMENTS.find((b) => b.unlockLevel > player.level);
+                if (!nextBat) return null;
+                const nextRank = PLAYER_RANKS.find((r) => r.level === nextBat.unlockLevel);
+                if (!nextRank) return null;
+                const neededLxp = Math.max(0, nextRank.requiredTotalLxp - player.totalLxp);
+                const progressPct = Math.min(100, Math.round((player.totalLxp / nextRank.requiredTotalLxp) * 100));
+
+                return (
+                  <div className="bg-[#090D16]/90 border border-[#FACC15]/40 rounded-xl p-2.5 space-y-1.5 shadow-inner">
+                    <div className="flex items-center justify-between text-[11px] font-black">
+                      <span className="text-[#FACC15] flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-[#FACC15]" />
+                        <span>次の装備「{nextBat.name}」まで</span>
+                      </span>
+                      <span className="text-white">あと {neededLxp.toLocaleString()} LXP</span>
+                    </div>
+
+                    <div className="w-full h-2 bg-[#1E293B] rounded-full overflow-hidden p-0.5 border border-[#334155]">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progressPct}%` }}
+                        className="h-full bg-gradient-to-r from-[#EF4444] via-[#FACC15] to-[#38BDF8] rounded-full"
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ロッカールーム強化バナー */}
               <button
