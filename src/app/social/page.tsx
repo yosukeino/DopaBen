@@ -233,6 +233,13 @@ export default function DopaSocPage() {
     return true;
   }).length;
 
+  const selectedFieldLabel =
+    selectedSubject === "ALL"
+      ? "全分野シャッフル (1,331問)"
+      : selectedChapter === "ALL"
+      ? `${selectedSubject} 全部 (${targetCount}問)`
+      : `${selectedSubject}・${selectedChapter} (${targetCount}問)`;
+
   return (
     <div className="min-h-screen w-full bg-[#0B0D12] bg-halftone text-white flex flex-col items-center justify-start p-4 sm:p-6 select-none">
       {/* 選手育成・ロッカールームモーダル */}
@@ -429,6 +436,68 @@ export default function DopaSocPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ★ ファーストビュー：特大メインゲームスタートボタン（英語アプリ同様の特大3D立体出撃CTA） */}
+          <div className="relative pt-1 pb-1">
+            {/* 背後で拍動する高輝度ネオングローオーラ */}
+            <div className="pointer-events-none absolute inset-x-2 -inset-y-1 blur-xl opacity-60 bg-gradient-to-r from-[#EF4444] via-[#F59E0B] to-[#EF4444] animate-pulse" />
+
+            {/* 上部インジケータ */}
+            <div className="flex items-center justify-between px-2 mb-1.5 relative z-10 text-[11px] font-black">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-ping shrink-0" />
+                <span className="text-[#FACC15] shrink-0">KNOCK READY</span>
+                <span className="text-slate-500 font-normal">/</span>
+                <span className="text-white truncate max-w-[200px] drop-shadow-sm font-bold">
+                  {selectedFieldLabel}
+                </span>
+              </div>
+              <div className="text-[10px] font-black text-slate-300 bg-slate-900/80 px-2 py-0.5 rounded-full border border-slate-700/80 shrink-0 ml-1">
+                対象: {targetCount}問
+              </div>
+            </div>
+
+            {/* 特大3D立体プッシュボタン本体 */}
+            <motion.button
+              whileHover={{ scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
+              onClick={() => {
+                soundEngine.playTap();
+                handleStartInfiniteKnock();
+              }}
+              className="w-full relative group overflow-hidden border-2 border-white -skew-x-6 transition-all duration-150 select-none cursor-pointer bg-gradient-to-r from-[#DC2626] via-[#EF4444] to-[#F97316] text-white shadow-[0_7px_0_#991B1B,0_14px_24px_rgba(239,68,68,0.45)] active:translate-y-1.5 active:shadow-[0_1px_0_#991B1B]"
+            >
+              {/* シャインエフェクト */}
+              <span className="pointer-events-none absolute -inset-y-4 -inset-x-12 w-20 bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-12 animate-glint-sweep" />
+
+              <div className="skew-x-6 px-4 py-3 sm:py-3.5 flex items-center justify-between gap-3 relative z-10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-xl border-2 border-white flex items-center justify-center shrink-0 shadow-[2px_2px_0_#0B0D12] bg-[#0B0D12] text-[#FACC15]">
+                    <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current ml-0.5 animate-pulse" />
+                  </div>
+
+                  <div className="text-left min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-[#78350F] text-amber-100">
+                        無限ノック
+                      </span>
+                      <span className="text-[11px] font-bold opacity-90 truncate text-slate-200">
+                        {selectedSubject === "ALL" ? "全分野総力戦" : `${selectedSubject} 特訓`}
+                      </span>
+                    </div>
+                    <div className="text-base sm:text-lg font-black tracking-wide flex items-center gap-1.5 mt-0.5 drop-shadow-sm leading-tight text-white">
+                      <span>ゲームスタート！</span>
+                      <span className="text-xs sm:text-sm text-[#FACC15]">PLAY BALL</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 border-white flex items-center justify-center shrink-0 shadow-[2px_2px_0_#0B0D12] bg-[#78350F] text-white group-hover:translate-x-1 transition-transform">
+                  <ChevronRight className="w-6 h-6 stroke-[3]" />
+                </div>
+              </div>
+            </motion.button>
           </div>
 
           {/* 2. トータルノック記録（キャリアスタッツ） */}
@@ -668,6 +737,36 @@ export default function DopaSocPage() {
                 <Play className="w-6 h-6 fill-white" />
               </div>
             </button>
+          </div>
+
+          {/* ★ 画面右下固定（Fix）ゲームスタートFABボタン */}
+          <div className="fixed bottom-5 right-4 sm:right-6 z-40">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                soundEngine.playTap();
+                handleStartInfiniteKnock();
+              }}
+              className="group relative flex items-center gap-2.5 px-4 py-2.5 sm:py-3 rounded-full bg-gradient-to-r from-[#DC2626] via-[#EF4444] to-[#F97316] text-white font-black shadow-[0_6px_20px_rgba(239,68,68,0.5),0_2px_0_#991B1B] border-2 border-white hover:brightness-110 active:translate-y-0.5 active:shadow-[0_1px_0_#991B1B] transition select-none cursor-pointer"
+            >
+              {/* ネオンパルスオーラ */}
+              <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#EF4444] to-[#FACC15] blur-sm opacity-70 group-hover:opacity-100 animate-pulse pointer-events-none" />
+
+              <div className="relative z-10 flex items-center gap-2">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 border border-white/40 flex items-center justify-center shrink-0">
+                  <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white ml-0.5" />
+                </div>
+                <div className="text-left pr-1">
+                  <div className="text-[9px] font-black text-amber-200 tracking-wider leading-none">
+                    {selectedSubject === "ALL" ? "全分野" : selectedSubject}
+                  </div>
+                  <div className="text-xs sm:text-sm font-black italic tracking-wide leading-tight mt-0.5 drop-shadow">
+                    ゲームスタート
+                  </div>
+                </div>
+              </div>
+            </motion.button>
           </div>
         </div>
       )}
