@@ -49,6 +49,7 @@ import {
 } from "@/lib/vocabRepository";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { soundEngine } from "@/lib/soundEngine";
+import { bgmController } from "@/lib/bgmController";
 import { PixelCharacter } from "@/components/PixelCharacter";
 import { StarRadarChart } from "@/components/StarRadarChart";
 import { BattleResultSummary, BattleScreen } from "@/components/BattleScreen";
@@ -529,7 +530,32 @@ export default function DopaBenApp() {
         setDbTotalWords(pool.totalCount);
       })
       .catch(() => {});
+
+    // 🎵 英語ステージBGMのループ再生開始（メインメニュー〜バトル〜リザルト画面まで途切れず再生）
+    void bgmController.start();
+    return () => {
+      bgmController.stop();
+    };
   }, []);
+
+  // 🎵 メニュー・各種モーダル開閉時に BGM ローパスフィルター（`menu`: 450Hz, Q: 3.5）を滑らかに切り替え
+  useEffect(() => {
+    const isAnyMenuOpen =
+      isStatusModalOpen ||
+      isSkillModalOpen ||
+      isCodexModalOpen ||
+      isCustomizeModalOpen ||
+      isRankingModalOpen ||
+      isRankingEntryModalOpen;
+    bgmController.setMenuState(isAnyMenuOpen, "english_menu_modal");
+  }, [
+    isStatusModalOpen,
+    isSkillModalOpen,
+    isCodexModalOpen,
+    isCustomizeModalOpen,
+    isRankingModalOpen,
+    isRankingEntryModalOpen,
+  ]);
 
   const handleSyncToSupabase = async () => {
     soundEngine.playTap();

@@ -1,5 +1,7 @@
 "use client";
 
+import { bgmController } from "./bgmController";
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
@@ -170,6 +172,7 @@ class SoundEngine {
 
   public setMuted(mute: boolean) {
     this.muted = mute;
+    bgmController.setMuted(mute);
     if (mute) {
       this.stopSpeech();
     }
@@ -200,6 +203,8 @@ class SoundEngine {
   private notifySpeaking(speaking: boolean, text: string) {
     this.isCurrentlySpeaking = speaking;
     this.currentText = speaking ? text : "";
+    // 英語音声（TTS）が流れている間は BGM を reading ローパスフィルターへ滑らかに移行
+    bgmController.setReadingState(speaking, "tts_speaking");
     this.speakingListeners.forEach((fn) => {
       try {
         fn(speaking, this.currentText);

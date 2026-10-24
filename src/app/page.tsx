@@ -21,6 +21,7 @@ import { PixelCharacter } from "@/components/PixelCharacter";
 import { BaseballCharacter } from "@/components/BaseballCharacter";
 import { StageEntranceCutin } from "@/components/StageEntranceCutin";
 import { soundEngine } from "@/lib/soundEngine";
+import { bgmController } from "@/lib/bgmController";
 
 const STORAGE_KEY = "dopaben_player_profile_v1";
 
@@ -304,6 +305,10 @@ export default function DopaBenPortalPage() {
     if (stage.status !== "playable" || !stage.href) return;
     // 押下時にも即座に prefetch を再度キック
     router.prefetch(stage.href);
+    if (stage.id === "stage-english") {
+      // カットイン演出中（2.65秒）の裏で英語BGMをプリロード＆デコードしておく
+      void bgmController.preload();
+    }
     soundEngine.playStageEntrance(stage.id);
     setEntranceStage(stage);
   };

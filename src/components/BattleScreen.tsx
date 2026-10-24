@@ -27,6 +27,7 @@ import {
   splitSentenceByTargetWord,
 } from "@/lib/questionGenerator";
 import { soundEngine } from "@/lib/soundEngine";
+import { bgmController } from "@/lib/bgmController";
 import { PixelCharacter } from "./PixelCharacter";
 
 export interface RankingBattleStats {
@@ -184,6 +185,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   // 音声再生中フラグ＆現在再生中テキスト（ボタンの波形アニメ・二重再生防止用）
   const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
   const [currentSpeakingText, setCurrentSpeakingText] = useState("");
+  const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
 
   useEffect(() => {
     return soundEngine.onSpeakingChange((speaking, text) => {
@@ -193,6 +195,29 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   }, []);
 
   const currentQuestion = deck[currentIndex];
+
+  // BGM ローパスフィルター連動：
+  // 1) バトル内ポーズメニューが開いている時は `menu` (450Hz, Q:3.5)
+  useEffect(() => {
+    bgmController.setMenuState(isPauseMenuOpen, "battle_pause_menu");
+    return () => {
+      bgmController.setMenuState(false, "battle_pause_menu");
+    };
+  }, [isPauseMenuOpen]);
+
+  // 2) 英文が表示されている時（文脈穴埋め問題・総攻撃英文並び替え・回答後の例文表示モーダル）は `reading` (2200Hz, Q:1.2)
+  useEffect(() => {
+    const isSentenceDisplayed = Boolean(
+      currentQuestion &&
+        (currentQuestion.format === "sentence_fill" ||
+          currentQuestion.phase === "STAGE2_ALLOUT" ||
+          Boolean(answerModal?.exampleSentenceEn))
+    );
+    bgmController.setReadingState(isSentenceDisplayed, "battle_sentence_display");
+    return () => {
+      bgmController.setReadingState(false, "battle_sentence_display");
+    };
+  }, [currentQuestion, answerModal]);
   const hasBountyOverdrive =
     profile.level >= 2 &&
     profile.activeSkillHacks.includes("bounty_overdrive");
@@ -757,7 +782,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           <button
             onClick={() => {
               soundEngine.playTap();
-              onAbort();
+              setIsPauseMenuOpen(true);
             }}
             className={`border px-2.5 py-1 text-xs font-black flex items-center gap-1 transition ${
               isGirl
@@ -765,7 +790,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
                 : "bg-[#131720] border-[#262D3D] hover:border-[#FACC15]"
             }`}
           >
-            <ArrowLeft className={`w-3.5 h-3.5 ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`} /> 拠点へ
+            <ArrowLeft className={`w-3.5 h-3.5 ${isGirl ? "text-[#FB7185]" : "text-[#FACC15]"}`} /> メニュー
           </button>
 
           <div className="flex items-center gap-2">
@@ -1487,6 +1512,64 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* バトル中メニューモーダル（展開中はBGMが `menu` ローパスフィルター 450Hz/Q3.5 に変化） */}
+      <AnimatePresence>
+        {isPauseMenuOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 12 }}
+              className="w-full max-w-sm bg-[#131720] border-2 border-white p-5 space-y-4 shadow-[6px_6px_0_#FACC15]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-[#0B0D12] border border-white p-1 shrink-0">
+                  <PixelCharacter
+                    gender={profile.gender}
+                    stage={profile.level}
+                    stats={profile.stats}
+                    loadout={profile.characterLoadout}
+                    size={48}
+                    mood="idle"
+                    animateFrames={true}
+                  />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-[#FACC15]">
+                    PAUSE MENU // 作戦メニュー
+                  </div>
+                  <div className="text-xs text-slate-300 mt-0.5 font-bold">
+                    バトルを一時中断して拠点（メインメニュー）へ戻りますか？
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    setIsPauseMenuOpen(false);
+                  }}
+                  className="w-full py-3 bg-[#FACC15] hover:brightness-105 text-[#0B0D12] font-black text-sm border-2 border-white -skew-x-6 shadow-[3px_3px_0_#000000] active:scale-95 transition"
+                >
+                  ▶ バトルを続ける
+                </button>
+                <button
+                  onClick={() => {
+                    soundEngine.playTap();
+                    setIsPauseMenuOpen(false);
+                    onAbort();
+                  }}
+                  className="w-full py-2.5 bg-[#0B0D12] hover:bg-red-950/60 text-slate-300 hover:text-red-300 font-bold text-xs border border-[#262D3D] hover:border-red-500/60 -skew-x-6 active:scale-95 transition"
+                >
+                  ← 拠点（ステージ選択）へ戻る
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
