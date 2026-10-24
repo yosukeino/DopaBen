@@ -70,6 +70,8 @@ class BgmController {
   private gainNode: GainNode | null = null;
   private sourceNode: AudioBufferSourceNode | null = null;
   private audioBuffer: AudioBuffer | null = null;
+  private loopStartSec: number = 0;
+  private loopEndSec: number = 0;
 
   private isFetching: boolean = false;
   private fetchPromise: Promise<AudioBuffer | null> | null = null;
@@ -173,6 +175,7 @@ class BgmController {
         if (!ctx) return null;
         const decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
         this.audioBuffer = decoded;
+        this.detectGaplessLoopPoints(decoded);
         return decoded;
       } catch (err) {
         console.warn("Failed to load English BGM:", err);
@@ -184,6 +187,39 @@ class BgmController {
     })();
 
     return this.fetchPromise;
+  }
+
+  /**
+   * ブラウザのMP3デコーダが先頭・末尾に付加する微細なエンコーダ遅延（無音パディング）を検出し、
+   * 1サンプルの隙間もない完全なシームレスループ区間（loopStart / loopEnd）を算出する
+   */
+  private detectGaplessLoopPoints(buffer: AudioBuffer) {
+    const sr = buffer.sampleRate;
+    const len = buffer.length;
+    const ch0 = buffer.getChannelData(0);
+    const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+    const threshold = 0.0005;
+
+    let startSample = 0;
+    const maxScan = Math.min(len, Math.floor(sr * 0.1)); // 先頭最大100msをスキャン
+    for (let i = 0; i < maxScan; i++) {
+      if (Math.abs(ch0[i]) > threshold || Math.abs(ch1[i]) > threshold) {
+        startSample = i;
+        break;
+      }
+    }
+
+    let endSample = len;
+    const minScan = Math.max(startSample, len - Math.floor(sr * 0.1)); // 末尾最大100msをスキャン
+    for (let i = len - 1; i >= minScan; i--) {
+      if (Math.abs(ch0[i]) > threshold || Math.abs(ch1[i]) > threshold) {
+        endSample = i + 1;
+        break;
+      }
+    }
+
+    this.loopStartSec = startSample / sr;
+    this.loopEndSec = endSample / sr;
   }
 
   /**
@@ -225,6 +261,10 @@ class BgmController {
       const source = ctx.createBufferSource();
       source.buffer = this.audioBuffer;
       source.loop = true;
+      if (this.loopEndSec > this.loopStartSec) {
+        source.loopStart = this.loopStartSec;
+        source.loopEnd = this.loopEndSec;
+      }
       source.connect(this.filterNode);
 
       const now = ctx.currentTime;
@@ -236,7 +276,7 @@ class BgmController {
         now + BGM_FILTER_CONSTANTS.FADE_DURATION_SEC
       );
 
-      source.start(0);
+      source.start(0, this.loopStartSec);
       this.sourceNode = source;
       this.isPlaying = true;
 
