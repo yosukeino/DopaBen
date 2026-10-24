@@ -621,7 +621,7 @@ export default function DopaBenApp() {
     onlyWeakWords: boolean = false,
     overrideCategory?: CodexCategory
   ) => {
-    soundEngine.playAllOutIntro();
+    soundEngine.playStageStart();
     const useHardcore =
       profile.level >= 5 &&
       profile.activeSkillHacks.includes("hardcore_challenge");
@@ -692,7 +692,7 @@ export default function DopaBenApp() {
    * 出撃前に入力されたプレイヤー名を記録し、24時間クールダウンをセットして出撃
    */
   const handleStartRankingBattle = (playerName: string) => {
-    soundEngine.playStageVictory();
+    soundEngine.playStageStart();
     const finalName = playerName.trim() || "勇者";
     savePlayerName(finalName);
     recordRankingPlayed();

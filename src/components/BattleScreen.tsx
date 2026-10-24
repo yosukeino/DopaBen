@@ -675,7 +675,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setStatGains(nextGains);
 
         triggerHapticFeedback("success");
-        soundEngine.playEvolutionFanfare();
+        soundEngine.playWeakHit(newCombo, true);
         soundEngine.speakEnglish(answer, 1.0);
         setBannerType("allout");
         setBannerText(`💥 ALL-OUT FINISH!! 総攻撃成功 +${allOutBonus} LXP!!`);
