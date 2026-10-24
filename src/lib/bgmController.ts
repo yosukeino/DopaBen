@@ -24,6 +24,15 @@ export const BGM_FILTER_CONSTANTS = {
   FADE_DURATION_SEC: 0.2,
 
   /**
+   * イントロ付きシームレス無限ループ設定（秒）
+   * - 1周目（トップページから英語メニュー突入時）は 0.0秒（イントロ先頭）から再生スタート
+   * - LOOP_END_SEC (144.438021秒 = 6,933,025 / 48,000) に達した瞬間、
+   *   イントロをスキップして LOOP_START_SEC (11.204688秒 = 537,825 / 48,000) へシームレスにループバック！
+   */
+  LOOP_START_SEC: 537825 / 48000,   // 11.2046875秒
+  LOOP_END_SEC: 6933025 / 48000,    // 144.4380208秒
+
+  /**
    * 3段階のローパスフィルター・ステータス定義
    * 優先度: reading (英文読み上げ時) > battle (バトル中) > normal (カットイン＆メインメニュー)
    */
@@ -70,8 +79,9 @@ class BgmController {
   private gainNode: GainNode | null = null;
   private sourceNode: AudioBufferSourceNode | null = null;
   private audioBuffer: AudioBuffer | null = null;
-  private loopStartSec: number = 0;
-  private loopEndSec: number = 0;
+  private introStartSec: number = 0;
+  private loopStartSec: number = BGM_FILTER_CONSTANTS.LOOP_START_SEC;
+  private loopEndSec: number = BGM_FILTER_CONSTANTS.LOOP_END_SEC;
 
   private isFetching: boolean = false;
   private fetchPromise: Promise<AudioBuffer | null> | null = null;
@@ -190,8 +200,9 @@ class BgmController {
   }
 
   /**
-   * ブラウザのMP3デコーダが先頭・末尾に付加する微細なエンコーダ遅延（無音パディング）を検出し、
-   * 1サンプルの隙間もない完全なシームレスループ区間（loopStart / loopEnd）を算出する
+   * ブラウザのMP3デコーダが先頭に付加する微細なエンコーダ遅延（無音パディング）を検出し、
+   * 1周目はイントロ先頭（introStartSec）から再生しつつ、2周目以降は LOOP_END_SEC -> LOOP_START_SEC の
+   * 区間だけを1サンプルの隙間もなく無限ループさせるポイントを算出する
    */
   private detectGaplessLoopPoints(buffer: AudioBuffer) {
     const sr = buffer.sampleRate;
@@ -218,8 +229,13 @@ class BgmController {
       }
     }
 
-    this.loopStartSec = startSample / sr;
-    this.loopEndSec = endSample / sr;
+    const detectedEndSec = endSample / sr;
+    this.introStartSec = startSample / sr;
+    this.loopStartSec = this.introStartSec + BGM_FILTER_CONSTANTS.LOOP_START_SEC;
+    this.loopEndSec = Math.min(
+      detectedEndSec,
+      this.introStartSec + BGM_FILTER_CONSTANTS.LOOP_END_SEC
+    );
   }
 
   /**
@@ -276,7 +292,9 @@ class BgmController {
         now + BGM_FILTER_CONSTANTS.FADE_DURATION_SEC
       );
 
-      source.start(0, this.loopStartSec);
+      // ★ 1周目はイントロ先頭（introStartSec ≈ 0.0秒）から再生し、
+      //   loopEndSec (144.438秒) に到達したら自動的に loopStartSec (11.205秒) へ戻って無限ループ！
+      source.start(0, this.introStartSec);
       this.sourceNode = source;
       this.isPlaying = true;
 
