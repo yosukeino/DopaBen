@@ -531,31 +531,17 @@ export default function DopaBenApp() {
       })
       .catch(() => {});
 
-    // 🎵 英語ステージBGMのループ再生開始（メインメニュー〜バトル〜リザルト画面まで途切れず再生）
+    // 🎵 英語ステージBGMのループ再生開始（カットインから既に流れていれば途切れず継続）
     void bgmController.start();
-    return () => {
-      bgmController.stop();
-    };
   }, []);
 
-  // 🎵 メニュー・各種モーダル開閉時に BGM ローパスフィルター（`menu`: 450Hz, Q: 3.5）を滑らかに切り替え
+  // 🎵 画面状態に応じた BGM ローパスフィルター制御
+  // - メインメニュー（home / result）: normal (Cutoffなし: 20000Hz)
+  // - バトル中（battle）: battle (ほんの少しだけLo-fi: 3400Hz)
+  // - 英文・英単語の読み上げ時: reading (最も強いフィルター: 450Hz, soundEngineから自動連動)
   useEffect(() => {
-    const isAnyMenuOpen =
-      isStatusModalOpen ||
-      isSkillModalOpen ||
-      isCodexModalOpen ||
-      isCustomizeModalOpen ||
-      isRankingModalOpen ||
-      isRankingEntryModalOpen;
-    bgmController.setMenuState(isAnyMenuOpen, "english_menu_modal");
-  }, [
-    isStatusModalOpen,
-    isSkillModalOpen,
-    isCodexModalOpen,
-    isCustomizeModalOpen,
-    isRankingModalOpen,
-    isRankingEntryModalOpen,
-  ]);
+    bgmController.setBattleState(screen === "battle", "english_battle_screen");
+  }, [screen]);
 
   const handleSyncToSupabase = async () => {
     soundEngine.playTap();
@@ -1558,6 +1544,7 @@ export default function DopaBenApp() {
             <div className="flex items-center justify-between pb-1">
               <Link
                 href="/"
+                onClick={() => bgmController.stop()}
                 className="px-2.5 py-1 rounded-lg bg-[#1E293B] hover:bg-[#334155] border border-[#475569] text-[#94A3B8] hover:text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />

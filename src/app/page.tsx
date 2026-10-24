@@ -267,8 +267,9 @@ export default function DopaBenPortalPage() {
   const [cheerCount, setCheerCount] = useState<number>(0);
 
   useEffect(() => {
-    // 画面マウント時（および英語・社会から戻ってきた時）にカットイン状態を完全リセット＆最上部へスクロール
+    // 画面マウント時（および英語・社会から戻ってきた時）にカットイン状態を完全リセット＆BGM停止＆最上部へスクロール
     setEntranceStage(null);
+    bgmController.stop();
     if (typeof window !== "undefined") {
       window.scrollTo(0, 0);
     }
@@ -282,10 +283,11 @@ export default function DopaBenPortalPage() {
       // ignore
     }
 
-    // 🚀 出撃カットイン用背景画像および遷移先ページを即座にバックグラウンド先読み（遅延ゼロ表示＆リロード要求防止）
+    // 🚀 出撃カットイン用背景画像・英語BGM・遷移先ページを即座にバックグラウンド先読み（遅延ゼロ表示＆0秒再生）
     if (typeof window !== "undefined") {
       router.prefetch("/english");
       router.prefetch("/social");
+      void bgmController.preload();
 
       // 軽量WebPアセットの事前キャッシュ
       const preloadImages = [
@@ -306,10 +308,12 @@ export default function DopaBenPortalPage() {
     // 押下時にも即座に prefetch を再度キック
     router.prefetch(stage.href);
     if (stage.id === "stage-english") {
-      // カットイン演出中（2.65秒）の裏で英語BGMをプリロード＆デコードしておく
-      void bgmController.preload();
+      // 英語ステージはカットインの瞬間からBGMをNormal状態（Cutoffなし）で流し始める（従来のカットイン効果音は鳴らさない）
+      bgmController.setBgmState("normal");
+      void bgmController.start();
+    } else {
+      soundEngine.playStageEntrance(stage.id);
     }
-    soundEngine.playStageEntrance(stage.id);
     setEntranceStage(stage);
   };
 

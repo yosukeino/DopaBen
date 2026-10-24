@@ -197,27 +197,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const currentQuestion = deck[currentIndex];
 
   // BGM ローパスフィルター連動：
-  // 1) バトル内ポーズメニューが開いている時は `menu` (450Hz, Q:3.5)
+  // バトル画面滞在中はベース状態を `battle`（ほんの少しだけLo-fi）に設定
+  // （※英語読み上げ時は soundEngine から最優先の `reading` 450Hz が自動適用され、読み上げ終了後にこの `battle` 状態へ戻る）
   useEffect(() => {
-    bgmController.setMenuState(isPauseMenuOpen, "battle_pause_menu");
+    bgmController.setBattleState(true, "battle_screen_mount");
     return () => {
-      bgmController.setMenuState(false, "battle_pause_menu");
+      bgmController.setBattleState(false, "battle_screen_mount");
     };
-  }, [isPauseMenuOpen]);
-
-  // 2) 英文が表示されている時（文脈穴埋め問題・総攻撃英文並び替え・回答後の例文表示モーダル）は `reading` (2200Hz, Q:1.2)
-  useEffect(() => {
-    const isSentenceDisplayed = Boolean(
-      currentQuestion &&
-        (currentQuestion.format === "sentence_fill" ||
-          currentQuestion.phase === "STAGE2_ALLOUT" ||
-          Boolean(answerModal?.exampleSentenceEn))
-    );
-    bgmController.setReadingState(isSentenceDisplayed, "battle_sentence_display");
-    return () => {
-      bgmController.setReadingState(false, "battle_sentence_display");
-    };
-  }, [currentQuestion, answerModal]);
+  }, []);
   const hasBountyOverdrive =
     profile.level >= 2 &&
     profile.activeSkillHacks.includes("bounty_overdrive");

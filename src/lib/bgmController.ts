@@ -12,31 +12,34 @@ export const BGM_FILTER_CONSTANTS = {
   AUDIO_SRC: "/audio/bgm-english.mp3",
 
   /** BGMの基本音量 (0.0 〜 1.0) */
-  BASE_VOLUME: 0.25,
+  BASE_VOLUME: 0.26,
 
-  /** フィルター切り替え時のスウィープ時間（秒）：約 0.25〜0.35秒 */
-  SWEEP_DURATION_SEC: 0.3,
+  /**
+   * フィルター切り替え時のトランジション（スウィープ）時間（秒）
+   * 従来の半分（0.15秒）で素早く滑らかに切り替わる設定
+   */
+  SWEEP_DURATION_SEC: 0.15,
 
-  /** フェードイン・フェードアウト時間（秒） */
-  FADE_DURATION_SEC: 0.4,
+  /** 初回再生時のフェードイン時間（秒） */
+  FADE_DURATION_SEC: 0.2,
 
   /**
    * 3段階のローパスフィルター・ステータス定義
-   * 優先度: menu > reading > normal
+   * 優先度: reading (英文読み上げ時) > battle (バトル中) > normal (カットイン＆メインメニュー)
    */
   STATES: {
-    /** 1. 通常プレイ時（フィルターなし） */
+    /** 1. カットイン ＆ メインメニュー時（Cutoffなし・クリアな原音） */
     normal: {
       cutoffHz: 20000,
       q: 0.7,
     },
-    /** 2. 英文が表示されている・流れている時（高域のアタック感を少し丸める） */
-    reading: {
-      cutoffHz: 2200,
-      q: 1.2,
+    /** 2. バトル突入時（ほんの少しだけLo-fi気味にEQ調整） */
+    battle: {
+      cutoffHz: 3400,
+      q: 0.9,
     },
-    /** 3. メニュー画面を開いている時（水中や別室のようなしっかりこもったローパス感） */
-    menu: {
+    /** 3. 英文・英語読み上げ時（最も強くフィルターを適用し、発音をくっきり際立たせる） */
+    reading: {
       cutoffHz: 450,
       q: 3.5,
     },
@@ -46,19 +49,19 @@ export const BGM_FILTER_CONSTANTS = {
 export type BgmFilterState = keyof typeof BGM_FILTER_CONSTANTS.STATES;
 
 /**
- * 状態優先度定義 (数値が大きいほど優先: menu > reading > normal)
+ * 状態優先度定義 (数値が大きいほど優先: reading > battle > normal)
  */
 const STATE_PRIORITY: Record<BgmFilterState, number> = {
   normal: 1,
-  reading: 2,
-  menu: 3,
+  battle: 2,
+  reading: 3,
 };
 
 /**
  * Web Audio API（BiquadFilterNode）を使用したBGM管理コントローラー
- * - 単一音源のシームレスなループ再生
- * - 状態優先度（menu > reading > normal）に基づくリアルタイム・ローパスフィルター制御
- * - AudioParam.exponentialRampToValueAtTime() によるプツ音のない滑らかなスウィープ
+ * - 単一音源のシームレスなループ再生（カットイン〜メインメニュー〜バトルまで途切れず再生）
+ * - 状態優先度（reading > battle > normal）に基づくリアルタイム・ローパスフィルター制御
+ * - AudioParam.exponentialRampToValueAtTime() によるプツ音のない滑らかかつ素早いスウィープ（0.15秒）
  * - ブラウザ Autoplay ポリシー対策（初回ユーザー操作時の AudioContext.resume() 自動実行）
  */
 class BgmController {
@@ -69,22 +72,19 @@ class BgmController {
   private audioBuffer: AudioBuffer | null = null;
 
   private isFetching: boolean = false;
+  private fetchPromise: Promise<AudioBuffer | null> | null = null;
   private shouldBePlaying: boolean = false;
   private isPlaying: boolean = false;
   private muted: boolean = false;
 
   /**
    * 状態管理用のアクティブソース集合
-   * 例: 英文表示中にメニューを開いた場合、menuSources と readingSources の両方が保持され、
-   * 優先度ルール (menu > reading > normal) によって menu が適用される。
-   * メニューを閉じると menuSources が空になり、自動的に reading に復帰する。
+   * 優先度ルール: reading (読み上げ中) > battle (バトル中) > normal (カットイン・メインメニュー)
    */
-  private menuSources: Set<string> = new Set();
   private readingSources: Set<string> = new Set();
+  private battleSources: Set<string> = new Set();
   private currentAppliedState: BgmFilterState = "normal";
   private stateListeners: Set<(state: BgmFilterState) => void> = new Set();
-
-  private unlockHandlerBound: (() => void) | null = null;
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -106,7 +106,6 @@ class BgmController {
       }
     };
 
-    this.unlockHandlerBound = unlock;
     window.addEventListener("pointerdown", unlock, { passive: true });
     window.addEventListener("touchstart", unlock, { passive: true });
     window.addEventListener("keydown", unlock, { passive: true });
@@ -157,37 +156,46 @@ class BgmController {
 
   /**
    * BGM音源ファイルをフェッチ＆デコードしてメモリにキャッシュ
+   * トップ画面マウント時に呼んでおくことで、カットイン突入時に0秒で再生開始できる
    */
   public async preload(): Promise<AudioBuffer | null> {
     if (typeof window === "undefined") return null;
     if (this.audioBuffer) return this.audioBuffer;
-    if (this.isFetching) return null;
+    if (this.fetchPromise) return this.fetchPromise;
 
     this.isFetching = true;
-    try {
-      const res = await fetch(BGM_FILTER_CONSTANTS.AUDIO_SRC);
-      if (!res.ok) return null;
-      const arrayBuf = await res.arrayBuffer();
-      const ctx = this.ensureAudioGraph();
-      if (!ctx) return null;
-      const decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
-      this.audioBuffer = decoded;
-      return decoded;
-    } catch (err) {
-      console.warn("Failed to load English BGM:", err);
-      return null;
-    } finally {
-      this.isFetching = false;
-    }
+    this.fetchPromise = (async () => {
+      try {
+        const res = await fetch(BGM_FILTER_CONSTANTS.AUDIO_SRC);
+        if (!res.ok) return null;
+        const arrayBuf = await res.arrayBuffer();
+        const ctx = this.ensureAudioGraph();
+        if (!ctx) return null;
+        const decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
+        this.audioBuffer = decoded;
+        return decoded;
+      } catch (err) {
+        console.warn("Failed to load English BGM:", err);
+        return null;
+      } finally {
+        this.isFetching = false;
+        this.fetchPromise = null;
+      }
+    })();
+
+    return this.fetchPromise;
   }
 
   /**
-   * BGMのループ再生を開始する（既に再生中ならそのまま継続し、途切れさせない）
+   * BGMのループ再生を開始する（カットインから既に流れている場合は途切れずそのまま継続！）
    */
   public async start() {
     this.shouldBePlaying = true;
+    const ctx = this.ensureAudioGraph();
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
     if (this.isPlaying) {
-      // 既に流れている場合は現在の状態に応じたフィルターを再適用するのみ
       this.applyResolvedFilterState();
       return;
     }
@@ -212,7 +220,6 @@ class BgmController {
         await ctx.resume().catch(() => {});
       }
 
-      // 既存のソースがあれば安全に破棄
       this.stopSourceNodeOnly();
 
       const source = ctx.createBufferSource();
@@ -220,7 +227,6 @@ class BgmController {
       source.loop = true;
       source.connect(this.filterNode);
 
-      // 音量を滑らかにフェードイン
       const now = ctx.currentTime;
       const targetVol = this.muted ? 0.0001 : BGM_FILTER_CONSTANTS.BASE_VOLUME;
       this.gainNode.gain.cancelScheduledValues(now);
@@ -234,7 +240,6 @@ class BgmController {
       this.sourceNode = source;
       this.isPlaying = true;
 
-      // 現在の実効フィルター状態を適用
       this.applyResolvedFilterState(true);
     } catch (err) {
       console.warn("BGM startPlaybackInternal waiting for user gesture:", err);
@@ -256,65 +261,65 @@ class BgmController {
   }
 
   /**
-   * BGMを停止する（英語ステージからトップ画面へ抜ける時などに呼ぶ）
+   * BGMを停止する（英語ステージからトップ画面へ戻った時などに呼ぶ）
    */
   public stop() {
     this.shouldBePlaying = false;
-    this.menuSources.clear();
     this.readingSources.clear();
+    this.battleSources.clear();
     this.currentAppliedState = "normal";
     this.stopSourceNodeOnly();
   }
 
   /**
-   * 優先度（menu > reading > normal）に従って現在適用すべき状態を解決する
+   * 優先度（reading > battle > normal）に従って現在適用すべき状態を解決する
    */
   private resolveEffectiveState(): BgmFilterState {
-    if (this.menuSources.size > 0) {
-      return "menu";
-    }
     if (this.readingSources.size > 0) {
       return "reading";
+    }
+    if (this.battleSources.size > 0) {
+      return "battle";
     }
     return "normal";
   }
 
   /**
-   * 3つのモード（'normal' | 'reading' | 'menu'）を直接切り替えるメソッド
-   * - 優先度（menu > reading > normal）を保持したまま滑らかに遷移します
+   * 3つのモード（'normal' | 'battle' | 'reading'）を直接切り替えるメソッド
    */
   public setBgmState(state: BgmFilterState) {
-    if (state === "menu") {
-      this.menuSources.add("direct");
-    } else if (state === "reading") {
-      this.menuSources.delete("direct");
+    if (state === "reading") {
       this.readingSources.add("direct");
+    } else if (state === "battle") {
+      this.readingSources.delete("direct");
+      this.battleSources.add("direct");
     } else {
       // 'normal'
-      this.menuSources.delete("direct");
       this.readingSources.delete("direct");
+      this.battleSources.delete("direct");
     }
     this.applyResolvedFilterState();
   }
 
   /**
-   * メニュー開閉イベント用の状態更新メソッド
-   * - 例: 英文表示中にメニューを開くと `menu` (450Hz) になり、メニューを閉じると元の `reading` (2200Hz) に自動で戻る
+   * バトル画面の開始・終了イベント用の状態更新メソッド
+   * - バトル中は `battle` (ほんの少しだけLo-fi: 3400Hz / Q: 0.9) がベース状態になる
    */
-  public setMenuState(isOpen: boolean, sourceId: string = "menu_modal") {
-    if (isOpen) {
-      this.menuSources.add(sourceId);
+  public setBattleState(isInBattle: boolean, sourceId: string = "battle_screen") {
+    if (isInBattle) {
+      this.battleSources.add(sourceId);
     } else {
-      this.menuSources.delete(sourceId);
+      this.battleSources.delete(sourceId);
     }
     this.applyResolvedFilterState();
   }
 
   /**
-   * 英文表示・英語音声再生イベント用の状態更新メソッド
-   * - 複数のソース（例: 'battle_sentence' と 'tts_voice'）が重なっても安全に管理される
+   * 英文・英語音声読み上げ時の状態更新メソッド
+   * - 読み上げ中は最優先で `reading` (最も強いフィルター: 450Hz / Q: 3.5) が適用され、
+   *   読み上げが終わるとバトル中なら `battle`、メインメニューなら `normal` に自動で戻る
    */
-  public setReadingState(isReading: boolean, sourceId: string = "english_reading") {
+  public setReadingState(isReading: boolean, sourceId: string = "tts_speaking") {
     if (isReading) {
       this.readingSources.add(sourceId);
     } else {
@@ -351,7 +356,7 @@ class BgmController {
       const freqParam = this.filterNode.frequency;
       const qParam = this.filterNode.Q;
 
-      // スケジュール済みの変更をキャンセルし、現在の実際の値をアンカーしてプツ音（不連続ジャンプ）を防ぐ
+      // スケジュール済みの変更をキャンセルし、現在値をアンカーしてプツ音（不連続ジャンプ）を防ぐ
       freqParam.cancelScheduledValues(now);
       qParam.cancelScheduledValues(now);
 
@@ -365,7 +370,7 @@ class BgmController {
         freqParam.setValueAtTime(preset.cutoffHz, now);
         qParam.setValueAtTime(preset.q, now);
       } else {
-        // 約 0.30秒（0.25〜0.35秒）かけて滑らかに指数スウィープ
+        // 0.15秒かけて素早く滑らかに指数スウィープ
         freqParam.exponentialRampToValueAtTime(
           Math.max(20, preset.cutoffHz),
           now + sweepSec
@@ -376,7 +381,6 @@ class BgmController {
         );
       }
     } catch {
-      // Fallback: setTargetAtTime
       try {
         const timeConstant = sweepSec / 3;
         this.filterNode.frequency.setTargetAtTime(preset.cutoffHz, now, timeConstant);
@@ -402,7 +406,7 @@ class BgmController {
   }
 
   /**
-   * フィルター状態変化の購読（UI表示やデバッグ確認用）
+   * フィルター状態変化の購読
    */
   public onStateChange(listener: (state: BgmFilterState) => void): () => void {
     this.stateListeners.add(listener);
@@ -413,7 +417,7 @@ class BgmController {
   }
 
   /**
-   * ミュート設定の切り替え（滑らかに音量を絞る/戻す）
+   * ミュート設定の切り替え
    */
   public setMuted(mute: boolean) {
     this.muted = mute;
@@ -424,7 +428,7 @@ class BgmController {
     try {
       this.gainNode.gain.cancelScheduledValues(now);
       this.gainNode.gain.setValueAtTime(Math.max(0.0001, this.gainNode.gain.value), now);
-      this.gainNode.gain.exponentialRampToValueAtTime(target, now + 0.2);
+      this.gainNode.gain.exponentialRampToValueAtTime(target, now + 0.15);
     } catch {
       this.gainNode.gain.value = mute ? 0 : BGM_FILTER_CONSTANTS.BASE_VOLUME;
     }
